@@ -387,7 +387,7 @@
             overflow: visible;
         }
 
-        #center-table::before {
+        /* #center-table::before {
             content: '♠  ♥  ♦  ♣';
             position: absolute;
             top: 12px;
@@ -395,7 +395,7 @@
             letter-spacing: 6px;
             color: rgba(201,168,76,0.08);
             pointer-events: none;
-        }
+        } */
 
         /* Table spread area */
         #table-spread-area {
@@ -2726,7 +2726,7 @@
             if (deckCount === 0) {
                 socket.emit("takeTableCard");
             } else {
-                showToast("Ambil kartu dari deck terlebih dahulu!");
+                // showToast("Ambil kartu dari deck terlebih dahulu!");
             }
         }
 

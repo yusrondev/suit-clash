@@ -365,9 +365,11 @@ io.on("connection", (socket) => {
 
   socket.on("getLeaderboard", () => {
     const game = rooms.get(currentRoom);
-    if (!game) return;
-
+    // ✅ TUNTUTAN USER: Hanya tampilkan pemain yang sedang ada di room ini (biar gak global/nyampur)
+    const currentNames = game.players.map(p => p.name);
+    
     const sorted = Object.entries(game.leaderboard)
+      .filter(([name]) => currentNames.includes(name))
       .map(([name, data]) => ({
         name,
         win: data.win,
@@ -387,22 +389,26 @@ io.on("connection", (socket) => {
     const pIndex = game.players.findIndex((p) => p.id === socket.id);
     if (game.currentPlayer !== pIndex) return;
 
+    console.log(`[${currentRoom}] ${game.players[pIndex].name} mencoba ambil kartu meja. freeMode: ${game.freeMode}, currentSuit: ${game.currentSuit}`);
+
     // ✅ TUNTUTAN USER: Gak boleh ambil kalau lagi freeMode (dia pemimpin round)
     if (game.freeMode) {
-      socket.emit("errorMsg", { msg: "Anda adalah pemimpin putaran, silakan keluarkan kartu." });
+      socket.emit("errorMsg", { msg: "Anda adalah pemimpin putaran, wajib mengeluarkan kartu." });
       return;
     }
 
     // ✅ TUNTUTAN USER: Gak boleh ambil kalau punya kartu yang cocok (suit sama)
     const p = game.players[pIndex];
-    const hasSuit = p.cards.some((c) => c.suit === game.currentSuit);
-    if (hasSuit) {
-      socket.emit("errorMsg", { msg: "Anda punya kartu yang cocok, silakan keluarkan kartu." });
-      return;
+    if (game.currentSuit) {
+        const hasSuit = p.cards.some((c) => c.suit === game.currentSuit);
+        if (hasSuit) {
+            socket.emit("errorMsg", { msg: "Anda punya kartu yang cocok, silakan keluarkan kartu." });
+            return;
+        }
     }
 
     if (game.deck.length > 0) {
-      socket.emit("errorMsg", { msg: "Deck masih ada kartu, silakan ambil dari deck." });
+      socket.emit("errorMsg", { msg: "Deck masih ada kartu, silakan ambil dari deck dulu." });
       return;
     }
 
@@ -543,8 +549,19 @@ io.on("connection", (socket) => {
 
     const p = game.players[i];
 
-    const hasSuit = p.cards.some((c) => c.suit === game.currentSuit);
-    if (hasSuit) return;
+    // ✅ TUNTUTAN USER: Pemimpin tidak boleh ambil kartu (baik dari deck maupun meja)
+    if (game.freeMode) {
+      socket.emit("errorMsg", { msg: "Anda adalah pemimpin putaran, wajib mengeluarkan kartu." });
+      return;
+    }
+
+    if (game.currentSuit) {
+        const hasSuit = p.cards.some((c) => c.suit === game.currentSuit);
+        if (hasSuit) {
+          socket.emit("errorMsg", { msg: "Anda punya kartu yang cocok, silakan keluarkan kartu." });
+          return;
+        }
+    }
 
     // ✅ Normal draw dari deck
     if (game.deck.length > 0) {
@@ -581,12 +598,13 @@ io.on("connection", (socket) => {
       attempts++;
     }
 
-    // ✅ Reset Meja & Suit
+    // ✅ Reset Meja & Suit Total
     game.tableCard = null;
     game.currentSuit = null;
     game.roundCards = [];
     game.playersPlayed.clear();
     game.skipPlayer = null;
+    game.tableHistory = []; // 🔥 TUNTUTAN USER: Bersihkan semua sisa kartu di meja!
 
     // ✅ MASUK FREE MODE
     game.freeMode = true;
