@@ -690,6 +690,8 @@
             position: absolute;
             top: 50%;
             left: 50%;
+            /* 🔥 TUNTUTAN USER: Gunakan variabel CSS agar posisi horizontal tetap stabil saat terpilih */
+            transform: translate(calc(-50% + var(--tx, 0px)), var(--ty, 0px));
             transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1),
                         box-shadow 0.2s, opacity 0.2s;
             animation: dealCard 0.35s cubic-bezier(0.34,1.56,0.64,1) backwards;
@@ -733,9 +735,9 @@
         .hand-card.dragging  { opacity: 0.35; cursor: grabbing; filter: grayscale(0.5); }
         .hand-card.drag-over { border: 2px solid var(--gold); box-shadow: 0 0 20px rgba(201,168,76,0.5); }
 
-        /* 🔥 TUNTUTAN USER: Click Selection - Lebih halus, gak terlalu banyak gerak biar gak nutupin kartu lain */
+        /* 🔥 TUNTUTAN USER: Click Selection - Pastikan --tx terbawa, hanya --ty yang kurangi (angkat) */
         .hand-card.selected {
-            margin-top: -25px !important;
+            transform: translate(calc(-50% + var(--tx, 0px)), calc(var(--ty, 0px) - 20px)) scale(1.05) !important;
             box-shadow: 0 10px 25px rgba(212, 175, 55, 0.4), 0 0 15px var(--gold);
             border: 2px solid var(--gold-light) !important;
             z-index: 10000 !important;
@@ -2517,9 +2519,10 @@
                 const isSelected = (selectedHandIndex === i);
                 div.className = `hand-card ${red ? 'red-card' : 'black-card'} ${playable ? 'playable' : (myTurn ? 'invalid' : '')} ${isSelected ? 'selected' : ''}`;
 
-                // tx already includes cardWidth/2 offset so that translate(-50%) cancels out
-                // net result: card left-edge lands exactly at (containerCenter + startOff + i*stepX)
-                div.style.transform = `translate(calc(-50% + ${tx}px), ${ty}px)`;
+                // 🔥 TUNTUTAN USER: Gunakan CSS Variable agar transisi tetap menjaga posisi horizontal (tx) asli
+                div.style.setProperty('--tx', `${tx}px`);
+                div.style.setProperty('--ty', `${ty}px`);
+
                 // Bottom row (higher ty) gets higher zIndex so it appears in front
                 const rowBonus = ty > 0 ? 50 : 0;
                 div.style.zIndex = i + 10 + rowBonus;
