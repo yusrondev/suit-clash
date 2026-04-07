@@ -13,22 +13,22 @@
     <style>
         /* ── TOKENS ── */
         :root {
-            --felt: #1b4d35;
-            --felt-light: #236642;
-            --felt-dark: #0e2b1e;
-            --gold: #c9a84c;
-            --gold-light: #e8c96d;
-            --gold-dark: #8a6a1a;
-            --card-bg: #fdf8f0;
-            --red: #c0392b;
-            --black: #1a1a2e;
-            --cream: #f5f0e0;
-            --glass: rgba(0, 0, 0, 0.35);
-            --glass-border: rgba(201, 168, 76, 0.25);
-            --radius: 14px;
-            --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.45);
-            --shadow-deep: 0 20px 60px rgba(0, 0, 0, 0.65);
-            --header-h: 52px;
+            --felt: #1a4731;
+            --felt-light: #2d7a54;
+            --felt-dark: #0b2116;
+            --gold: #d4af37;
+            --gold-light: #f1d592;
+            --gold-dark: #aa8a2e;
+            --card-bg: #ffffff;
+            --red: #d32f2f;
+            --black: #121212;
+            --cream: #f8f4e9;
+            --glass: rgba(0, 0, 0, 0.4);
+            --glass-border: rgba(212, 175, 55, 0.3);
+            --radius: 16px;
+            --shadow-card: 0 6px 16px rgba(0, 0, 0, 0.5);
+            --shadow-deep: 0 30px 80px rgba(0, 0, 0, 0.8);
+            --header-h: 60px;
         }
 
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -67,9 +67,9 @@
             width: 100%;
             height: var(--header-h);
             padding: 0 16px;
-            display: flex;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
             align-items: center;
-            justify-content: space-between;
             flex-shrink: 0;
             background: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(20px);
@@ -87,7 +87,34 @@
         }
         .logo span { color: var(--cream); opacity: 0.7; font-weight: 400; }
 
-        #hud-top { display: none; align-items: center; gap: 8px; }
+        #leaderboard-btn {
+            display: none;
+            background: linear-gradient(145deg, #2c3e50, #1a252f);
+            border: 1px solid var(--gold-dark);
+            color: var(--gold-light);
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            transition: all 0.2s;
+            align-items: center;
+            justify-content: center;
+        }
+        #leaderboard-btn:hover {
+            transform: scale(1.1);
+            background: var(--gold-dark);
+            color: white;
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
+        }
+
+        #hud-top {
+            justify-self: end;
+            display: none;
+            align-items: center;
+            gap: 8px;
+        }
 
         .btn-leave {
             background: transparent;
@@ -238,7 +265,15 @@
         }
 
         .opponent-seat.active-turn .opp-avatar {
-            box-shadow: 0 0 0 3px var(--gold-light), 0 0 16px rgba(201,168,76,0.6);
+            box-shadow: 0 0 0 3px var(--gold), 0 0 20px var(--gold-light);
+            transform: scale(1.1);
+        }
+
+        .opponent-seat.active-turn .opponent-name {
+            color: var(--gold-light);
+            text-shadow: 0 0 8px var(--gold-dark);
+            font-size: 11px;
+            transform: scale(1.05);
         }
 
         .opp-avatar {
@@ -261,15 +296,16 @@
 
         .opponent-name {
             font-size: 10px;
-            color: rgba(245,240,224,0.85);
-            letter-spacing: 0.3px;
+            color: rgba(245,240,224,0.7);
+            letter-spacing: 0.5px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 80px;
+            max-width: 90px;
             text-align: center;
             font-weight: 600;
             position: relative;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         .opp-card-count {
@@ -346,7 +382,9 @@
             position: relative;
             overflow: visible;
             background:
-                radial-gradient(ellipse at 50% 40%, #2a7a4a 0%, #1e5e38 40%, #143d24 100%);
+                radial-gradient(ellipse at 50% 40%, #23613d 0%, #154228 50%, #0d2818 100%);
+            border: 2px solid var(--gold-dark);
+            overflow: visible;
         }
 
         #center-table::before {
@@ -541,11 +579,27 @@
             backdrop-filter: blur(8px);
         }
         #status-bar.your-turn {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             border-color: var(--gold);
-            background: rgba(201,168,76,0.12);
+            background: rgba(212, 175, 55, 0.15);
             color: var(--gold-light);
-            box-shadow: 0 0 12px rgba(201,168,76,0.25);
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+            transform: scale(1.05);
+        }
+
+        .your-identity {
+            font-size: 12px;
+            font-weight: 700;
+            color: rgba(245,240,224,0.6);
+            margin-bottom: 6px;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .your-identity.active {
+            color: var(--gold-light);
+            text-shadow: 0 0 10px var(--gold);
+            transform: scale(1.1);
         }
 
         /* ── YOUR AREA — floats up close to the table ── */
@@ -1062,16 +1116,19 @@
             position: fixed;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%) scale(0.9);
-            width: 90%;
-            max-width: 400px;
-            background: #1e1e2f;
-            border-radius: 12px;
-            padding: 16px;
+            transform: translate(-50%, -50%) scale(0.95);
+            width: 85%;
+            max-width: 320px;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 24px;
             z-index: 9999;
             opacity: 0;
             pointer-events: none;
-            transition: 0.25s;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
         }
 
         .leaderboard-panel.show {
@@ -1080,37 +1137,95 @@
             pointer-events: all;
         }
 
-        /* PODIUM */
-        .podium {
+        .lb-header {
             display: flex;
-            justify-content: center;
-            align-items: flex-end;
-            gap: 12px;
-            margin: 20px 0;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            font-family: 'Playfair Display', serif;
+            font-size: 20px;
+            font-weight: 900;
+            color: var(--gold);
         }
 
-        .podium-item {
-            text-align: center;
-        }
-
-        .first { transform: translateY(-10px); }
-        .second { transform: translateY(5px); }
-        .third { transform: translateY(10px); }
-
-        .avatar {
-            width: 40px;
-            height: 40px;
+        .lb-header button {
+            background: rgba(255,255,255,0.05);
+            border: none;
+            color: var(--cream);
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
-            background: #333;
+            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        .lb-header button:hover { background: rgba(255,255,255,0.1); }
+
+        .lb-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 350px;
+            overflow-y: auto;
+            padding-right: 4px;
         }
 
-        .avatar.big {
-            width: 55px;
-            height: 55px;
+        .lb-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 14px;
+            transition: transform 0.2s, background 0.2s;
         }
+        .lb-row:hover { background: rgba(255, 255, 255, 0.06); transform: translateX(4px); }
+
+        .lb-row.top-3 {
+            background: linear-gradient(90deg, rgba(212, 175, 55, 0.1), transparent);
+            border-color: rgba(212, 175, 55, 0.2);
+        }
+
+        .lb-rank {
+            width: 28px;
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--gold-light);
+        }
+
+        .lb-info {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-left: 4px;
+        }
+
+        .lb-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--cream);
+        }
+
+        .lb-points {
+            font-family: 'Playfair Display', serif;
+            font-size: 16px;
+            font-weight: 900;
+            color: var(--gold);
+        }
+
+        .lb-pts-label {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(245, 240, 224, 0.4);
+            margin-left: 4px;
+        }
+
 
         .first .avatar { background: gold; }
         .second .avatar { background: silver; }
@@ -1134,52 +1249,76 @@
             box-shadow: 0 0 15px var(--gold);
         }
 
+        #round-badge {
+            background: rgba(212, 175, 55, 0.1);
+            color: var(--gold-light);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 8px;
+            display: none;
+            align-items: center;
+        }
+
+        #lobby-user-list {
+            margin-top: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+        }
+        .user-chip {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 5px 12px;
+            border-radius: 20px;
+            color: var(--cream);
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            animation: fadeIn 0.3s ease-out;
+        }
+        .user-chip::before {
+            content: '●';
+            color: #4ade80;
+            font-size: 8px;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         .waiting {
-            margin-bottom: 15px !important; /* bebas kamu atur */
+            margin-bottom: 15px !important;
         }
     </style>
 </head>
 
 <body>
 
-    <!-- HEADER -->
     <header>
         <div class="logo">Suit <span>Clash</span></div>
+        <div style="display: flex; align-items: center;">
+            <div id="round-badge">1/7</div>
+            <button id="leaderboard-btn" onclick="openLeaderboard()">🏆</button>
+        </div>
         <div id="hud-top" style="display:none;">
-            <button id="leaderboard-btn">🏆</button>
             <button class="btn-leave" onclick="leaveRoom()">Keluar</button>
         </div>
     </header>
 
     <div id="leaderboard-panel" class="leaderboard-panel">
         <div class="lb-header">
-            🏆 Leaderboard
+            <div>🏆 Leaderboard</div>
             <button onclick="closeLeaderboard()">✖</button>
         </div>
 
-        <!-- PODIUM -->
-        <div class="podium">
-            <div class="podium-item second">
-                <div class="avatar" id="p2-avatar">?</div>
-                <div class="name" id="p2-name">-</div>
-                <div class="score" id="p2-score">0</div>
-            </div>
-
-            <div class="podium-item first">
-                <div class="avatar big" id="p1-avatar">?</div>
-                <div class="name" id="p1-name">-</div>
-                <div class="score" id="p1-score">0</div>
-            </div>
-
-            <div class="podium-item third">
-                <div class="avatar" id="p3-avatar">?</div>
-                <div class="name" id="p3-name">-</div>
-                <div class="score" id="p3-score">0</div>
-            </div>
+        <div id="leaderboard-list" class="lb-list">
+            <!-- Items injected by JS -->
         </div>
-
-        <!-- LIST -->
-        <div id="leaderboard-list"></div>
     </div>
 
     <!-- TOAST -->
@@ -1247,6 +1386,7 @@
         <!-- Status bar -->
         <!-- Your Hand -->
         <div id="your-area">
+            <div id="your-id-tag" class="your-identity" style="display: none;">GUEST</div>
             <div id="status-bar">Menunggu giliran...</div>
             <div id="hand"></div>
             <div id="actions">
@@ -1302,6 +1442,7 @@
 
         let lastEmojiTime = 0;
         const EMOJI_COOLDOWN = 3000; // 3 detik
+
 
         const turnSound = new Audio('/turn.mp3');
         turnSound.volume = 0.6;
@@ -1526,49 +1667,27 @@
 
             container.innerHTML = '';
 
-            function setPodium(rank, data) {
-                if (!data) return;
-
-                document.getElementById(`p${rank}-name`).textContent = data.name;
-                document.getElementById(`p${rank}-score`).textContent = data.point;
-                document.getElementById(`p${rank}-avatar`).textContent =
-                    data.name.charAt(0).toUpperCase();
+            if (list.length === 0) {
+                container.innerHTML = `<div style="text-align:center; padding: 20px; color: rgba(255,255,255,0.3); font-size:13px;">Belum ada data skor.</div>`;
             }
 
-            // 🥇🥈🥉
-            // reset semua podium dulu
-            [1, 2, 3].forEach(rank => {
-                document.getElementById(`p${rank}-name`).textContent = '-';
-                document.getElementById(`p${rank}-score`).textContent = '0';
-                document.getElementById(`p${rank}-avatar`).textContent = '?';
+            list.forEach((p, index) => {
+                const rank = index + 1;
+                const isTop3 = rank <= 3;
+                const medals = ['🥇', '🥈', '🥉'];
+                const rankDisplay = medals[index] || `#${rank}`;
 
-                // sembunyikan dulu
-                document.querySelector(`.podium-item.${rank === 1 ? 'first' : rank === 2 ? 'second' : 'third'}`)
-                    .style.display = 'none';
-            });
-
-            // isi sesuai jumlah player
-            list.forEach((data, index) => {
-                if (index < 3) {
-                    const rank = index + 1;
-
-                    setPodium(rank, data);
-
-                    // tampilkan hanya yang ada
-                    document.querySelector(
-                        `.podium-item.${rank === 1 ? 'first' : rank === 2 ? 'second' : 'third'}`
-                    ).style.display = 'flex';
-                }
-            });
-
-            // list sisanya
-            list.slice(Math.min(3, list.length)).forEach((p, i) => {
                 const div = document.createElement('div');
-                div.className = 'lb-item';
+                div.className = 'lb-row' + (isTop3 ? ' top-3' : '');
 
                 div.innerHTML = `
-                    <div>#${i + 4} ${p.name}</div>
-                    <div>${p.point} pts</div>
+                    <div class="lb-info">
+                        <div class="lb-rank">${rankDisplay}</div>
+                        <div class="lb-name">${escHtml(p.name)}</div>
+                    </div>
+                    <div class="lb-points">
+                        ${p.point}<span class="lb-pts-label">pts</span>
+                    </div>
                 `;
 
                 container.appendChild(div);
@@ -1610,8 +1729,9 @@
 
             prevTableCount = currentTableCount;
 
-            // Always show the header (Logo + Leave button) once joined
+            // Always show the header (Logo + Leaderboard + Leave button) once joined
             document.getElementById('hud-top').style.display = 'flex';
+            document.getElementById('leaderboard-btn').style.display = 'flex';
 
             // Also show actions when game started
             if (s.started) document.getElementById('actions').style.display = 'flex';
@@ -1642,6 +1762,14 @@
                 const startBtn = document.getElementById('start-btn');
                 const waitingText = document.getElementById('waiting-text');
 
+                // Render Lobby User List
+                const lobbyList = document.getElementById('lobby-user-list') || document.createElement('div');
+                if (!lobbyList.id) {
+                    lobbyList.id = 'lobby-user-list';
+                    document.getElementById('lobby-status').appendChild(lobbyList);
+                }
+                lobbyList.innerHTML = s.playerNames.map(name => `<div class="user-chip">${escHtml(name)}</div>`).join('');
+
                 if (isHost && s.totalPlayers >= 2) {
                     startBtn.style.display = 'block';
                     waitingText.textContent = `Sudah ada ${s.totalPlayers} pemain. Mulai sekarang?`;
@@ -1655,12 +1783,16 @@
                     waitingText.textContent = `Menunggu pemain lain... (${s.totalPlayers}/2)`;
                     waitingText.style.color = 'var(--cream)';
                 }
+
+                document.getElementById('round-badge').style.display = 'none';
                 return;
             }
 
             document.getElementById('lobby').style.display = 'none';
             document.getElementById('game').style.display = 'flex';
             document.getElementById('hud-top').style.display = 'flex'; // Show HUD in game
+            document.getElementById('round-badge').style.display = 'flex';
+            document.getElementById('round-badge').textContent = (s.roundCount || 1) + '/7';
 
             myIndex = s.yourIndex;
             currentSuit = s.currentSuit;
@@ -1748,11 +1880,14 @@
                     sb.textContent = '🃏 Giliranmu — Seret ' + suitName(s.currentSuit) + ' ke meja!';
                 }
                 sb.classList.add('your-turn');
+                document.getElementById('your-id-tag').classList.add('active');
             } else {
                 const name = playerNames[s.currentPlayer] || ('P' + (s.currentPlayer + 1));
                 sb.textContent = 'Menunggu ' + name + '...';
                 sb.classList.remove('your-turn');
                 sb.classList.add('waiting');
+                document.getElementById('your-id-tag').classList.remove('active');
+                document.getElementById('your-id-tag').textContent = myName;
             }
 
             // Table cards spread
@@ -1781,6 +1916,8 @@
                 drawBtn.style.borderColor = '';
                 drawBtn.style.color = '';
             }
+
+            isMovePending = false;
         });
 
         /* ── RENDER TABLE SPREAD (tumpukan, elemen TIDAK pernah dihapus/dibuat ulang) ── */
@@ -2395,9 +2532,15 @@
 
         // Store current hand cards for playback
         let currentHandCards = [];
+        let isMovePending = false;
+
         function playCardByIndex(index, el) {
+            if (isMovePending) return;
+
             const card = currentHandCards[index];
             if (!card) return;
+
+            isMovePending = true;
             playCardWithAnim(index, el, card);
         }
 
@@ -2405,6 +2548,8 @@
 
         /* ── ACTIONS ── */
         function drawCard() { 
+            if (isMovePending) return;
+            isMovePending = true;
             lastAction = "draw";
             socket.emit('drawCard');
         }
@@ -2437,19 +2582,16 @@
                 title.style.color = 'var(--gold-light)';
                 sub.textContent = 'Hebat! Kamu berhasil menghabiskan semua kartu!';
             } 
-            // else {
-            //     icon.textContent = isLoser ? '💀' : '🏁';
-            //     title.textContent = isLoser ? 'Kamu Kalah!' : 'Game Selesai';
-            //     title.style.color = isLoser ? 'var(--red)' : 'var(--cream)';
-            //     sub.textContent = winnerName + ' memenangkan pertandingan!';
-            // }
 
             document.getElementById('overlay').classList.add('show');
-
             toast('Game selesai!');
 
-            // The game will auto-restart in 6 seconds via server logic.
-            // We can add a countdown or just wait.
+            if (data.isMatchEnd) {
+                setTimeout(() => {
+                    socket.emit('getLeaderboard');
+                    document.getElementById('overlay').classList.remove('show');
+                }, 2500);
+            }
         });
 
         socket.on('playerJoined', d => toast(d.name + ' bergabung ke meja', '♠'));
@@ -2461,7 +2603,10 @@
             document.getElementById('lobby-status').style.display = 'block';
             toast('Menunggu pemain... (' + d.count + '/4)', '⏳');
         });
-        socket.on('errorMsg', d => toast(d.msg, '⚠️'));
+        socket.on('errorMsg', d => {
+            isMovePending = false; // Release lock on error
+            toast(d.msg, '⚠️');
+        });
 
         /* ── KEYBOARD ── */
         document.getElementById('name-input').addEventListener('keydown', e => {

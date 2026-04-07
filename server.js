@@ -45,7 +45,7 @@ function createDeck() {
 const rooms = new Map();
 
 // GLOBAL LEADERBOARD
-const leaderboard = {};
+// (Removed global leaderboard for room-specific implementation)
 
 function makeGame() {
   return {
@@ -66,6 +66,9 @@ function makeGame() {
     skipPlayer: null,
 
     started: false,
+    leaderboard: {}, // 🔥 per-room leaderboard
+    roundCount: 0,
+    nextStarter: null,
   };
 }
 
@@ -97,6 +100,7 @@ function sendState(game) {
       tableHistory: game.tableHistory || [],
       freeMode: game.freeMode,
       started: game.started,
+      roundCount: game.roundCount,
     });
   });
 }
@@ -113,6 +117,9 @@ function checkEnd(game, roomId) {
       game.playersPlayed.add(i);
 
       game.outOrder.push(i); // 🔥 simpan urutan keluar
+      if (game.outOrder.length === 1) {
+        game.nextStarter = i;
+      }
 
       console.log(`${p.name} keluar dari ronde`);
 
@@ -138,23 +145,30 @@ function checkEnd(game, roomId) {
       const player = game.players[playerIndex];
       const point = pointsTable[rank] || 1;
 
-      if (!leaderboard[player.name]) {
-        leaderboard[player.name] = { win: 0, lose: 0, point: 0 };
+      if (!game.leaderboard[player.name]) {
+        game.leaderboard[player.name] = { win: 0, lose: 0, point: 0 };
       }
 
-      leaderboard[player.name].win += 1;
-      leaderboard[player.name].point += point;
+      game.leaderboard[player.name].win += 1;
+      game.leaderboard[player.name].point += point;
     });
 
     // ❌ loser
-    if (!leaderboard[loser.name]) {
-      leaderboard[loser.name] = { win: 0, lose: 0, point: 0 };
+    if (!game.leaderboard[loser.name]) {
+      game.leaderboard[loser.name] = { win: 0, lose: 0, point: 0 };
     }
-    leaderboard[loser.name].lose += 1;
+    game.leaderboard[loser.name].lose += 1;
+
+    const isMatchEnd = game.roundCount >= 7;
 
     io.to(roomId).emit("gameOver", {
       loserName: loser.name,
+      isMatchEnd: isMatchEnd,
     });
+
+    if (isMatchEnd) {
+      game.roundCount = 0; // reset match
+    }
 
     game.started = false;
     return true;
@@ -260,7 +274,30 @@ function startGame(game) {
   game.tableCard = game.deck.pop();
   game.tableHistory = [game.tableCard]; // Start with the first card
   game.currentSuit = game.tableCard.suit;
-  game.currentPlayer = 0;
+  game.roundCount++;
+
+  if (game.nextStarter !== null && game.players[game.nextStarter]) {
+    game.currentPlayer = game.nextStarter;
+    console.log(`[Game Start] Ronde ${game.roundCount}: Pemenang sebelumnya ${game.players[game.currentPlayer].name} mulai duluan.`);
+    game.nextStarter = null; // reset
+  } else {
+    // FALLBACK: Kartu Tertinggi (untuk Ronde 1)
+    let highestVal = -1;
+    let highestSuitIdx = 4; // ♠=0, ♥=1, ♦=2, ♣=3
+
+    game.players.forEach((p, i) => {
+      p.cards.forEach((c) => {
+        const val = getRank(c.value);
+        const sIdx = suits.indexOf(c.suit);
+        if (val > highestVal || (val === highestVal && sIdx < highestSuitIdx)) {
+          highestVal = val;
+          highestSuitIdx = sIdx;
+          game.currentPlayer = i;
+        }
+      });
+    });
+    console.log(`[Game Start] Ronde ${game.roundCount}: Kartu Tertinggi: ${suits[highestSuitIdx]}${highestVal} milik ${game.players[game.currentPlayer].name}`);
+  }
 
   game.controllerPlayer = null;
   game.controllerCard = null;
@@ -282,8 +319,6 @@ io.on("connection", (socket) => {
     const roomId = (room || "default").trim().toLowerCase();
     currentRoom = roomId;
 
-    socket.join(roomId);
-
     if (!rooms.has(roomId)) rooms.set(roomId, makeGame());
     const game = rooms.get(roomId);
 
@@ -303,12 +338,14 @@ io.on("connection", (socket) => {
       return;
     }
 
+    socket.join(roomId);
+
     playerIndex = game.players.length;
     game.players.push({
       id: socket.id,
       name: name || "Pemain " + (playerIndex + 1),
       cards: [],
-      isOut: false, // ✅ TAMBAHKAN DI SINI
+      isOut: false,
     });
 
     console.log(
@@ -318,100 +355,75 @@ io.on("connection", (socket) => {
     // Notify others
     socket.to(roomId).emit("playerJoined", { name });
 
-    socket.on("getLeaderboard", () => {
-      const sorted = Object.entries(leaderboard)
-        .map(([name, data]) => ({
-          name,
-          win: data.win,
-          lose: data.lose,
-          point: data.point,
-        }))
-        .sort((a, b) => b.point - a.point);
-
-      socket.emit("leaderboardData", sorted);
-    });
-
-    // - Tambahkan di dalam io.on("connection", (socket) => { ... })
-    socket.on("takeTableCard", () => {
-      if (!currentRoom) return;
-      const game = rooms.get(currentRoom);
-      if (!game || !game.started) return;
-
-      const pIndex = game.players.findIndex((p) => p.id === socket.id);
-      
-      // Pastikan gilirannya dan deck sudah habis
-      if (game.currentPlayer !== pIndex) return;
-      if (game.deck.length > 0) {
-        socket.emit("errorMsg", { msg: "Deck masih ada kartu, silakan ambil dari deck." });
-        return;
-      }
-
-      // Cek apakah pemain benar-benar tidak punya kartu yang bisa dimainkan (Opsional tapi disarankan)
-      // ... (logika pengecekan kartu di tangan vs tableCard/currentSuit)
-
-      if (game.tableCard) {
-        // Ambil kartu dari meja masuk ke tangan pemain
-        const cardFromTable = game.tableCard;
-        game.players[pIndex].cards.push(cardFromTable);
-
-        // Ambil kartu sebelumnya dari history sebagai kartu meja yang baru (jika ada)
-        game.tableHistory.pop(); // Buang kartu yang baru diambil
-        game.tableCard = game.tableHistory[game.tableHistory.length - 1] || null;
-        
-        if (game.tableCard) {
-            game.currentSuit = game.tableCard.suit;
-        }
-
-        // Kembalikan giliran ke pemain sebelumnya (angka lebih tinggi/sebelumnya)
-        // Logika: (current - 1 + total) % total
-        let prevPlayer = (game.currentPlayer - 1 + game.players.length) % game.players.length;
-        while (!isActive(game, prevPlayer)) {
-            prevPlayer = (prevPlayer - 1 + game.players.length) % game.players.length;
-        }
-        game.currentPlayer = prevPlayer;
-
-        io.to(currentRoom).emit("toast", { msg: `${game.players[pIndex].name} mengambil kartu dari meja!` });
-        sendState(game);
-      }
-    });
-
-    socket.on("sendEmoji", (data) => {
-        if (!currentRoom) return;
-
-        const game = rooms.get(currentRoom);
-        if (!game) return;
-
-        const player = game.players.find(p => p.id === socket.id);
-        if (!player) return;
-
-        io.to(currentRoom).emit("emoji", {
-            name: player.name,
-            emoji: data.emoji,
-            text: data.text
-        });
-    });
-
-    socket.on("chat", (msg) => {
-        if (!currentRoom) return;
-
-        const game = rooms.get(currentRoom);
-        if (!game) return;
-
-        const p = game.players.find(pl => pl.id === socket.id);
-        if (!p) return;
-
-        io.to(currentRoom).emit("chat", {
-            name: p.name,
-            msg
-        });
-    });
-
     // ALWAYS send state so indices (who is host) are synced
     sendState(game);
 
     if (game.players.length < MIN_PLAYERS) {
       socket.emit("waitingForPlayers", { count: game.players.length });
     }
+  });
+
+  socket.on("getLeaderboard", () => {
+    const game = rooms.get(currentRoom);
+    if (!game) return;
+
+    const sorted = Object.entries(game.leaderboard)
+      .map(([name, data]) => ({
+        name,
+        win: data.win,
+        lose: data.lose,
+        point: data.point,
+      }))
+      .sort((a, b) => b.point - a.point);
+
+    socket.emit("leaderboardData", sorted);
+  });
+
+  socket.on("takeTableCard", () => {
+    if (!currentRoom) return;
+    const game = rooms.get(currentRoom);
+    if (!game || !game.started) return;
+
+    const pIndex = game.players.findIndex((p) => p.id === socket.id);
+    if (game.currentPlayer !== pIndex) return;
+
+    if (game.deck.length > 0) {
+      socket.emit("errorMsg", { msg: "Deck masih ada kartu, silakan ambil dari deck." });
+      return;
+    }
+
+    handleEmptyDeckTake(game, pIndex, currentRoom);
+  });
+
+  socket.on("sendEmoji", (data) => {
+    if (!currentRoom) return;
+
+    const game = rooms.get(currentRoom);
+    if (!game) return;
+
+    const player = game.players.find(p => p.id === socket.id);
+    if (!player) return;
+
+    io.to(currentRoom).emit("emoji", {
+      name: player.name,
+      emoji: data.emoji,
+      text: data.text
+    });
+  });
+
+  socket.on("chat", (msg) => {
+    if (!currentRoom) return;
+
+    const game = rooms.get(currentRoom);
+    if (!game) return;
+
+    const p = game.players.find(pl => pl.id === socket.id);
+    if (!p) return;
+
+    io.to(currentRoom).emit("chat", {
+      name: p.name,
+      msg
+    });
   });
 
   // ── START GAME (Manual) ──
@@ -521,52 +533,44 @@ io.on("connection", (socket) => {
       return;
     }
 
-    // ❗ Deck habis → ambil dari meja
+    handleEmptyDeckTake(game, i, currentRoom);
+  });
+
+  // HELPER: Saat pemain tidak bisa jalan & deck habis
+  function handleEmptyDeckTake(game, pIndex, currentRoom) {
     if (game.tableHistory.length === 0) return;
 
+    const p = game.players[pIndex];
     const takenCard = game.tableHistory.pop();
     if (!takenCard) return;
 
     p.cards.push(takenCard);
 
-    // ✅ Update meja (INI YANG BENAR)
-    const newTop = game.tableHistory[game.tableHistory.length - 1] || null;
-
-    game.tableCard = newTop;
-    game.currentSuit = newTop ? newTop.suit : null;
-
-    // reset round
+    // ✅ Reset Meja & Suit
+    game.tableCard = null;
+    game.currentSuit = null;
     game.roundCards = [];
     game.playersPlayed.clear();
     game.skipPlayer = null;
+
+    // ✅ MASUK FREE MODE - Pemain berikutnya (atau tetap controller) bisa buang kartu apa saja
     game.freeMode = true;
 
-    let nextCtrl = game.controllerPlayer !== null ? game.controllerPlayer : 0;
-    // Jika controller sudah isOut, cari pemain aktif berikutnya
-    if (!isActive(game, nextCtrl)) {
-      let attempts = 0;
-      do {
-        nextCtrl = (nextCtrl + 1) % game.players.length;
-        attempts++;
-        if (attempts > game.players.length) { nextCtrl = 0; break; }
-      } while (!isActive(game, nextCtrl));
+    // Tentukan siapa yang jalan selanjutnya (Pemain berikutnya searah jarum jam)
+    let nextI = (pIndex + 1) % game.players.length;
+    while (!isActive(game, nextI)) {
+      nextI = (nextI + 1) % game.players.length;
     }
-    game.controllerPlayer = nextCtrl;
+
+    game.controllerPlayer = nextI;
+    game.currentPlayer = nextI;
     game.controllerCard = null;
-    game.currentPlayer = nextCtrl;
 
-    console.log(
-      `[${currentRoom}] Deck habis - ${p.name} ambil 1 kartu dari meja. Giliran ke ${game.players[nextCtrl]?.name}`,
-    );
-
-    io.to(currentRoom).emit("deckExhausted", {
-      takerName: p.name,
-      cardCount: 1,
-      nextPlayerName: game.players[nextCtrl]?.name,
+    io.to(currentRoom).emit("toast", {
+      msg: `${p.name} mengambil kartu meja. Putaran di-reset!`,
     });
-
     sendState(game);
-  });
+  }
 
   // ── REORDER CARD IN HAND ──
   socket.on("reorderCardHand", ({ fromIndex, toIndex }) => {
@@ -639,10 +643,10 @@ io.on("connection", (socket) => {
       console.log(
         `[${currentRoom}] ${name} keluar (${game.players.length} pemain tersisa)`,
       );
-      sendState(game); // Notify everyone about the new indices
+      sendState(game);
     }
   });
 });
 
-const PORT = process.env.PORT || 1234;
+const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => console.log(`Server: http://localhost:${PORT}`));
