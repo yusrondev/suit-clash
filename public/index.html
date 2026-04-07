@@ -669,6 +669,7 @@
             align-items: center;
             justify-content: center;
             overflow: visible;
+            touch-action: none; /* 🔥 Verifikasi tambahkan di container juga */
         }
         #hand.two-rows {
             height: 172px;
@@ -2635,9 +2636,17 @@
             });
         }
 
-        // Store current hand cards for playback
         let currentHandCards = [];
         let isMovePending = false;
+        let moveLockTimeout = null;
+
+        function resetMoveLock() {
+            isMovePending = false;
+            if (moveLockTimeout) {
+                clearTimeout(moveLockTimeout);
+                moveLockTimeout = null;
+            }
+        }
 
         function playCardByIndex(index, el) {
             if (isMovePending) return;
@@ -2646,6 +2655,14 @@
             if (!card) return;
 
             isMovePending = true;
+            // 🔥 TUNTUTAN USER: Safety reset jika server gak respon dalam 2 detik
+            moveLockTimeout = setTimeout(() => {
+                if (isMovePending) {
+                    console.warn("Move lock timeout triggered. Unlocking...");
+                    resetMoveLock();
+                }
+            }, 2000);
+
             playCardWithAnim(index, el, card);
         }
 
@@ -2709,7 +2726,7 @@
             toast('Menunggu pemain... (' + d.count + '/4)', '⏳');
         });
         socket.on('errorMsg', d => {
-            isMovePending = false; // Release lock on error
+            resetMoveLock(); // Release lock on error
             toast(d.msg, '⚠️');
         });
 
