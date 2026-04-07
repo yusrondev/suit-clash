@@ -1033,6 +1033,40 @@
             color: white;
         }
 
+        /* 🔥 CHAT HISTORY */
+        #chat-history {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 12px;
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+
+        .chat-history-item {
+            background: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 8px 12px;
+            border-radius: 14px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.9);
+            animation: historyFadeIn 0.3s ease forwards;
+            max-width: 90%;
+        }
+
+        .chat-history-item span {
+            color: var(--gold-light);
+            font-weight: 700;
+            margin-right: 6px;
+        }
+
+        @keyframes historyFadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
         .chat-self {
             position: fixed;
             bottom: 35px;
@@ -1428,6 +1462,7 @@
         </div>
         <div id="text-fab">💬</div>
         <div id="chat-input-box">
+            <div id="chat-history"></div>
             <input type="text" id="chat-input" placeholder="Ketik sesuatu..." />
         </div>
         <div id="emoji-fab">
@@ -1466,6 +1501,10 @@
         let lastClutch = "";
         let lastAction = "";
         let clutchTimeout = null;
+
+        // 🔥 CHAT HISTORY STATE
+        let chatHistory = [];
+        const MAX_HISTORY = 3;
 
         let lastDangerPlayers = new Set();
         let lastDangerTime = 0;
@@ -1552,8 +1591,25 @@
 
         function sendChat(msg) {
             socket.emit('chat', msg);
-
             showSelfChat(msg); // tampilkan di tengah (POV sendiri)
+            updateChatHistory("Kamu", msg); // 🔥 Update history lokal
+        }
+
+        function updateChatHistory(name, msg) {
+            chatHistory.push({ name, msg });
+            if (chatHistory.length > MAX_HISTORY) {
+                chatHistory.shift();
+            }
+            renderChatHistory();
+        }
+
+        function renderChatHistory() {
+            const container = document.getElementById('chat-history');
+            container.innerHTML = chatHistory.map(item => `
+                <div class="chat-history-item">
+                    <span>${escHtml(item.name)}:</span>${escHtml(item.msg)}
+                </div>
+            `).join('');
         }
 
         function showSelfChat(msg) {
@@ -1689,7 +1745,11 @@
         }
 
         socket.on("chat", (data) => {
+            // 🔥 Jika itu kita sendiri, abaikan (karena sudah ditangani di sendChat sebagai "Kamu")
+            if (data.name === myName) return; 
+
             showChatOnPlayer(data.name, data.msg);
+            updateChatHistory(data.name, data.msg); // 🔥 Update history global
         });
 
         socket.on('leaderboardData', (list) => {
@@ -1957,6 +2017,12 @@
 
         function triggerClutch(type, name = "") {
             if (lastClutch === type) return;
+
+            // 🔥 HAPUS YANG LAMA JIKA ADA (Mencegah menumpuk/tidak hilang)
+            const existing = document.querySelector('.clutch-overlay');
+            if (existing) existing.remove();
+            clearTimeout(clutchTimeout);
+
             lastClutch = type;
 
             const el = document.createElement('div');
@@ -1972,7 +2038,6 @@
 
             document.body.appendChild(el);
 
-            clearTimeout(clutchTimeout);
             clutchTimeout = setTimeout(() => {
                 el.remove();
                 lastClutch = "";
