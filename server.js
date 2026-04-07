@@ -386,8 +386,16 @@ io.on("connection", (socket) => {
     const game = rooms.get(currentRoom);
     if (!game || !game.started) return;
 
+    // ✅ TUNTUTAN USER: Pastikan meja memang ada kartunya sebelum diolah
+    if (!game.tableHistory || game.tableHistory.length === 0) {
+      return;
+    }
+
     const pIndex = game.players.findIndex((p) => p.id === socket.id);
-    if (game.currentPlayer !== pIndex) return;
+    if (game.currentPlayer !== pIndex) {
+      console.log(`[${currentRoom}] Unauthorized: ${socket.id} mencoba ambil kartu meja padahal bukan gilirannya!`);
+      return;
+    }
 
     console.log(`[${currentRoom}] ${game.players[pIndex].name} mencoba ambil kartu meja. freeMode: ${game.freeMode}, currentSuit: ${game.currentSuit}`);
 

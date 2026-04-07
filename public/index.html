@@ -2721,12 +2721,25 @@
 
         //
         function handleTakeTableCard() {
-            // Hanya kirim jika deck kosong (visual check di client sebelum ke server)
+            // ✅ TUNTUTAN USER: Hanya boleh klik jika giliran saya DAN deck kosong
             const deckCount = parseInt(document.getElementById('deck-count').innerText);
+            
+            // isMyTurn & deckEmpty are globally accessible from render logic if we use them
+            // but we can check the innerText or state
+            if (!lastState || lastState.currentPlayer !== lastState.yourIndex) {
+                // Not my turn, ignore
+                return;
+            }
+
             if (deckCount === 0) {
+                // Pastikan ada kartu di meja secara visual
+                const spread = document.getElementById('table-spread-area');
+                if (spread.children.length === 0) return;
+
+                console.log("Mengirim takeTableCard ke server...");
                 socket.emit("takeTableCard");
             } else {
-                // showToast("Ambil kartu dari deck terlebih dahulu!");
+                // console.log("Deck masih ada, tak boleh ambil meja!");
             }
         }
 
