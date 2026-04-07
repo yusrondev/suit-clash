@@ -1497,6 +1497,7 @@
         let isMyTurn = false;
         let playerNames = [];
         let prevTableCount = 0;
+        let lastState = null; // 🔥 Tambahkan ini untuk menyimpan state terakhir
 
         let lastClutch = "";
         let lastAction = "";
@@ -1789,6 +1790,7 @@
 
         /* ── STATE UPDATE ── */
         socket.on('state', (s) => {
+            lastState = s; // 🔥 Simpan state ke variabel global
             const wasDraw = (lastAction === "draw");
             lastAction = ""; // reset
 
