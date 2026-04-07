@@ -2512,15 +2512,13 @@
                 div.dataset.currentIndex = i;
                 div.dataset.playable = playable ? 'true' : 'false';
                 
-                // 🔥 TUNTUTAN USER: Click Selection Class
-                const isSelected = (selectedHandIndex === i);
-                div.className = `hand-card ${red ? 'red-card' : 'black-card'} ${playable ? 'playable' : (myTurn ? 'invalid' : '')} ${isSelected ? 'selected' : ''}`;
-
                 // ── TUNTUTAN USER: Single Source of Truth untuk Posisi ──
-                // Gabungkan posisi horizontal (tx) dan posisi angkat (ty + lift) dalam satu perintah agar stabil di mobile.
+                // Gabungkan status seleksi dan posisi horizontal (tx) agar stabil di mobile.
                 const isSelected = (selectedHandIndex === i);
                 const lift = isSelected ? -20 : 0;
                 const scale = isSelected ? 1.06 : 1;
+
+                div.className = `hand-card ${red ? 'red-card' : 'black-card'} ${playable ? 'playable' : (myTurn ? 'invalid' : '')} ${isSelected ? 'selected' : ''}`;
 
                 div.style.transform = `translate(calc(-50% + ${tx}px), ${ty + lift}px) scale(${scale})`;
                 
