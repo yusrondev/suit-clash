@@ -729,9 +729,20 @@
         .red-card   { color: var(--red); }
         .black-card { color: var(--black); }
 
-        /* drag & drop */
+        /* drag & drop / click selection */
         .hand-card.dragging  { opacity: 0.35; cursor: grabbing; filter: grayscale(0.5); }
         .hand-card.drag-over { border: 2px solid var(--gold); box-shadow: 0 0 20px rgba(201,168,76,0.5); }
+
+        /* 🔥 TUNTUTAN USER: Click Selection */
+        .hand-card.selected {
+            transform: translateY(-25px) scale(1.15) !important;
+            box-shadow: 0 0 25px var(--gold);
+            border-color: var(--gold-light);
+            z-index: 9999 !important;
+        }
+        .hand-card.selected::after {
+            display: none !important; /* matiin animasi pulse kalau terpilih */
+        }
 
         /* Table drop zone highlight */
         #table-spread-area.drop-target {
@@ -1499,6 +1510,7 @@
         let playerNames = [];
         let prevTableCount = 0;
         let lastState = null; // 🔥 Tambahkan ini untuk menyimpan state terakhir
+        let selectedHandIndex = null; // 🔥 Tambahkan ini untuk sistem Click-to-Play
 
         let lastClutch = "";
         let lastAction = "";
@@ -2252,7 +2264,8 @@
             const hand = document.getElementById('hand');
             const stateHash = cards.map((c, i) => {
                 const playable = myTurn && (freePlay || c.suit === suit);
-                return c.value + c.suit + (playable ? 'P' : 'X') + i;
+                const selected = (selectedHandIndex === i); // 🔥 Masuk ke Hash
+                return c.value + c.suit + (playable ? 'P' : 'X') + (selected ? 'S' : 'N') + i;
             }).join('|') + '|' + myTurn + '|' + freePlay;
 
             if (hand.dataset.stateHash === stateHash && hand.children.length === cards.length) return;
@@ -2499,7 +2512,10 @@
                 delete div.dataset.stale;
                 div.dataset.currentIndex = i;
                 div.dataset.playable = playable ? 'true' : 'false';
-                div.className = `hand-card ${red ? 'red-card' : 'black-card'} ${playable ? 'playable' : (myTurn ? 'invalid' : '')}`;
+                
+                // 🔥 TUNTUTAN USER: Click Selection Class
+                const isSelected = (selectedHandIndex === i);
+                div.className = `hand-card ${red ? 'red-card' : 'black-card'} ${playable ? 'playable' : (myTurn ? 'invalid' : '')} ${isSelected ? 'selected' : ''}`;
 
                 // tx already includes cardWidth/2 offset so that translate(-50%) cancels out
                 // net result: card left-edge lands exactly at (containerCenter + startOff + i*stepX)
@@ -2509,8 +2525,19 @@
                 div.style.zIndex = i + 10 + rowBonus;
                 div.style.opacity = '1';
 
-                // NO onclick — must drag to table to play
-                div.onclick = null;
+                // 🔥 TUNTUTAN USER: Ganti Drag meluncur ke Klik Konfirmasi
+                div.draggable = false;
+                div.onclick = (e) => {
+                    e.stopPropagation();
+                    handleHandCardClick(i, playable, div);
+                };
+                
+                // Matikan semua drag handlers (Cleanup)
+                div.ondragstart = null;
+                div.ondragend = null;
+                div.ondragover = null;
+                div.ondragleave = null;
+                div.ondrop = null;
 
                 if (!div.parentElement) hand.appendChild(div);
             });
@@ -2666,7 +2693,41 @@
             playCardWithAnim(index, el, card);
         }
 
-        setupTableDropZone();
+        // setupTableDropZone(); // 🔥 DIMATIKAN (Ganti sistem Klik)
+
+        function handleHandCardClick(index, playable, el) {
+            if (!isMyTurn) return;
+
+            if (selectedHandIndex === index) {
+                // Konfirmasi: Klik kedua kali → Play!
+                playCardByIndex(index, el);
+                selectedHandIndex = null;
+            } else {
+                // Pilih: Klik pertama kali
+                if (playable) {
+                    selectedHandIndex = index;
+                    // Re-render hand via trigger state atau force update
+                    // Karena kita simpan di selectedHandIndex, panggil renderHand manual atau tunggu state?
+                    // Paling aman renderHand manual di sini untuk instant feedback
+                    renderHand(lastState.yourCards, lastState.currentSuit, true, lastState.controller === lastState.yourIndex);
+                } else {
+                    selectedHandIndex = null;
+                    renderHand(lastState.yourCards, lastState.currentSuit, true, lastState.controller === lastState.yourIndex);
+                }
+            }
+        }
+        
+        // Klik di manapun di dokumen untuk deselect
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.hand-card')) {
+                if (selectedHandIndex !== null) {
+                    selectedHandIndex = null;
+                    if (lastState && lastState.yourCards) {
+                        renderHand(lastState.yourCards, lastState.currentSuit, isMyTurn, lastState.controller === lastState.yourIndex);
+                    }
+                }
+            }
+        });
 
         /* ── ACTIONS ── */
         function drawCard() { 
