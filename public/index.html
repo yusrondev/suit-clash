@@ -456,6 +456,37 @@
             box-shadow: 0 20px 40px rgba(0,0,0,0.5);
         }
 
+        /* 🔥 EFFECT: ACE ON FIRE */
+        .card-ace-fire {
+            z-index: 5000 !important;
+            animation: ace-glow-pulse 0.5s ease-in-out infinite alternate;
+        }
+
+        .card-ace-fire::after {
+            content: '';
+            position: absolute;
+            inset: -10px;
+            background: radial-gradient(circle at 50% 100%, 
+                rgba(255, 80, 0, 0.8) 0%, 
+                rgba(255, 150, 0, 0.4) 40%, 
+                transparent 70%);
+            filter: blur(8px);
+            z-index: -1;
+            border-radius: 12px;
+            animation: ace-flame-flicker 0.1s infinite alternate;
+            pointer-events: none;
+        }
+
+        @keyframes ace-glow-pulse {
+            from { box-shadow: 0 0 15px #ff4500, 0 0 30px #ff8c00; }
+            to   { box-shadow: 0 0 30px #ff4500, 0 0 60px #ff0000; }
+        }
+
+        @keyframes ace-flame-flicker {
+            from { opacity: 0.7; transform: scale(1); }
+            to   { opacity: 1; transform: scale(1.05) translate(1px, -2px); }
+        }
+
         /* Deck */
         .table-info-row.right {
             position: absolute;
@@ -2002,6 +2033,13 @@
                     // Fade in kartu baru
                     el.style.transition = 'none';
                     el.style.opacity = '0';
+
+                    // 🔥 EFEK BAKAR (ACE) - Hanya untuk kartu paling atas (yang baru turun)
+                    if (card.value === 'A' && isTop) {
+                        el.classList.add('card-ace-fire');
+                        setTimeout(() => el.classList.remove('card-ace-fire'), 3000);
+                    }
+
                     requestAnimationFrame(() => {
                         el.style.transition = 'left 0.3s ease, opacity 0.25s ease';
                         el.style.opacity = isTop ? '1' : '1';
