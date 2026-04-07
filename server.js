@@ -387,6 +387,20 @@ io.on("connection", (socket) => {
     const pIndex = game.players.findIndex((p) => p.id === socket.id);
     if (game.currentPlayer !== pIndex) return;
 
+    // ✅ TUNTUTAN USER: Gak boleh ambil kalau lagi freeMode (dia pemimpin round)
+    if (game.freeMode) {
+      socket.emit("errorMsg", { msg: "Anda adalah pemimpin putaran, silakan keluarkan kartu." });
+      return;
+    }
+
+    // ✅ TUNTUTAN USER: Gak boleh ambil kalau punya kartu yang cocok (suit sama)
+    const p = game.players[pIndex];
+    const hasSuit = p.cards.some((c) => c.suit === game.currentSuit);
+    if (hasSuit) {
+      socket.emit("errorMsg", { msg: "Anda punya kartu yang cocok, silakan keluarkan kartu." });
+      return;
+    }
+
     if (game.deck.length > 0) {
       socket.emit("errorMsg", { msg: "Deck masih ada kartu, silakan ambil dari deck." });
       return;
@@ -503,6 +517,12 @@ io.on("connection", (socket) => {
 
     player.cards.splice(resolvedIndex, 1);
 
+    // ✅ TUNTUTAN USER: Cek apakah kartu baru lebih tinggi dari kartu tertinggi di meja
+    if (!game.controllerCard || getRank(card.value) > getRank(game.controllerCard.card.value)) {
+      game.controllerPlayer = i;
+      game.controllerCard = { player: i, card };
+    }
+
     game.roundCards.push({ player: i, card });
     game.playersPlayed.add(i);
     game.tableCard = card;
@@ -541,10 +561,25 @@ io.on("connection", (socket) => {
     if (game.tableHistory.length === 0) return;
 
     const p = game.players[pIndex];
+    // Ambil semua kartu di meja (hanya kartu terakhir yang diambil ke tangan, atau semua?)
+    // Biasanya di Suit Clash, ambil yang terakhir atau semua tertumpuk.
+    // Di sini logika ambil yang paling atas (tumpukan terakhir).
     const takenCard = game.tableHistory.pop();
     if (!takenCard) return;
 
     p.cards.push(takenCard);
+
+    // ✅ TUNTUTAN USER: Giliran kembali ke nilai paling tinggi (controller)
+    // Jika pIndex adalah controller, maka tetap dia (jarang terjadi).
+    // Biasanya yang ambil adalah yang tidak bisa lawan suit orang lain.
+    let nextI = game.controllerPlayer !== null ? game.controllerPlayer : pIndex;
+
+    // Pastikan pemain tujuan masih aktif
+    let attempts = 0;
+    while (!isActive(game, nextI) && attempts < game.players.length) {
+      nextI = (nextI + 1) % game.players.length;
+      attempts++;
+    }
 
     // ✅ Reset Meja & Suit
     game.tableCard = null;
@@ -553,21 +588,14 @@ io.on("connection", (socket) => {
     game.playersPlayed.clear();
     game.skipPlayer = null;
 
-    // ✅ MASUK FREE MODE - Pemain berikutnya (atau tetap controller) bisa buang kartu apa saja
+    // ✅ MASUK FREE MODE
     game.freeMode = true;
-
-    // Tentukan siapa yang jalan selanjutnya (Pemain berikutnya searah jarum jam)
-    let nextI = (pIndex + 1) % game.players.length;
-    while (!isActive(game, nextI)) {
-      nextI = (nextI + 1) % game.players.length;
-    }
-
     game.controllerPlayer = nextI;
     game.currentPlayer = nextI;
     game.controllerCard = null;
 
     io.to(currentRoom).emit("toast", {
-      msg: `${p.name} mengambil kartu meja. Putaran di-reset!`,
+      msg: `${p.name} mengambil kartu meja. Giliran kembali ke pemain sebelumnya!`,
     });
     sendState(game);
   }
