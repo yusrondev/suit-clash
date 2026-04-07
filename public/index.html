@@ -733,12 +733,12 @@
         .hand-card.dragging  { opacity: 0.35; cursor: grabbing; filter: grayscale(0.5); }
         .hand-card.drag-over { border: 2px solid var(--gold); box-shadow: 0 0 20px rgba(201,168,76,0.5); }
 
-        /* 🔥 TUNTUTAN USER: Click Selection */
+        /* 🔥 TUNTUTAN USER: Click Selection - Lebih tinggi tapi gak terlalu gemuk biar gak nutupin sebelah */
         .hand-card.selected {
-            transform: translateY(-25px) scale(1.15) !important;
-            box-shadow: 0 0 25px var(--gold);
+            transform: translateY(-45px) scale(1.08) rotate(-1deg) !important;
+            box-shadow: 0 15px 35px rgba(212, 175, 55, 0.5), 0 0 20px var(--gold);
             border-color: var(--gold-light);
-            z-index: 9999 !important;
+            z-index: 10000 !important;
         }
         .hand-card.selected::after {
             display: none !important; /* matiin animasi pulse kalau terpilih */
