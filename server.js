@@ -626,33 +626,6 @@ io.on("connection", (socket) => {
     sendState(game);
   }
 
-  // ── REORDER CARD IN HAND ──
-  socket.on("reorderCardHand", ({ fromIndex, toIndex }) => {
-    if (!currentRoom) return;
-    const game = rooms.get(currentRoom);
-    if (!game) return;
-
-    const i = game.players.findIndex((p) => p.id === socket.id);
-    if (i === -1) return;
-
-    const player = game.players[i];
-    if (
-      fromIndex < 0 ||
-      fromIndex >= player.cards.length ||
-      toIndex < 0 ||
-      toIndex >= player.cards.length
-    )
-      return;
-
-    console.log(
-      `[${currentRoom}] Reordering card from ${fromIndex} to ${toIndex} for ${player.name}`,
-    );
-    const [movedCard] = player.cards.splice(fromIndex, 1);
-    player.cards.splice(toIndex, 0, movedCard);
-
-    sendState(game);
-  });
-
   // ── RESTART ──
   socket.on("restartGame", () => {
     if (!currentRoom) return;
