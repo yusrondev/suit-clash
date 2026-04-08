@@ -1370,13 +1370,17 @@
         .waiting {
             margin-bottom: 15px !important;
         }
+
+        .img-logo{
+            width: 100px;
+        }
     </style>
 </head>
 
 <body>
 
-    <header>
-        <div class="logo">Suit <span>Clash</span></div>
+    <header id="main-header" style="display: none;">
+        <div class="logo"><img src="logo.png" class="img-logo" alt=""></div>
         <div style="display: flex; align-items: center;">
             <div id="round-badge">1/7</div>
             <button id="leaderboard-btn" onclick="openLeaderboard()">🏆</button>
@@ -1404,7 +1408,7 @@
 
     <!-- LOBBY -->
     <div id="lobby">
-        <div class="lobby-title">♠ Suit Clash ♥</div>
+        <div class="lobby-title"><img src="logo.png" alt=""></div>
         <div class="lobby-sub">Permainan Kartu Online Multiplayer</div>
         <div class="room-box">
             <div>
@@ -1420,7 +1424,8 @@
                 <div id="waiting-text">Menunggu pemain lain...</div>
                 <div class="waiting-spin"><span></span><span></span><span></span></div>
                 <button id="start-btn" class="btn-gold" style="display:none; margin-top:20px; width:100%;"
-                    onclick="startGameManual()">Mulai Permainan Sekarang 🃏</button>
+                    onclick="startGameManual()">Mulai Permainan</button>
+                <button id="lobby-leave-btn" class="btn-leave" style="margin-top:10px; width:100%; padding:14px; font-size:14px;" onclick="leaveRoom()">Keluar Meja</button>
             </div>
         </div>
     </div>
@@ -1875,6 +1880,7 @@
                 document.getElementById('game').style.display = 'none';
                 document.getElementById('lobby').style.display = 'flex';
                 document.getElementById('game').style.display = 'none';
+                document.getElementById('main-header').style.display = 'none';
 
                 // Hide inputs but NOT the lobby-status
                 document.querySelectorAll('.room-box > div:not(.waiting-msg)').forEach(d => d.style.display = 'none');
@@ -1913,6 +1919,7 @@
 
             document.getElementById('lobby').style.display = 'none';
             document.getElementById('game').style.display = 'flex';
+            document.getElementById('main-header').style.display = 'grid'; // Tampilkan header
             document.getElementById('hud-top').style.display = 'flex'; // Show HUD in game
             document.getElementById('round-badge').style.display = 'flex';
             document.getElementById('round-badge').textContent = (s.roundCount || 1) + '/7';
