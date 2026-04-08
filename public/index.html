@@ -1389,12 +1389,14 @@
     <div id="leaderboard-panel" class="leaderboard-panel">
         <div class="lb-header">
             <div>🏆 Leaderboard</div>
-            <button onclick="closeLeaderboard()">✖</button>
+            <button id="lb-close-btn" onclick="closeLeaderboard()">✖</button>
         </div>
 
         <div id="leaderboard-list" class="lb-list">
             <!-- Items injected by JS -->
         </div>
+
+        <button id="lb-restart-btn" class="btn-gold" style="display:none; width:100%; margin-top:20px;" onclick="restartGame()">Ulangi Game</button>
     </div>
 
     <!-- TOAST -->
@@ -1491,8 +1493,8 @@
     <!-- GAME OVER OVERLAY -->
     <div id="overlay">
         <div class="overlay-card">
-            <div class="overlay-icon" id="overlay-icon">💀</div>
-            <div class="overlay-title" id="overlay-title">Game Over</div>
+            <div class="overlay-icon" id="overlay-icon" style="display: none;">💀</div>
+            <div class="overlay-title" id="overlay-title">Permainan Selesai</div>
             <div class="overlay-sub" id="overlay-sub"></div>
             <button class="btn-gold" style="width:auto;padding:12px 36px;" onclick="restartGame()">Main Lagi</button>
         </div>
@@ -1798,6 +1800,20 @@
             });
 
             panel.classList.add('show');
+
+            const restartBtn = document.getElementById('lb-restart-btn');
+            if (restartBtn) {
+                if (window.isMatchEndFlag && myIndex === 0) {
+                    restartBtn.style.display = 'block';
+                } else {
+                    restartBtn.style.display = 'none';
+                }
+            }
+
+            const closeBtn = document.getElementById('lb-close-btn');
+            if (closeBtn) {
+                closeBtn.style.display = window.isMatchEndFlag ? 'none' : 'flex';
+            }
         });
 
         /* ── STATE UPDATE ── */
@@ -1808,6 +1824,8 @@
 
             if (s.started) {
                 document.getElementById('overlay').classList.remove('show');
+                document.getElementById('leaderboard-panel').classList.remove('show');
+                window.isMatchEndFlag = false;
             }
             myIndex = s.yourIndex; // Sync early!
 
@@ -1978,11 +1996,11 @@
                 const deckEmpty = s.deckCount === 0;
                 const hasSuit = s.yourCards.some(c => c.suit === s.currentSuit);
                 if (isCtrl) {
-                    sb.textContent = '👑 Giliranmu — Seret kartu apa saja ke meja!';
+                    sb.textContent = '👑 Giliranmu — pilih kartu apa saja ke meja!';
                 } else if (!hasSuit && deckEmpty) {
                     sb.textContent = '🃏 Deck habis — Ambil kartu dari meja!';
                 } else {
-                    sb.textContent = '🃏 Giliranmu — Seret ' + suitName(s.currentSuit) + ' ke meja!';
+                    sb.textContent = '🃏 Giliranmu — pilih ' + suitName(s.currentSuit) + ' ke meja!';
                 }
                 sb.classList.add('your-turn');
                 document.getElementById('your-id-tag').classList.add('active');
@@ -2555,6 +2573,7 @@
             const title = document.getElementById('overlay-title');
             const icon = document.getElementById('overlay-icon');
             const sub = document.getElementById('overlay-sub');
+            const restartBtn = document.querySelector('#overlay button');
 
             if (isWinner) {
                 icon.textContent = '🏆';
@@ -2563,10 +2582,19 @@
                 sub.textContent = 'Hebat! Kamu berhasil menghabiskan semua kartu!';
             } 
 
+            if (restartBtn) {
+                if (data.isMatchEnd) {
+                    restartBtn.style.display = 'none'; // Sembunyikan kalau match beneran selesai (last round)
+                } else {
+                    restartBtn.style.display = myIndex === 0 ? 'inline-block' : 'none'; // Hanya host yang bisa lanjut ke ronde biasa
+                }
+            }
+
             document.getElementById('overlay').classList.add('show');
             toast('Game selesai!');
 
             if (data.isMatchEnd) {
+                window.isMatchEndFlag = true;
                 setTimeout(() => {
                     socket.emit('getLeaderboard');
                     document.getElementById('overlay').classList.remove('show');

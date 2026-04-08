@@ -261,6 +261,10 @@ function resolveRound(game, roomId) {
 }
 
 function startGame(game) {
+  if (game.roundCount === 0) {
+    game.leaderboard = {};
+  }
+
   game.deck = createDeck();
   game.players.forEach((p) => {
     p.cards = [];
