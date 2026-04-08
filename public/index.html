@@ -41,7 +41,7 @@
         }
 
         body {
-            background: #0d1117;
+            background: #06090b;
             background-attachment: fixed;
             font-family: 'Inter', sans-serif;
             color: var(--cream);
@@ -1665,6 +1665,23 @@
         function toggleSfx(isOn) {
             isSfxOn = isOn;
             localStorage.setItem('remi_sfx', isOn);
+            if (!isOn) {
+                // Hentikan semua SFX yang mungkin masih playing
+                [turnSound, popSound, tauntSound, clutchWinSound, clutchDangerSound].forEach(s => {
+                    s.pause();
+                    s.currentTime = 0;
+                });
+            }
+        }
+
+        function toggleBgm(isOn) {
+            isBgmOn = isOn;
+            localStorage.setItem('remi_bgm', isOn);
+            if (isOn && audioUnlocked) {
+                bgmSound.play().catch(() => {});
+            } else {
+                bgmSound.pause();
+            }
         }
 
         let isFsOn = localStorage.getItem('remi_fs') !== 'false'; // default true
@@ -1859,6 +1876,12 @@
         }
 
         function leaveRoom() {
+            // Hentikan semua audio sebelum reload
+            bgmSound.pause();
+            [turnSound, popSound, tauntSound, clutchWinSound, clutchDangerSound].forEach(s => {
+                s.pause();
+                s.currentTime = 0;
+            });
             localStorage.removeItem('remi_name');
             localStorage.removeItem('remi_room');
             myName = '';
