@@ -1403,7 +1403,7 @@
         <div class="logo"><img src="logo.png" class="img-logo" alt=""></div>
         <div style="display: flex; align-items: center;">
             <div id="round-badge">1/7</div>
-            <button id="leaderboard-btn" onclick="openLeaderboard()">🏆</button>
+            <button id="leaderboard-btn" onclick="openLeaderboard()"><i class="fa-solid fa-trophy"></i></button>
         </div>
         <div id="hud-top" style="display:none;">
             <button class="btn-setting" onclick="settingComponent()"><i class="fa-solid fa-gear"></i></button>
@@ -1441,6 +1441,7 @@
                 <input id="room-input" type="text" placeholder="Ketik kode room..." maxlength="12" />
             </div>
             <button class="btn-gold" onclick="joinRoom()">Masuk Meja</button>
+            <button style="margin-top:8px; width:100%; padding:14px; border:1px solid rgba(212,175,55,0.3); border-radius:12px; background:rgba(212,175,55,0.07); color:var(--gold-light); font-size:14px; font-weight:700; letter-spacing:1px; cursor:pointer; transition:all 0.2s;" onclick="joinWithBot()" onmouseover="this.style.background='rgba(212,175,55,0.15)'" onmouseout="this.style.background='rgba(212,175,55,0.07)'">Main vs Bot 🤖</button>
             <div id="lobby-status" class="waiting-msg" style="display:none;">
                 <div id="waiting-text">Menunggu pemain lain...</div>
 
@@ -1640,9 +1641,11 @@
         document.addEventListener('click', () => {
             if (audioUnlocked) return;
 
+            // Unlock audio context dengan dummy play/pause
             Promise.all([
                 bgmSound.play().then(() => {
-                    if (!isBgmOn) bgmSound.pause();
+                    // Selalu pause BGM dulu — state handler yang kontrol kapan mulai
+                    bgmSound.pause();
                 }),
                 turnSound.play().then(() => {
                     turnSound.pause();
@@ -1797,6 +1800,20 @@
 
         // Track which cards are currently rendered on the table (for spread effect)
         let renderedRoundCardCount = 0;
+
+        /* ── JOIN WITH BOT ── */
+        function joinWithBot() {
+            const ni = document.getElementById('name-input');
+            myName = ni.value.trim() || localStorage.getItem('remi_name') || 'Pemain';
+
+            if (!myName) { toast('Masukkan namamu dulu!', '⚠️'); return; }
+
+            localStorage.setItem('remi_name', myName);
+            localStorage.setItem('remi_room', '__bot__');
+
+            socket.emit('joinWithBot', { name: myName });
+            tryAutoFullscreen();
+        }
 
         /* ── JOIN ROOM ── */
         function joinRoom() {
@@ -2101,6 +2118,10 @@
                 }
 
                 document.getElementById('round-badge').style.display = 'none';
+
+                // Jangan putar BGM di lobby/waiting
+                bgmSound.pause();
+
                 return;
             }
 
@@ -2110,6 +2131,11 @@
             document.getElementById('hud-top').style.display = 'flex'; // Show HUD in game
             document.getElementById('round-badge').style.display = 'flex';
             document.getElementById('round-badge').textContent = (s.roundCount || 1) + '/' + s.maxRounds;
+
+            // Putar BGM hanya saat in-game
+            if (isBgmOn && audioUnlocked && bgmSound.paused) {
+                bgmSound.play().catch(() => {});
+            }
 
             myIndex = s.yourIndex;
             currentSuit = s.currentSuit;
@@ -2800,6 +2826,14 @@
 
         socket.on('playerJoined', d => toast(d.name + ' bergabung ke meja', '♠'));
         socket.on('playerLeft', d => toast((d.name || 'Pemain') + ' meninggalkan meja', '🚪'));
+        socket.on('botAction', d => {
+            const msgs = {
+                play: `${d.botName} memainkan kartu ${d.card ? d.card.value + d.card.suit : ''}`,
+                draw: `${d.botName} mengambil kartu dari deck...`,
+                takeTable: `${d.botName} mengambil kartu dari meja!`,
+            };
+            toast(msgs[d.action] || `${d.botName} bergerak`, '🤖');
+        });
         socket.on('deckExhausted', d => {
             toast(d.takerName + ' ambil ' + d.cardCount + ' kartu dari meja! Giliran ke ' + d.nextPlayerName, '🂠');
         });
