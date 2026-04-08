@@ -1573,6 +1573,14 @@
                 </label>
             </div>
 
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <span style="font-size: 14px; font-weight: 500;">Layar Penuh</span>
+                <label class="switch">
+                    <input type="checkbox" id="fs-toggle" onchange="toggleFullscreen(this.checked)">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+
             <button class="btn-gold" style="width: 100%; padding: 12px; font-size: 14px;" onclick="document.getElementById('setting-modal').style.display='none';">Tutup</button>
         </div>
     </div>
@@ -1654,25 +1662,45 @@
             }).catch(() => {});
         }, { once: true });
 
-        function settingComponent() {
-            document.getElementById('bgm-toggle').checked = isBgmOn;
-            document.getElementById('sfx-toggle').checked = isSfxOn;
-            document.getElementById('setting-modal').style.display = 'flex';
-        }
-
-        function toggleBgm(isOn) {
-            isBgmOn = isOn;
-            localStorage.setItem('remi_bgm', isOn);
-            if (isOn && audioUnlocked) {
-                bgmSound.play().catch(()=>{});
-            } else {
-                bgmSound.pause();
-            }
-        }
-
         function toggleSfx(isOn) {
             isSfxOn = isOn;
             localStorage.setItem('remi_sfx', isOn);
+        }
+
+        let isFsOn = localStorage.getItem('remi_fs') !== 'false'; // default true
+
+        function toggleFullscreen(isOn) {
+            isFsOn = isOn;
+            localStorage.setItem('remi_fs', isOn);
+            if (isOn) {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(()=>{});
+                }
+            } else {
+                if (document.fullscreenElement) {
+                    document.exitFullscreen().catch(()=>{});
+                }
+            }
+        }
+
+        function tryAutoFullscreen() {
+            if (isFsOn && !document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(()=>{});
+            }
+        }
+
+        document.addEventListener('fullscreenchange', () => {
+            const isFs = !!document.fullscreenElement;
+            const toggle = document.getElementById('fs-toggle');
+            if (toggle) toggle.checked = isFs;
+            isFsOn = isFs;
+        });
+
+        function settingComponent() {
+            document.getElementById('bgm-toggle').checked = isBgmOn;
+            document.getElementById('sfx-toggle').checked = isSfxOn;
+            document.getElementById('fs-toggle').checked = !!document.fullscreenElement;
+            document.getElementById('setting-modal').style.display = 'flex';
         }
 
         document.getElementById('leaderboard-btn').onclick = () => {
@@ -1767,12 +1795,13 @@
 
             socket.emit('joinRoom', { name: myName, room });
 
-            localStorage.setItem('remi_name', myName);
             localStorage.setItem('remi_room', room);
 
             document.getElementById('lobby-status').style.display = 'block';
             ni.disabled = true;
             ri.disabled = true;
+
+            tryAutoFullscreen();
         }
 
         function sendEmoji(e) {
