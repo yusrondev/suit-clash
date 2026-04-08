@@ -10,6 +10,8 @@
         href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;500;600&display=swap"
         rel="stylesheet" />
 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
     <style>
         /* ── TOKENS ── */
         :root {
@@ -131,6 +133,21 @@
             white-space: nowrap;
         }
         .btn-leave:hover { background: rgba(255,100,100,0.12); border-color: rgba(255,100,100,0.6); color: white; }
+
+        .btn-setting {
+            background: transparent;
+            border: 1px solid #57606f;
+            color: #57606f;
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
 
         /* ── LOBBY ── */
         #lobby {
@@ -1374,6 +1391,14 @@
         .img-logo{
             width: 100px;
         }
+
+        /* THE SWITCH */
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.2); transition: .2s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .2s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--gold); }
+        input:checked + .slider:before { transform: translateX(20px); }
     </style>
 </head>
 
@@ -1386,7 +1411,8 @@
             <button id="leaderboard-btn" onclick="openLeaderboard()">🏆</button>
         </div>
         <div id="hud-top" style="display:none;">
-            <button class="btn-leave" onclick="leaveRoom()">Keluar</button>
+            <button class="btn-setting" onclick="settingComponent()"><i class="fa-solid fa-gear"></i></button>
+            <button class="btn-leave" onclick="confirmLeaveRoom()"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
         </div>
     </header>
 
@@ -1419,13 +1445,22 @@
                 <label>Kode Room</label>
                 <input id="room-input" type="text" placeholder="Ketik kode room..." maxlength="12" />
             </div>
-            <button class="btn-gold" onclick="joinRoom()">Masuk Meja ♠</button>
+            <button class="btn-gold" onclick="joinRoom()">Masuk Meja</button>
             <div id="lobby-status" class="waiting-msg" style="display:none;">
                 <div id="waiting-text">Menunggu pemain lain...</div>
+
+                <div id="host-settings" style="display:none; margin-top: 15px; color: var(--gold-light);">
+                    <label style="font-size: 11px; text-transform: uppercase; font-weight: bold;">Putaran:</label>
+                    <input type="number" id="max-rounds-input" value="7" min="1" max="20" style="width: 50px; text-align: center; border-radius: 6px; padding: 4px; margin-left: 8px; border: 1px solid var(--gold); background: rgba(0,0,0,0.5); color: white;" onchange="updateMaxRounds(this.value)">
+                </div>
+                <div id="guest-settings" style="display:none; margin-top: 15px; color: var(--gold-light);">
+                    <label style="font-size: 11px; text-transform: uppercase; font-weight: bold;">Putaran: <b id="guest-rounds-display">7</b></label>
+                </div>
+
                 <div class="waiting-spin"><span></span><span></span><span></span></div>
                 <button id="start-btn" class="btn-gold" style="display:none; margin-top:20px; width:100%;"
                     onclick="startGameManual()">Mulai Permainan</button>
-                <button id="lobby-leave-btn" class="btn-leave" style="margin-top:10px; width:100%; padding:14px; font-size:14px;" onclick="leaveRoom()">Keluar Meja</button>
+                <button id="lobby-leave-btn" class="btn-leave" style="margin-top:10px; width:100%; padding:14px; font-size:14px;" onclick="confirmLeaveRoom()">Keluar Meja</button>
             </div>
         </div>
     </div>
@@ -1478,13 +1513,13 @@
                 </button>
             </div>
         </div>
-        <div id="text-fab">💬</div>
+        <div id="text-fab"><i class="fa-solid fa-comment"></i></div>
         <div id="chat-input-box">
             <div id="chat-history"></div>
             <input type="text" id="chat-input" placeholder="Ketik sesuatu..." />
         </div>
         <div id="emoji-fab">
-            😄
+            <i class="fa-solid fa-face-grin-tongue-squint"></i>
             <div id="emoji-menu">
                 <button onclick="pickEmoji('😂')">😂</button>
                 <button onclick="pickEmoji('😏')">😏</button>
@@ -1502,6 +1537,43 @@
             <div class="overlay-title" id="overlay-title">Permainan Selesai</div>
             <div class="overlay-sub" id="overlay-sub"></div>
             <button class="btn-gold" style="width:auto;padding:12px 36px;" onclick="restartGame()">Main Lagi</button>
+        </div>
+    </div>
+
+    <!-- LEAVE CONFIRMATION MODAL -->
+    <div id="leave-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 99999; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
+        <div class="overlay-card" style="max-width: 300px; padding: 20px; box-sizing: border-box; text-align: center;">
+            <div class="overlay-title" style="font-size: 22px;">Keluar?</div>
+            <div class="overlay-sub" style="margin-bottom: 20px; margin-top: 10px; font-size: 13px;">Apakah Anda yakin ingin keluar dari room ini? Anda perlu memasukkan nama dan kode room untuk kembali masuk pertandingan.</div>
+            <div style="display: flex; gap: 10px; width: 100%;">
+                <button class="btn-leave" style="flex: 1; padding: 12px; font-size: 14px; margin: 0; border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.7); background: transparent;" onclick="document.getElementById('leave-modal').style.display='none';">Batal</button>
+                <button class="btn-leave" style="flex: 1; padding: 12px; font-size: 14px; margin: 0; background: rgba(211,47,47,0.2); color: #ff6b6b; border-color: rgba(211,47,47,0.6);" onclick="leaveRoom()">Yakin</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SETTINGS MODAL -->
+    <div id="setting-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 99999; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
+        <div class="overlay-card" style="max-width: 300px; width: 100%; padding: 24px; box-sizing: border-box; text-align: left;">
+            <div class="overlay-title" style="font-size: 20px; text-align: center; margin-bottom: 20px;">Pengaturan</div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <span style="font-size: 14px; font-weight: 500;">Musik Latar (BGM)</span>
+                <label class="switch">
+                    <input type="checkbox" id="bgm-toggle" onchange="toggleBgm(this.checked)">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <span style="font-size: 14px; font-weight: 500;">Efek Suara (SFX)</span>
+                <label class="switch">
+                    <input type="checkbox" id="sfx-toggle" onchange="toggleSfx(this.checked)">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+
+            <button class="btn-gold" style="width: 100%; padding: 12px; font-size: 14px;" onclick="document.getElementById('setting-modal').style.display='none';">Tutup</button>
         </div>
     </div>
 
@@ -1534,6 +1606,13 @@
         const EMOJI_COOLDOWN = 3000; // 3 detik
 
 
+        let isBgmOn = localStorage.getItem('remi_bgm') !== 'false';
+        let isSfxOn = localStorage.getItem('remi_sfx') !== 'false';
+
+        const bgmSound = new Audio('/bgm.mp3');
+        bgmSound.loop = true;
+        bgmSound.volume = 0.25;
+
         const turnSound = new Audio('/turn.mp3');
         turnSound.volume = 0.6;
 
@@ -1546,6 +1625,12 @@
         const clutchWinSound = new Audio('/win.mp3');
         const clutchDangerSound = new Audio('/warning.mp3');
 
+        function playSfx(sound) {
+            if (!isSfxOn) return;
+            sound.currentTime = 0;
+            sound.play().catch(()=>{});
+        }
+
         // 🔥 UNLOCK AUDIO (TARUH DI SINI)
         let audioUnlocked = false;
 
@@ -1553,6 +1638,9 @@
             if (audioUnlocked) return;
 
             Promise.all([
+                bgmSound.play().then(() => {
+                    if (!isBgmOn) bgmSound.pause();
+                }),
                 turnSound.play().then(() => {
                     turnSound.pause();
                     turnSound.currentTime = 0;
@@ -1566,6 +1654,27 @@
             }).catch(() => {});
         }, { once: true });
 
+        function settingComponent() {
+            document.getElementById('bgm-toggle').checked = isBgmOn;
+            document.getElementById('sfx-toggle').checked = isSfxOn;
+            document.getElementById('setting-modal').style.display = 'flex';
+        }
+
+        function toggleBgm(isOn) {
+            isBgmOn = isOn;
+            localStorage.setItem('remi_bgm', isOn);
+            if (isOn && audioUnlocked) {
+                bgmSound.play().catch(()=>{});
+            } else {
+                bgmSound.pause();
+            }
+        }
+
+        function toggleSfx(isOn) {
+            isSfxOn = isOn;
+            localStorage.setItem('remi_sfx', isOn);
+        }
+
         document.getElementById('leaderboard-btn').onclick = () => {
             socket.emit('getLeaderboard');
         };
@@ -1575,6 +1684,7 @@
         const chatInput = document.getElementById('chat-input');
 
         function playClutchSound(type) {
+            if (!isSfxOn) return;
             const s = type === 'win' ? clutchWinSound : clutchDangerSound;
             s.currentTime = 0;
             s.play().catch(()=>{});
@@ -1715,11 +1825,27 @@
             setTimeout(() => el.remove(), 3000);
         }
 
+        function confirmLeaveRoom() {
+            document.getElementById('leave-modal').style.display = 'flex';
+        }
+
         function leaveRoom() {
             localStorage.removeItem('remi_name');
             localStorage.removeItem('remi_room');
+            myName = '';
             window.location.reload();
         }
+
+        function updateMaxRounds(val) {
+            socket.emit("setMaxRounds", val);
+        }
+
+        window.addEventListener('beforeunload', (e) => {
+            if (localStorage.getItem('remi_room') || myName) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
 
         window.onload = () => {
             const sn = localStorage.getItem('remi_name');
@@ -1841,8 +1967,7 @@
 
             if (prevTurn !== null && prevTurn !== s.currentPlayer) {
                 if (s.currentPlayer === myIndex && !amIOut) {
-                    popSound.currentTime = 0;
-                    popSound.play().catch(() => {});
+                    playSfx(popSound);
                 }
             }
 
@@ -1851,8 +1976,7 @@
             const currentTableCount = (s.tableHistory || []).length;
 
             if (currentTableCount > prevTableCount) {
-                turnSound.currentTime = 0;
-                turnSound.play().catch(() => {});
+                playSfx(turnSound);
             }
 
             prevTableCount = currentTableCount;
@@ -1913,6 +2037,22 @@
                     waitingText.style.color = 'var(--cream)';
                 }
 
+                const hostSettings = document.getElementById('host-settings');
+                const guestSettings = document.getElementById('guest-settings');
+                if (hostSettings && guestSettings) {
+                    if (isHost) {
+                        hostSettings.style.display = 'block';
+                        guestSettings.style.display = 'none';
+                        if (document.activeElement !== document.getElementById('max-rounds-input')) {
+                            document.getElementById('max-rounds-input').value = s.maxRounds;
+                        }
+                    } else {
+                        hostSettings.style.display = 'none';
+                        guestSettings.style.display = 'block';
+                        document.getElementById('guest-rounds-display').textContent = s.maxRounds;
+                    }
+                }
+
                 document.getElementById('round-badge').style.display = 'none';
                 return;
             }
@@ -1922,7 +2062,7 @@
             document.getElementById('main-header').style.display = 'grid'; // Tampilkan header
             document.getElementById('hud-top').style.display = 'flex'; // Show HUD in game
             document.getElementById('round-badge').style.display = 'flex';
-            document.getElementById('round-badge').textContent = (s.roundCount || 1) + '/7';
+            document.getElementById('round-badge').textContent = (s.roundCount || 1) + '/' + s.maxRounds;
 
             myIndex = s.yourIndex;
             currentSuit = s.currentSuit;
@@ -2210,9 +2350,11 @@
                     container.appendChild(emojiEl);
 
                     // 🔊 FIX SOUND OVERLAP
-                    tauntSound.pause();
-                    tauntSound.currentTime = 0;
-                    tauntSound.play().catch(()=>{});
+                    if (isSfxOn) {
+                        tauntSound.pause();
+                        tauntSound.currentTime = 0;
+                        tauntSound.play().catch(()=>{});
+                    }
 
                     setTimeout(() => emojiEl.remove(), 3000);
                 }

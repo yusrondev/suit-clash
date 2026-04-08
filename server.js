@@ -68,6 +68,7 @@ function makeGame() {
     started: false,
     leaderboard: {}, // 🔥 per-room leaderboard
     roundCount: 0,
+    maxRounds: 7, // 🔥 NEW: Dinamis dari Host
     nextStarter: null,
   };
 }
@@ -101,6 +102,7 @@ function sendState(game) {
       freeMode: game.freeMode,
       started: game.started,
       roundCount: game.roundCount,
+      maxRounds: game.maxRounds,
     });
   });
 }
@@ -159,7 +161,7 @@ function checkEnd(game, roomId) {
     }
     game.leaderboard[loser.name].lose += 1;
 
-    const isMatchEnd = game.roundCount >= 7;
+    const isMatchEnd = game.roundCount >= game.maxRounds;
 
     io.to(roomId).emit("gameOver", {
       loserName: loser.name,
@@ -383,6 +385,21 @@ io.on("connection", (socket) => {
       .sort((a, b) => b.point - a.point);
 
     socket.emit("leaderboardData", sorted);
+  });
+
+  socket.on("setMaxRounds", (rounds) => {
+    if (!currentRoom) return;
+    const game = rooms.get(currentRoom);
+    if (!game || game.started) return;
+
+    // Hanya host (index 0) yang bisa ubah
+    if (game.players[0].id !== socket.id) return;
+
+    const r = parseInt(rounds);
+    if (r >= 1 && r <= 20) {
+      game.maxRounds = r;
+      sendState(game);
+    }
   });
 
   socket.on("takeTableCard", () => {
