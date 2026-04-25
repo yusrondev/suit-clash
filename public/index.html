@@ -1657,6 +1657,8 @@
         amongusSound.volume = 0.7;
         const notificationSound = new Audio('/notification.mp3');
         notificationSound.volume = 0.5;
+        const electricSound = new Audio('/electric.mp3');
+        electricSound.volume = 0.7;
 
         function playSfx(sound) {
             if (!isSfxOn) return;
@@ -1694,7 +1696,7 @@
             localStorage.setItem('remi_sfx', isOn);
             if (!isOn) {
                 // Hentikan semua SFX yang mungkin masih playing
-                [turnSound, popSound, tauntSound, clutchWinSound, clutchDangerSound, lightningSound, amongusSound, notificationSound].forEach(s => {
+                [turnSound, popSound, tauntSound, clutchWinSound, clutchDangerSound, lightningSound, amongusSound, notificationSound, electricSound].forEach(s => {
                     s.pause();
                     s.currentTime = 0;
                 });
@@ -2575,6 +2577,7 @@
                     // 🔥 EFEK BAKAR (ACE) - Hanya untuk kartu paling atas (yang baru turun)
                     if (card.value === 'A' && isTop) {
                         el.classList.add('card-ace-fire');
+                        playSfx(electricSound);
                         setTimeout(() => el.classList.remove('card-ace-fire'), 3000);
                     }
 
@@ -2696,9 +2699,9 @@
             }
 
             setTimeout(() => {
-                wrapper.style.transition = 'all 0.5s ease';
+                wrapper.style.transition = 'all 0.4s ease-out';
                 wrapper.style.opacity = '0';
-                wrapper.style.transform = 'translateX(-50%) translateY(35%)';
+                wrapper.style.transform = 'translateX(-50%) translateY(-25%) scale(0.9)';
                 setTimeout(() => {
                     wrapper.remove();
                     inst.destroy();
@@ -2827,9 +2830,9 @@
             }
 
             setTimeout(() => {
-                wrapper.style.transition = 'all 0.5s ease';
+                wrapper.style.transition = 'all 0.4s ease-out';
                 wrapper.style.opacity = '0';
-                wrapper.style.transform = 'translateX(-50%) translateY(35%)';
+                wrapper.style.transform = 'translateX(-50%) translateY(-15%) scale(0.9)';
                 setTimeout(() => wrapper.remove(), 500);
             }, 4000);
         }
