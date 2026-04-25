@@ -443,14 +443,21 @@
             will-change: opacity;
         }
         .table-card .tc-val { font-size: 22px; font-weight: 900; line-height: 1; }
-        .table-card .tc-corner {
-            position: absolute;
+        /* Universal corner markers for any card type */
+        .corner, .tc-corner {
+            position: absolute !important;
             font-size: 9px;
-            line-height: 1.15;
+            line-height: 1;
             text-align: center;
+            font-weight: 700;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 14px;
+            pointer-events: none;
         }
-        .table-card .tc-corner.tl { top: 4px; left: 5px; }
-        .table-card .tc-corner.br { bottom: 4px; right: 5px; transform: rotate(180deg); }
+        .corner.tl, .tc-corner.tl { top: 4px; left: 4px; }
+        .corner.br, .tc-corner.br { bottom: 4px; right: 4px; transform: rotate(180deg); }
 
         .table-card.champion {
             box-shadow: var(--shadow-card), 0 0 14px rgba(201,168,76,0.5), inset 0 1px 0 rgba(255,255,255,0.8);
@@ -734,40 +741,43 @@
         }
         .hand-card.invalid { filter: brightness(0.45) saturate(0.2); cursor: not-allowed; }
 
-        .hand-card .hv { font-family: 'Playfair Display', serif; font-size: 24px; font-weight: 900; line-height: 1; }
-        .hand-card .hs { font-size: 16px; line-height: 1; margin-top: 2px;}
-        .hand-card .corner { position: absolute; font-size: 9px; line-height: 1.2; text-align: center; font-weight: 600; }
-        .hand-card .corner.tl { top: 4px; left: 5px; }
-        .hand-card .corner.br { bottom: 4px; right: 5px; transform: rotate(180deg); }
+        .hand-card .hv, .ghost-card .hv, .table-card .tc-val { font-family: 'Playfair Display', serif; font-size: 24px; font-weight: 900; line-height: 1; text-align: center; }
+        .hand-card .hs, .ghost-card .hs { font-size: 16px; line-height: 1; margin-top: 2px; text-align: center; }
 
         .red-card   { color: var(--red); }
         .black-card { color: var(--black); }
 
         /* drag & drop / click selection */
-        .hand-card.dragging  { opacity: 0.35; cursor: grabbing; filter: grayscale(0.5); }
-        .hand-card.drag-over { border: 2px solid var(--gold); box-shadow: 0 0 20px rgba(201,168,76,0.5); }
+        .hand-card.dragging  { opacity: 0; cursor: grabbing; pointer-events: none; }
+        .hand-card.drag-over { border: 2px solid var(--gold); box-shadow: 0 0 20px rgba(212, 175, 55, 0.5); }
 
-        /* 🔥 TUNTUTAN USER: Click Selection - Visual Saja (Glow/Border), Posisi diatur di JS */
-        .hand-card.selected {
-            box-shadow: 0 10px 25px rgba(212, 175, 55, 0.4), 0 0 15px var(--gold);
-            border: 2px solid var(--gold-light) !important;
-            z-index: 10000 !important;
-        }
-        .hand-card.selected::after {
-            display: none !important; /* matiin animasi pulse kalau terpilih */
+        .ghost-card {
+            position: fixed !important;
+            width: 62px !important;
+            height: 90px !important;
+            pointer-events: none;
+            z-index: 100000 !important;
+            transition: none !important;
+            transform: translate(-50%, -50%) scale(1.1);
+            box-shadow: 0 15px 45px rgba(0,0,0,0.6);
+            border-radius: 8px;
+            background: var(--card-bg);
+            border: 1.5px solid var(--gold);
+            margin: 0 !important;
         }
 
         /* Table drop zone highlight */
         #table-spread-area.drop-target {
-            outline: 3px dashed rgba(201,168,76,0.7);
+            outline: 3px dashed rgba(212, 175, 55, 0.7);
             outline-offset: 6px;
             border-radius: 12px;
-            background: rgba(201,168,76,0.07);
-            transition: background 0.2s;
+            background: rgba(212, 175, 55, 0.1);
+            transition: all 0.2s;
         }
         #center-table.drop-active {
             border-color: var(--gold-light);
-            box-shadow: inset 0 4px 20px rgba(201,168,76,0.15), 0 8px 30px rgba(0,0,0,0.5), 0 0 30px rgba(201,168,76,0.2);
+            box-shadow: inset 0 4px 20px rgba(212, 175, 55, 0.2), 0 8px 30px rgba(0,0,0,0.5), 0 0 30px rgba(212, 175, 55, 0.3);
+            background: radial-gradient(ellipse at 50% 40%, #2a7248 0%, #154228 50%, #0d2818 100%);
         }
 
         /* ── ACTION BUTTONS ── */
@@ -799,7 +809,7 @@
         .btn-draw:disabled { opacity: 0.25; cursor: not-allowed; }
 
         /* ── GAME OVER OVERLAY ── */
-        #overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.82); backdrop-filter: blur(8px); z-index: 100; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 20px; }
+        #overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.82); backdrop-filter: blur(8px); z-index: 999999; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 20px; }
         #overlay.show { display: flex; }
         .overlay-card {
             background: rgba(12,38,25,0.97);
@@ -994,6 +1004,11 @@
             z-index: 9999;
             pointer-events: none;
             animation: emojiPopCenter 3s ease forwards;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
         }
 
         @keyframes emojiPopCenter {
@@ -1011,6 +1026,21 @@
             }
         }
 
+        /* ── ACE LOTTIE OVERLAY ── */
+        #ace-lottie-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 9999998;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #ace-lottie-overlay > div {
+            width: min(100vw, 100vh);
+            height: min(100vw, 100vh);
+        }
+
         #text-fab {
             position: fixed;
             bottom: 10px;
@@ -1018,7 +1048,7 @@
             height: 46px;
             border-radius: 50%;
             background: linear-gradient(145deg, #3a3a3a, #1f1f1f);
-            display: flex;
+            display: none; /* Hidden until player joins a room */
             align-items: center;
             justify-content: center;
             font-size: 26px;
@@ -1509,21 +1539,26 @@
                 </button>
             </div>
         </div>
-        <div id="text-fab"><i class="fa-solid fa-comment"></i></div>
-        <div id="chat-input-box">
-            <div id="chat-history"></div>
-            <input type="text" id="chat-input" placeholder="Ketik sesuatu..." />
-        </div>
+
         <div id="emoji-fab">
             <i class="fa-solid fa-face-grin-tongue-squint"></i>
             <div id="emoji-menu">
-                <button onclick="pickEmoji('😂')">😂</button>
-                <button onclick="pickEmoji('😏')">😏</button>
-                <button onclick="pickEmoji('🔥')">🔥</button>
-                <button onclick="pickEmoji('🐢')">🐢</button>
-                <button onclick="pickEmoji('👑')">👑</button>
+                <button onclick="pickEmoji('cat-laughing')" title="Cat Laughing">😂</button>
+                <button onclick="pickEmoji('cat-sleep')" title="Cat Sleep">💤</button>
+                <button onclick="pickEmoji('angry')" title="Angry">😡</button>
+                <button onclick="pickEmoji('cat')" title="Cat">🐱</button>
+                <button onclick="pickEmoji('amongus')" title="Among Us">ඞ</button>
+                <button onclick="pickEmoji('👑')" title="King">👑</button>
+                <button onclick="pickRecall()" title="Recall!" style="font-size:18px;">⚡</button>
             </div>
         </div>
+    </div>
+
+    <!-- GLOBAL CHAT (always accessible, even in lobby) -->
+    <div id="text-fab"><i class="fa-solid fa-comment"></i></div>
+    <div id="chat-input-box">
+        <div id="chat-history"></div>
+        <input type="text" id="chat-input" placeholder="Ketik sesuatu..." />
     </div>
 
     <!-- GAME OVER OVERLAY -->
@@ -1582,7 +1617,9 @@
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
     <script>
+
         const socket = io();
 
         let myIndex = -1;
@@ -1591,8 +1628,11 @@
         let isMyTurn = false;
         let playerNames = [];
         let prevTableCount = 0;
-        let lastState = null; // 🔥 Tambahkan ini untuk menyimpan state terakhir
-        let selectedHandIndex = null; // 🔥 Tambahkan ini untuk sistem Click-to-Play
+        let lastState = null;
+        let selectedHandIndex = null;
+        let pendingOptimisticCardId = null;
+        let lastKnownTableCardId = null; // For Ace detection
+        const LOTTIE_EMOJIS = ['cat', 'panda', 'angry', 'amongus', 'cat-laughing', 'cat-sleep'];
 
         let lastClutch = "";
         let lastAction = "";
@@ -1628,6 +1668,8 @@
 
         const clutchWinSound = new Audio('/win.mp3');
         const clutchDangerSound = new Audio('/warning.mp3');
+        const lightningSound = new Audio('/lightning.mp3');
+        lightningSound.volume = 0.7;
 
         function playSfx(sound) {
             if (!isSfxOn) return;
@@ -1665,7 +1707,7 @@
             localStorage.setItem('remi_sfx', isOn);
             if (!isOn) {
                 // Hentikan semua SFX yang mungkin masih playing
-                [turnSound, popSound, tauntSound, clutchWinSound, clutchDangerSound].forEach(s => {
+                [turnSound, popSound, tauntSound, clutchWinSound, clutchDangerSound, lightningSound].forEach(s => {
                     s.pause();
                     s.currentTime = 0;
                 });
@@ -1849,10 +1891,12 @@
             lastEmojiTime = now;
 
             const tauntMap = {
-                "😂": "Serius itu kartu?",
-                "😏": "Lama banget sih...",
-                "🔥": "Udah kepanasan ya?",
-                "🐢": "Loading dulu bro...",
+                "cat-laughing": "Wkwkwk!",
+                "cat-sleep": "Zzz...",
+                "angry": "Hadeh...",
+                "panda": "Zzz...",
+                "cat": "",
+                "amongus": "",
                 "👑": "Belajar dulu dek"
             };
 
@@ -1869,18 +1913,67 @@
             showSelfEmoji(payload);
         }
 
+        function pickRecall() {
+            const now = Date.now();
+            if (now - lastEmojiTime < EMOJI_COOLDOWN) {
+                toast("Tunggu dulu...", "⏳");
+                return;
+            }
+            lastEmojiTime = now;
+
+            const payload = { emoji: '⚡recall', text: '' };
+            socket.emit("sendEmoji", payload);
+
+            const fab = document.getElementById('emoji-fab');
+            fab.classList.remove('active');
+
+            // Play for myself immediately
+            playRecallLottie();
+        }
+
         function showSelfEmoji(data) {
             const el = document.createElement('div');
             el.className = 'emoji-self';
 
-            el.innerHTML = `
-                <div>${data.emoji}</div>
-                ${data.text ? `<div class="taunt-text">${data.text}</div>` : ''}
-            `;
+            // Use the global constant
+            if (LOTTIE_EMOJIS.includes(data.emoji)) {
+                const isAngry = data.emoji === 'angry';
+                const lSize = isAngry ? '70px' : '100px';
+
+                const lottieContainer = document.createElement('div');
+                lottieContainer.style.width = lSize;
+                lottieContainer.style.height = lSize;
+                el.appendChild(lottieContainer);
+                
+                if (data.text) {
+                    const textEl = document.createElement('div');
+                    textEl.className = 'taunt-text';
+                    textEl.style.fontSize = '18px';
+                    textEl.textContent = data.text;
+                    el.appendChild(textEl);
+                }
+
+                lottie.loadAnimation({
+                    container: lottieContainer,
+                    renderer: 'svg',
+                    loop: true,
+                    autoplay: true,
+                    path: `/${data.emoji}.json`
+                });
+            } else {
+                el.innerHTML = `
+                    <div style="font-size: 64px;">${data.emoji}</div>
+                    ${data.text ? `<div class="taunt-text" style="font-size:18px;">${data.text}</div>` : ''}
+                `;
+            }
 
             document.body.appendChild(el);
 
-            setTimeout(() => el.remove(), 3000);
+            setTimeout(() => {
+                el.style.opacity = '0';
+                el.style.transition = 'opacity 0.5s';
+                setTimeout(() => el.remove(), 500);
+            }, 4000);
         }
 
         function confirmLeaveRoom() {
@@ -1890,7 +1983,7 @@
         function leaveRoom() {
             // Hentikan semua audio sebelum reload
             bgmSound.pause();
-            [turnSound, popSound, tauntSound, clutchWinSound, clutchDangerSound].forEach(s => {
+            [turnSound, popSound, tauntSound, clutchWinSound, clutchDangerSound, lightningSound].forEach(s => {
                 s.pause();
                 s.currentTime = 0;
             });
@@ -2074,6 +2167,7 @@
                 document.querySelectorAll('.room-box > div:not(.waiting-msg)').forEach(d => d.style.display = 'none');
                 document.querySelector('.room-box > button').style.display = 'none';
                 document.getElementById('lobby-status').style.display = 'block';
+                document.getElementById('text-fab').style.display = 'flex'; // Show chat once in a room
 
                 const isHost = (myIndex === 0);
                 const startBtn = document.getElementById('start-btn');
@@ -2260,10 +2354,149 @@
                 drawBtn.style.color = '';
             }
 
+            // Sinkronisasi Optimistic UI
+            if (pendingOptimisticCardId && s.tableHistory && s.tableHistory.length > 0) {
+                const topCard = s.tableHistory[s.tableHistory.length - 1];
+                if (topCard && (topCard.value + '|' + topCard.suit) === pendingOptimisticCardId) {
+                    pendingOptimisticCardId = null;
+                    document.dispatchEvent(new CustomEvent('optimisticCardSettled'));
+                }
+            }
+
+            // 🃏 ACE DETECTION — trigger lightning for all players
+            const topCard = s.tableHistory && s.tableHistory.length > 0 ? s.tableHistory[s.tableHistory.length - 1] : null;
+            const topCardId = topCard ? (topCard.value + '|' + topCard.suit) : null;
+            if (topCard && topCard.value === 'A' && topCardId !== lastKnownTableCardId) {
+                playAceLottie();
+            }
+            lastKnownTableCardId = topCardId;
+
             isMovePending = false;
         });
 
+        /* ── ACE LOTTIE EFFECT ── */
+        let aceLottieInstance = null;
+        function playAceLottie() {
+            // Remove any existing
+            const existing = document.getElementById('ace-lottie-overlay');
+            if (existing) existing.remove();
+            if (aceLottieInstance) { aceLottieInstance.destroy(); aceLottieInstance = null; }
+
+            const overlay = document.createElement('div');
+            overlay.id = 'ace-lottie-overlay';
+            const container = document.createElement('div');
+            overlay.appendChild(container);
+            document.body.appendChild(overlay);
+
+            aceLottieInstance = lottie.loadAnimation({
+                container: container,
+                renderer: 'svg',
+                loop: false,
+                autoplay: true,
+                path: '/lightning.json'
+            });
+
+            aceLottieInstance.addEventListener('complete', () => {
+                overlay.style.transition = 'opacity 0.3s';
+                overlay.style.opacity = '0';
+                setTimeout(() => {
+                    overlay.remove();
+                    aceLottieInstance.destroy();
+                    aceLottieInstance = null;
+                }, 300);
+            });
+        }
+
+        /* ── RECALL LOTTIE EFFECT ── */
+        let recallLottieInstance = null;
+        function playRecallLottie() {
+            playSfx(lightningSound);
+            const existing = document.getElementById('recall-lottie-overlay');
+            if (existing) existing.remove();
+            if (recallLottieInstance) { recallLottieInstance.destroy(); recallLottieInstance = null; }
+
+            const overlay = document.createElement('div');
+            overlay.id = 'recall-lottie-overlay';
+            overlay.style.cssText = 'position:fixed;inset:0;z-index:9999997;pointer-events:none;display:flex;align-items:center;justify-content:center;';
+            const container = document.createElement('div');
+            container.style.cssText = 'width:min(100vw,100vh);height:min(100vw,100vh);';
+            overlay.appendChild(container);
+            document.body.appendChild(overlay);
+
+            recallLottieInstance = lottie.loadAnimation({
+                container,
+                renderer: 'svg',
+                loop: false,
+                autoplay: true,
+                path: '/recall.json'
+            });
+
+            recallLottieInstance.addEventListener('complete', () => {
+                overlay.style.transition = 'opacity 0.3s';
+                overlay.style.opacity = '0';
+                setTimeout(() => {
+                    overlay.remove();
+                    recallLottieInstance.destroy();
+                    recallLottieInstance = null;
+                }, 300);
+            });
+        }
+
+        /* Small recall Lottie anchored to an opponent's seat */
+        function playRecallLottieOnSeat(senderName) {
+            playSfx(lightningSound);
+            // Find the opponent seat by name — same logic as showEmoji
+            let seatEl = null;
+            document.querySelectorAll('.opponent-seat').forEach(seat => {
+                const nameEl = seat.querySelector('.opponent-name');
+                const baseName = nameEl?.childNodes[0]?.nodeValue?.trim();
+                if (baseName === senderName) seatEl = seat;
+            });
+            if (!seatEl) return;
+
+            const size = 120;
+
+            // Append INSIDE the seat, exactly like .emoji-pop
+            const wrapper = document.createElement('div');
+            wrapper.style.cssText = `
+                position: absolute;
+                left: 50%;
+                top: 0;
+                transform: translateX(-50%) translateY(-25%);
+                width: ${size}px;
+                height: ${size}px;
+                pointer-events: none;
+                z-index: 99999;
+            `;
+            seatEl.appendChild(wrapper);
+
+            const inst = lottie.loadAnimation({
+                container: wrapper,
+                renderer: 'svg',
+                loop: false,
+                autoplay: true,
+                path: '/recall.json'
+            });
+
+            inst.addEventListener('complete', () => {
+                wrapper.style.transition = 'opacity 0.3s';
+                wrapper.style.opacity = '0';
+                setTimeout(() => {
+                    wrapper.remove();
+                    inst.destroy();
+                }, 300);
+            });
+
+            // Safety cleanup
+            setTimeout(() => {
+                if (wrapper.parentElement) wrapper.remove();
+                try { inst.destroy(); } catch(e) {}
+            }, 5000);
+        }
+
+
         /* ── RENDER TABLE SPREAD (tumpukan, elemen TIDAK pernah dihapus/dibuat ulang) ── */
+
         // Pool elemen kartu — dibuat sekali, dipakai terus
         const tableCardPool = [];
 
@@ -2400,38 +2633,132 @@
         });
 
         socket.on("emoji", (data) => {
-            showEmoji(data.name, data);
+            if (data.name === myName) return; // Sender already handled it locally
+
+            if (data.emoji === '⚡recall') {
+                playRecallLottieOnSeat(data.name);
+            } else if (LOTTIE_EMOJIS.includes(data.emoji)) {
+                showLottieEmojiOnSeat(data.name, data);
+            } else {
+                showEmoji(data.name, data);
+            }
         });
 
-        function showEmoji(name, data) {
-            const allPlayers = document.querySelectorAll('.opponent-name');
 
-            allPlayers.forEach(nameEl => {
-                const baseName = nameEl.childNodes[0]?.nodeValue?.trim();
-
-                if (baseName === name) {
-                    const container = nameEl.parentElement;
-
-                    const emojiEl = document.createElement('div');
-                    emojiEl.className = 'emoji-pop';
-
-                    emojiEl.innerHTML = `
-                        <div>${data.emoji}</div>
-                        ${data.text ? `<div class="taunt-text">${data.text}</div>` : ''}
-                    `;
-
-                    container.appendChild(emojiEl);
-
-                    // 🔊 FIX SOUND OVERLAP
-                    if (isSfxOn) {
-                        tauntSound.pause();
-                        tauntSound.currentTime = 0;
-                        tauntSound.play().catch(()=>{});
-                    }
-
-                    setTimeout(() => emojiEl.remove(), 3000);
-                }
+        function showLottieEmojiOnSeat(senderName, data) {
+            let seatEl = null;
+            document.querySelectorAll('.opponent-seat').forEach(seat => {
+                const nameEl = seat.querySelector('.opponent-name');
+                const baseName = nameEl?.childNodes[0]?.nodeValue?.trim();
+                if (baseName === senderName) seatEl = seat;
             });
+            if (!seatEl) return;
+
+            const size = 150;
+            const wrapper = document.createElement('div');
+            wrapper.style.cssText = `
+                position: absolute;
+                left: 50%;
+                top: 0;
+                transform: translateX(-50%) translateY(12%);
+                width: ${size}px;
+                height: ${size}px;
+                pointer-events: none;
+                z-index: 100000;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: flex-start;
+            `;
+
+            const isAngry = data.emoji === 'angry';
+            const lSize = isAngry ? '75px' : '120px';
+
+            const lottieContainer = document.createElement('div');
+            lottieContainer.style.width = lSize;
+            lottieContainer.style.height = lSize;
+            wrapper.appendChild(lottieContainer);
+
+            if (data.text) {
+                const textEl = document.createElement('div');
+                textEl.className = 'taunt-text';
+                textEl.style.cssText = 'background:rgba(0,0,0,0.6); padding:2px 8px; border-radius:10px; margin-top:-10px; position:relative; z-index:1;';
+                textEl.textContent = data.text;
+                wrapper.appendChild(textEl);
+            }
+
+            seatEl.appendChild(wrapper);
+
+            const inst = lottie.loadAnimation({
+                container: lottieContainer,
+                renderer: 'svg',
+                loop: true,
+                autoplay: true,
+                path: `/${data.emoji}.json`
+            });
+
+            if (isSfxOn) {
+                tauntSound.pause();
+                tauntSound.currentTime = 0;
+                tauntSound.play().catch(()=>{});
+            }
+
+            setTimeout(() => {
+                wrapper.style.transition = 'all 0.5s ease';
+                wrapper.style.opacity = '0';
+                wrapper.style.transform = 'translateX(-50%) translateY(35%)';
+                setTimeout(() => {
+                    wrapper.remove();
+                    inst.destroy();
+                }, 500);
+            }, 4000);
+        }
+
+        function showEmoji(name, data) {
+            let seatEl = null;
+            document.querySelectorAll('.opponent-seat').forEach(seat => {
+                const nameEl = seat.querySelector('.opponent-name');
+                const baseName = nameEl?.childNodes[0]?.nodeValue?.trim();
+                if (baseName === name) seatEl = seat;
+            });
+            if (!seatEl) return;
+
+            const size = 150;
+            const wrapper = document.createElement('div');
+            wrapper.style.cssText = `
+                position: absolute;
+                left: 50%;
+                top: 0;
+                transform: translateX(-50%) translateY(15%);
+                width: ${size}px;
+                height: ${size}px;
+                pointer-events: none;
+                z-index: 100000;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: flex-start;
+            `;
+
+            wrapper.innerHTML = `
+                <div style="font-size: 42px;">${data.emoji}</div>
+                ${data.text ? `<div class="taunt-text" style="background:rgba(0,0,0,0.6); padding:2px 8px; border-radius:10px; margin-top:-5px;">${data.text}</div>` : ''}
+            `;
+
+            seatEl.appendChild(wrapper);
+
+            if (isSfxOn) {
+                tauntSound.pause();
+                tauntSound.currentTime = 0;
+                tauntSound.play().catch(()=>{});
+            }
+
+            setTimeout(() => {
+                wrapper.style.transition = 'all 0.5s ease';
+                wrapper.style.opacity = '0';
+                wrapper.style.transform = 'translateX(-50%) translateY(35%)';
+                setTimeout(() => wrapper.remove(), 500);
+            }, 4000);
         }
 
         /* ── OPPONENTS ── */
@@ -2469,6 +2796,7 @@
                 const div = document.createElement('div');
                 div.className = 'opponent-seat' + (isActive ? ' active-turn' : '');
                 div.setAttribute('data-pos', pos);
+                div.setAttribute('data-index', i); // 🔥 Simpan index asli pemain
 
                 // Fan of card backs
                 let cardsHtml = '';
@@ -2490,13 +2818,17 @@
         }
 
         /* ── HAND ── */
-        // Touch drag state
-        let touchDragIndex = null;
-        let touchDragEl = null;
-        let touchStartX = 0;
-        let touchStartY = 0;
-        let touchGhost = null;       // floating ghost element during touch drag
-        let touchIsDraggingToTable = false;
+        // Drag state
+        let dragInfo = {
+            index: null,
+            el: null,
+            startX: 0,
+            startY: 0,
+            currentX: 0,
+            currentY: 0,
+            isDragging: false,
+            ghost: null
+        };
 
         function renderHand(cards, suit, myTurn, freePlay) {
             currentHandCards = cards; // store for drop zone playback
@@ -2623,19 +2955,11 @@
                 div.style.zIndex = i + 10 + rowBonus;
                 div.style.opacity = '1';
 
-                // 🔥 TUNTUTAN USER: Ganti Drag meluncur ke Klik Konfirmasi
-                div.draggable = false;
-                div.onclick = (e) => {
-                    e.stopPropagation();
-                    handleHandCardClick(i, playable, div);
+                // ── DRAG & DROP HANDLERS (POINTER EVENTS) ──
+                div.onpointerdown = (e) => {
+                    if (!myTurn || !playable) return;
+                    handlePointerDown(e, i, div);
                 };
-                
-                // Matikan semua drag handlers (Cleanup)
-                div.ondragstart = null;
-                div.ondragend = null;
-                div.ondragover = null;
-                div.ondragleave = null;
-                div.ondrop = null;
 
                 if (!div.parentElement) hand.appendChild(div);
             });
@@ -2646,59 +2970,71 @@
             });
         }
 
-        function playCardWithAnim(index, el, card) {
+        function playCardWithAnim(index, el, card, isDragging = false) {
             const rect = el.getBoundingClientRect();
             const area = document.getElementById('table-spread-area');
             const targetRect = area.getBoundingClientRect();
 
-            // Create animation clone
-            const clone = el.cloneNode(true);
-            clone.className = 'table-card throwing-card' + (isRed(card.suit) ? ' red-card' : ' black-card');
-            clone.style.left = rect.left + 'px';
-            clone.style.top = rect.top + 'px';
-            clone.style.width = rect.width + 'px';
-            clone.style.height = rect.height + 'px';
-            clone.style.margin = '0';
+            // If we're already dragging, the ghost is our "projectile"
+            let projectile;
+            if (isDragging && dragInfo.ghost) {
+                projectile = dragInfo.ghost;
+                dragInfo.ghost = null; // We're taking ownership of the ghost
+                projectile.classList.remove('ghost-card');
+                projectile.classList.add('table-card', 'throwing-card');
+            } else {
+                // Click-to-play: create a clone
+                projectile = el.cloneNode(true);
+                projectile.className = 'table-card throwing-card' + (isRed(card.suit) ? ' red-card' : ' black-card');
+                projectile.style.left = rect.left + 'px';
+                projectile.style.top = rect.top + 'px';
+                projectile.style.width = rect.width + 'px';
+                projectile.style.height = rect.height + 'px';
+                projectile.style.margin = '0';
+                document.body.appendChild(projectile);
+            }
 
-            document.body.appendChild(clone);
+            const centerX = targetRect.left + (targetRect.width / 2) - (projectile.offsetWidth / 2);
+            const centerY = targetRect.top + (targetRect.height / 2) - (projectile.offsetHeight / 2);
 
-            // Trigger move
-            setTimeout(() => {
-                const centerX = targetRect.left + (targetRect.width / 2) - (rect.width / 2);
-                const centerY = targetRect.top + (targetRect.height / 2) - (rect.height / 2);
-
-                clone.style.transition = 'all 0.45s cubic-bezier(0.22, 1, 0.36, 1)';
-
-                const arc = -80; // tinggi lengkungan
-                const midX = (rect.left + centerX) / 2;
-                const midY = (rect.top + centerY) / 2 + arc;
-
-                // animasi 2 tahap biar ada "lemparan"
-                setTimeout(() => {
-                    clone.style.left = midX + 'px';
-                    clone.style.top = midY + 'px';
-                    clone.style.transform = `rotate(${Math.random() * 20 - 10}deg) scale(1.15)`;
-                }, 10);
-
-                setTimeout(() => {
-                    clone.style.left = centerX + 'px';
-                    clone.style.top = centerY + 'px';
-                    clone.style.transform = `rotate(${Math.random() * 30 - 15}deg) scale(1.05)`;
-                    clone.style.opacity = '0.9';
-                }, 200);
-            }, 10);
-
+            projectile.style.transition = 'all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1.1)';
+            
             // Hide original
             el.style.opacity = '0';
             el.style.pointerEvents = 'none';
 
-            // Send to server
-            setTimeout(() => {
-                clone.remove(); // 🔥 hapus dulu biar nggak tabrakan sama render
+            // Optimistic sync: update lastState immediately to prevent "flicker"
+            if (lastState) {
+                lastState.tableHistory.push(card);
+                lastState.yourCards.splice(index, 1);
+                // Force a small delay on renderTableSpread so it doesn't fight the animation
+            }
 
-                const cardId = card ? card.value + '|' + card.suit : null;
-                socket.emit('playCard', { index, cardId });
-            }, 400);
+            // Animate to table
+            requestAnimationFrame(() => {
+                projectile.style.left = centerX + 'px';
+                projectile.style.top = centerY + 'px';
+                projectile.style.transform = `rotate(${Math.random() * 20 - 10}deg) scale(1)`;
+            });
+
+            // Send to server
+            pendingOptimisticCardId = card.value + '|' + card.suit;
+            const cardId = card ? card.value + '|' + card.suit : null;
+            socket.emit('playCard', { index, cardId });
+
+            // 🔥 REALTIME SYNC: Hapus projectile hanya setelah State (real card) muncul di meja
+            const cleanup = () => {
+                if (projectile && projectile.parentElement) {
+                    projectile.style.opacity = '0';
+                    setTimeout(() => projectile.remove(), 100);
+                }
+                document.removeEventListener('optimisticCardSettled', cleanup);
+                if (this._safety) clearTimeout(this._safety);
+            };
+            document.addEventListener('optimisticCardSettled', cleanup);
+            
+            // Safety timeout (supaya gak nyangkut kalau koneksi putus)
+            this._safety = setTimeout(cleanup, 3000);
         }
 
         // Legacy Drop Zones (Removed)
@@ -2715,7 +3051,7 @@
             }
         }
 
-        function playCardByIndex(index, el) {
+        function playCardByIndex(index, el, isDragging = false) {
             if (isMovePending) return;
 
             const card = currentHandCards[index];
@@ -2730,25 +3066,119 @@
                 }
             }, 2000);
 
-            playCardWithAnim(index, el, card);
+            playCardWithAnim(index, el, card, isDragging);
         }
 
         // setupTableDropZone(); // 🔥 DIMATIKAN (Ganti sistem Klik)
+
+        function handlePointerDown(e, index, el) {
+            if (!isMyTurn) return;
+            
+            // Record drag start
+            dragInfo.index = index;
+            dragInfo.el = el;
+            dragInfo.startX = e.clientX;
+            dragInfo.startY = e.clientY;
+            dragInfo.isDragging = false; // Haven't moved yet
+
+            el._lastPointerId = e.pointerId;
+            el.setPointerCapture(e.pointerId);
+            
+            el.onpointermove = (ev) => handlePointerMove(ev);
+            el.onpointerup = (ev) => {
+                cleanupPointerHandlers(el);
+                handlePointerUp(ev);
+            };
+            el.onpointercancel = (ev) => {
+                cleanupPointerHandlers(el);
+                handlePointerUp(ev); // Treat cancel as up (cancel drag)
+            };
+        }
+
+        function cleanupPointerHandlers(el) {
+            el.onpointermove = null;
+            el.onpointerup = null;
+            el.onpointercancel = null;
+            try { el.releasePointerCapture(el._lastPointerId); } catch(e){}
+        }
+
+        function handlePointerMove(e) {
+            if (dragInfo.index === null) return;
+
+            const dist = Math.hypot(e.clientX - dragInfo.startX, e.clientY - dragInfo.startY);
+            
+            if (!dragInfo.isDragging && dist > 15) {
+                dragInfo.isDragging = true;
+                dragInfo.el.classList.add('dragging');
+                
+                if (dragInfo.ghost) dragInfo.ghost.remove();
+                dragInfo.ghost = dragInfo.el.cloneNode(true);
+                // Keep hand-card class for styling, add ghost-card for positioning
+                dragInfo.ghost.className = 'hand-card ghost-card ' + (isRed(currentHandCards[dragInfo.index].suit) ? 'red-card' : 'black-card');
+                
+                // 🔥 RESET inline transform from renderHand
+                dragInfo.ghost.style.transform = ''; 
+                dragInfo.ghost.style.left = e.clientX + 'px';
+                dragInfo.ghost.style.top = e.clientY + 'px';
+                document.body.appendChild(dragInfo.ghost);
+            }
+
+            if (dragInfo.isDragging) {
+                dragInfo.ghost.style.left = e.clientX + 'px';
+                dragInfo.ghost.style.top = e.clientY + 'px';
+
+                // Check if over table
+                const table = document.getElementById('center-table');
+                const rect = table.getBoundingClientRect();
+                const isOver = e.clientX >= rect.left && e.clientX <= rect.right &&
+                               e.clientY >= rect.top && e.clientY <= rect.bottom;
+                
+                table.classList.toggle('drop-active', isOver);
+                document.getElementById('table-spread-area').classList.toggle('drop-target', isOver);
+            }
+        }
+
+        function handlePointerUp(e) {
+            if (dragInfo.index === null) return;
+
+            const table = document.getElementById('center-table');
+            const isOver = table.classList.contains('drop-active');
+            
+            table.classList.remove('drop-active');
+            document.getElementById('table-spread-area').classList.remove('drop-target');
+
+            if (dragInfo.isDragging) {
+                if (isOver) {
+                    // Play card!
+                    playCardByIndex(dragInfo.index, dragInfo.el, true);
+                } else {
+                    // Snap back
+                    dragInfo.el.classList.remove('dragging');
+                }
+                
+                if (dragInfo.ghost) {
+                    dragInfo.ghost.remove();
+                    dragInfo.ghost = null;
+                }
+            } else {
+                // It was a click
+                handleHandCardClick(dragInfo.index, dragInfo.el.dataset.playable === 'true', dragInfo.el);
+            }
+
+            dragInfo.index = null;
+            dragInfo.el = null;
+            dragInfo.isDragging = false;
+        }
 
         function handleHandCardClick(index, playable, el) {
             if (!isMyTurn) return;
 
             if (selectedHandIndex === index) {
-                // Konfirmasi: Klik kedua kali → Play!
                 playCardByIndex(index, el);
                 selectedHandIndex = null;
             } else {
-                // Pilih: Klik pertama kali
                 if (playable) {
                     selectedHandIndex = index;
-                    // Re-render hand via trigger state atau force update
-                    // Karena kita simpan di selectedHandIndex, panggil renderHand manual atau tunggu state?
-                    // Paling aman renderHand manual di sini untuk instant feedback
                     renderHand(lastState.yourCards, lastState.currentSuit, true, lastState.controller === lastState.yourIndex);
                 } else {
                     selectedHandIndex = null;
@@ -2769,8 +3199,9 @@
             }
         });
 
-        /* ── ACTIONS ── */
+
         function drawCard() { 
+
             if (isMovePending) return;
             isMovePending = true;
             lastAction = "draw";
@@ -2966,27 +3397,13 @@
             }
         });
 
-        function resetTouchDrag() {
-            if (touchGhost) {
-                touchGhost.remove();
-                touchGhost = null;
+        // Final Cleanup for drag info on window level just in case
+        window.addEventListener('pointerup', (e) => {
+            if (dragInfo.index !== null) {
+                // If it was captured, the el handler will fire. 
+                // This is a safety net.
             }
-
-            if (touchDragEl) {
-                touchDragEl.style.opacity = '';
-            }
-
-            touchDragEl = null;
-            touchDragIndex = null;
-            touchIsDraggingToTable = false;
-
-            document.getElementById('table-spread-area').classList.remove('drop-target');
-            document.getElementById('center-table').classList.remove('drop-active');
-        }
-
-        // 🔥 GLOBAL CANCEL (WAJIB)
-        document.addEventListener('touchcancel', resetTouchDrag);
-        document.addEventListener('touchend', resetTouchDrag);
+        });
     </script>
 
 </body>
