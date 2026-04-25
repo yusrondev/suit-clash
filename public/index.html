@@ -1670,6 +1670,10 @@
         const clutchDangerSound = new Audio('/warning.mp3');
         const lightningSound = new Audio('/lightning.mp3');
         lightningSound.volume = 0.7;
+        const amongusSound = new Audio('/amongus.mp3');
+        amongusSound.volume = 0.7;
+        const notificationSound = new Audio('/notification.mp3');
+        notificationSound.volume = 0.5;
 
         function playSfx(sound) {
             if (!isSfxOn) return;
@@ -1707,7 +1711,7 @@
             localStorage.setItem('remi_sfx', isOn);
             if (!isOn) {
                 // Hentikan semua SFX yang mungkin masih playing
-                [turnSound, popSound, tauntSound, clutchWinSound, clutchDangerSound, lightningSound].forEach(s => {
+                [turnSound, popSound, tauntSound, clutchWinSound, clutchDangerSound, lightningSound, amongusSound, notificationSound].forEach(s => {
                     s.pause();
                     s.currentTime = 0;
                 });
@@ -1911,6 +1915,7 @@
             fab.classList.remove('active');
 
             showSelfEmoji(payload);
+            if (e === 'amongus') playSfx(amongusSound);
         }
 
         function pickRecall() {
@@ -1983,7 +1988,7 @@
         function leaveRoom() {
             // Hentikan semua audio sebelum reload
             bgmSound.pause();
-            [turnSound, popSound, tauntSound, clutchWinSound, clutchDangerSound, lightningSound].forEach(s => {
+            [turnSound, popSound, tauntSound, clutchWinSound, clutchDangerSound, lightningSound, amongusSound, notificationSound].forEach(s => {
                 s.pause();
                 s.currentTime = 0;
             });
@@ -2053,6 +2058,7 @@
 
             showChatOnPlayer(data.name, data.msg);
             updateChatHistory(data.name, data.msg); // 🔥 Update history global
+            playSfx(notificationSound);
         });
 
         socket.on('leaderboardData', (list) => {
@@ -2698,9 +2704,13 @@
             });
 
             if (isSfxOn) {
-                tauntSound.pause();
-                tauntSound.currentTime = 0;
-                tauntSound.play().catch(()=>{});
+                if (data.emoji === 'amongus') {
+                    playSfx(amongusSound);
+                } else {
+                    tauntSound.pause();
+                    tauntSound.currentTime = 0;
+                    tauntSound.play().catch(()=>{});
+                }
             }
 
             setTimeout(() => {
@@ -2712,6 +2722,87 @@
                     inst.destroy();
                 }, 500);
             }, 4000);
+        }
+
+        function showWinLottie(senderName) {
+            let rect = null;
+            let isSelf = (senderName === myName);
+
+            if (isSelf) {
+                // Center of screen for self
+                rect = {
+                    left: window.innerWidth / 2,
+                    top: window.innerHeight / 2,
+                    width: 0,
+                    height: 0
+                };
+            } else {
+                let seatEl = null;
+                document.querySelectorAll('.opponent-seat').forEach(seat => {
+                    const nameEl = seat.querySelector('.opponent-name');
+                    const baseName = nameEl?.innerText?.trim();
+                    if (baseName === senderName) seatEl = seat;
+                });
+
+                if (!seatEl) return;
+                const r = seatEl.getBoundingClientRect();
+                rect = {
+                    left: r.left + r.width / 2,
+                    top: r.top + r.height / 2,
+                    width: 0,
+                    height: 0
+                };
+            }
+
+            const size = isSelf ? 350 : 200;
+            const wrapper = document.createElement('div');
+            
+            wrapper.style.cssText = `
+                position: fixed;
+                left: ${rect.left}px;
+                top: ${rect.top}px;
+                transform: translate(-50%, -80%);
+                width: ${size}px;
+                height: ${size}px;
+                pointer-events: none;
+                z-index: 100000;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+            `;
+
+            document.body.appendChild(wrapper);
+
+            const inst = lottie.loadAnimation({
+                container: wrapper,
+                renderer: 'svg',
+                loop: false,
+                autoplay: true,
+                path: `/win.json`
+            });
+
+            if (isSfxOn) {
+                clutchWinSound.pause();
+                clutchWinSound.currentTime = 0;
+                clutchWinSound.play().catch(()=>{});
+            }
+
+            inst.addEventListener('complete', () => {
+                wrapper.style.transition = 'all 0.5s ease';
+                wrapper.style.opacity = '0';
+                setTimeout(() => {
+                    wrapper.remove();
+                    inst.destroy();
+                }, 500);
+            });
+
+            setTimeout(() => {
+                if (wrapper.parentElement) {
+                    wrapper.remove();
+                    inst.destroy();
+                }
+            }, 8000);
         }
 
         function showEmoji(name, data) {
@@ -3253,6 +3344,12 @@
                     document.getElementById('overlay').classList.remove('show');
                 }, 2500);
             }
+        });
+
+        socket.on('playerOut', (data) => {
+            showWinLottie(data.name);
+            const msg = (data.name === myName) ? 'Kamu keluar dari ronde!' : data.name + ' keluar dari ronde!';
+            toast(msg, '🏆');
         });
 
         socket.on('playerJoined', d => toast(d.name + ' bergabung ke meja', '♠'));
