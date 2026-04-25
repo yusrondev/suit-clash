@@ -279,33 +279,16 @@
             transform: translateY(-50%);
         }
 
-        .opponent-seat.active-turn .opp-avatar {
-            box-shadow: 0 0 0 3px var(--gold), 0 0 20px var(--gold-light);
-            transform: scale(1.1);
-        }
-
         .opponent-seat.active-turn .opponent-name {
             color: var(--gold-light);
-            text-shadow: 0 0 8px var(--gold-dark);
-            font-size: 11px;
-            transform: scale(1.05);
+            text-shadow: 0 0 12px var(--gold), 0 0 20px rgba(212, 175, 55, 0.4);
+            transform: scale(1.15);
+            font-weight: 800;
         }
 
-        .opp-avatar {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #2c5f3a, #1a3d25);
-            border: 2px solid rgba(201,168,76,0.4);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--gold-light);
-            position: relative;
-            transition: box-shadow 0.3s;
-            flex-shrink: 0;
+        .opponent-seat.active-turn .opp-cards {
+            filter: drop-shadow(0 0 8px var(--gold));
+            transform: translateY(-2px);
         }
 
         .opponent-name {
@@ -2665,7 +2648,7 @@
                 position: absolute;
                 left: 50%;
                 top: 0;
-                transform: translateX(-50%) translateY(12%);
+                transform: translateX(-50%) translateY(-25%);
                 width: ${size}px;
                 height: ${size}px;
                 pointer-events: none;
@@ -2819,7 +2802,7 @@
                 position: absolute;
                 left: 50%;
                 top: 0;
-                transform: translateX(-50%) translateY(15%);
+                transform: translateX(-50%) translateY(-15%);
                 width: ${size}px;
                 height: ${size}px;
                 pointer-events: none;
@@ -2862,8 +2845,7 @@
 
         function renderOpponents(s) {
             const row = document.getElementById('opponents-row');
-            row.innerHTML = '';
-
+            
             // Collect opponent indices (everyone except me)
             const opponents = [];
             s.playersCardCount.forEach((cnt, i) => {
@@ -2872,22 +2854,49 @@
             });
 
             const n = opponents.length;
-            if (n === 0) return;
+            if (n === 0) {
+                row.innerHTML = '';
+                return;
+            }
 
             const positions = OPPONENT_POSITIONS[Math.min(n, 3)] || ['top'];
+            
+            // Track processed indices to cleanup later
+            const processedIndices = new Set();
 
             opponents.forEach(({ i, cnt }, oppIdx) => {
+                processedIndices.add(i);
                 const pos = positions[oppIdx] || 'top';
                 const isActive = (s.currentPlayer === i);
                 const isCtrl = (s.controller === i);
                 const isOut = s.playersIsOut && s.playersIsOut[i];
                 const name = playerNames[i] || ('P' + (i + 1));
 
-                const div = document.createElement('div');
-                div.className = 'opponent-seat' + (isActive ? ' active-turn' : '');
-                div.setAttribute('data-pos', pos);
-                div.setAttribute('data-index', i); // 🔥 Simpan index asli pemain
+                // Find existing seat or create one
+                let div = row.querySelector(`.opponent-seat[data-index="${i}"]`);
+                if (!div) {
+                    div = document.createElement('div');
+                    div.className = 'opponent-seat';
+                    div.setAttribute('data-index', i);
+                    div.innerHTML = `
+                        <div class="opponent-name"></div>
+                        <div class="opp-cards"></div>
+                        <div class="opp-card-count"></div>
+                    `;
+                    row.appendChild(div);
+                }
 
+                // Update attributes and classes
+                div.className = 'opponent-seat' + (isActive ? ' active-turn' : '') + (isOut ? ' is-out' : '');
+                div.setAttribute('data-pos', pos);
+
+                // Update sub-elements individually to preserve any emoji wrappers appended to 'div'
+                const nameEl = div.querySelector('.opponent-name');
+                if (nameEl.textContent !== name) {
+                    nameEl.textContent = name;
+                }
+
+                const cardsEl = div.querySelector('.opp-cards');
                 // Fan of card backs
                 let cardsHtml = '';
                 const maxDisplay = Math.min(cnt, 8);
@@ -2896,14 +2905,23 @@
                     const shift = (j - (maxDisplay - 1) / 2) * 10;
                     cardsHtml += `<div class="opp-card-back" style="transform: rotate(${angle}deg) translateX(${shift}px); z-index:${j}"></div>`;
                 }
+                if (cardsEl.innerHTML !== cardsHtml) {
+                    cardsEl.innerHTML = cardsHtml;
+                }
 
-                div.innerHTML = `
-                    <div class="opp-avatar${isOut ? '" style="opacity:0.4' : ''}">${getInitials(name)}</div>
-                    <div class="opponent-name">${escHtml(name)}</div>
-                    <div class="opp-cards">${cardsHtml}</div>
-                    <div class="opp-card-count">${cnt} kartu${isOut ? ' 👻' : ''}</div>
-                `;
-                row.appendChild(div);
+                const countEl = div.querySelector('.opp-card-count');
+                const countText = `${cnt} kartu${isOut ? ' 👻' : ''}`;
+                if (countEl.textContent !== countText) {
+                    countEl.textContent = countText;
+                }
+            });
+
+            // Cleanup removed players
+            Array.from(row.querySelectorAll('.opponent-seat')).forEach(seat => {
+                const idx = parseInt(seat.getAttribute('data-index'));
+                if (!processedIndices.has(idx)) {
+                    seat.remove();
+                }
             });
         }
 

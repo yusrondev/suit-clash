@@ -70,6 +70,7 @@ function makeGame() {
     roundCount: 0,
     maxRounds: 7, // 🔥 NEW: Dinamis dari Host
     nextStarter: null,
+    lastTakerProvider: null, // Tracks who played the card that was just taken
   };
 }
 
@@ -203,35 +204,42 @@ function resolveTableTake(game, pIndex, roomId) {
   if (!takenCard) return;
   p.cards.push(takenCard);
 
-  // Giliran kembali ke controller atau pemain ini jika tidak ada
-  let nextI = game.controllerPlayer !== null ? game.controllerPlayer : pIndex;
-  let attempts = 0;
-  while (!isActive(game, nextI) && attempts < game.players.length) {
-    nextI = (nextI + 1) % game.players.length;
-    attempts++;
+  // Identify who played this card to track potential winner if round ends
+  let playedBy = -1;
+  if (game.controllerCard && game.controllerCard.card.suit === takenCard.suit && game.controllerCard.card.value === takenCard.value) {
+    playedBy = game.controllerCard.player;
+    game.controllerCard = null; // Remove from current "highest" competition
+  } else {
+    const rcIndex = game.roundCards.findIndex(rc => rc.card.suit === takenCard.suit && rc.card.value === takenCard.value);
+    if (rcIndex !== -1) {
+      playedBy = game.roundCards[rcIndex].player;
+      game.roundCards.splice(rcIndex, 1); // Remove from current "highest" competition
+    }
   }
 
-  // Reset Meja
-  game.tableCard = null;
-  game.currentSuit = null;
-  game.roundCards = [];
-  game.playersPlayed.clear();
-  game.skipPlayer = null;
-  game.tableHistory = []; // Bersihkan semua sisa kartu di meja
-  game.freeMode = true;
-  game.controllerPlayer = nextI;
-  game.currentPlayer = nextI;
-  game.controllerCard = null;
+  if (playedBy !== -1) {
+    game.lastTakerProvider = playedBy;
+  }
 
-  const msg = `${p.name}${p.isBot ? ' (Bot)' : ''} mengambil kartu meja. Giliran kembali!`;
+  // Mark this player as "played" for this round
+  game.playersPlayed.add(pIndex);
+
+  // Update Table Visual
+  if (game.tableHistory.length > 0) {
+    game.tableCard = game.tableHistory[game.tableHistory.length - 1];
+  } else {
+    game.tableCard = null;
+  }
+
+  const msg = `${p.name}${p.isBot ? ' (Bot)' : ''} mengambil kartu meja.`;
   io.to(roomId).emit('toast', { msg });
 
-  console.log(`[${roomId}] ${p.name} takeTable. Next: ${game.players[nextI].name}`);
+  console.log(`[${roomId}] ${p.name} takeTable. Continuing round...`);
 
   sendState(game);
   
-  // Penting: Selalu schedule bot turn jika giliran bot
-  scheduleBotTurn(game, roomId);
+  // Continue to next player or resolve if everyone acted
+  nextTurn(game, roomId);
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
@@ -326,10 +334,6 @@ function checkEnd(game, roomId) {
       isMatchEnd: isMatchEnd,
     });
 
-    if (isMatchEnd) {
-      game.roundCount = 0; // reset match
-    }
-
     game.started = false;
     return true;
   }
@@ -384,7 +388,18 @@ function resolveRound(game, roomId) {
     }
   });
 
-  const winnerIndex = highest.player;
+  let winnerIndex;
+  if (highest) {
+    winnerIndex = highest.player;
+  } else if (game.lastTakerProvider !== null && game.lastTakerProvider !== undefined) {
+    winnerIndex = game.lastTakerProvider;
+  } else {
+    // Fallback: This should only happen if everyone took the very first card of the match
+    winnerIndex = game.controllerPlayer !== null ? game.controllerPlayer : 0;
+  }
+
+  // Reset tracker
+  game.lastTakerProvider = null;
 
   // Emit event to clear the table before resetting state
   io.to(roomId).emit("roundResolved", {
@@ -474,6 +489,7 @@ function startGame(game) {
   game.outOrder = [];
   game.playersPlayed.clear();
   game.skipPlayer = null;
+  game.lastTakerProvider = null;
   game.started = true;
 }
 
@@ -824,11 +840,21 @@ io.on("connection", (socket) => {
 
     if (game.players.length < MIN_PLAYERS) return;
 
+    // 🔥 NEW: Reset Match jika sudah selesai
+    const isMatchEnd = game.roundCount >= game.maxRounds || game.roundCount === 0;
+    if (isMatchEnd) {
+        console.log(`[${currentRoom}] Match Reset: Resetting roundCount and leaderboard.`);
+        game.roundCount = 0;
+        game.leaderboard = {};
+        // Notify everyone that leaderboard is now empty
+        io.to(currentRoom).emit("leaderboardData", []);
+    }
+
     startGame(game);
     sendState(game);
-    scheduleBotTurn(game, currentRoom); // ← Tambah ini agar bot bisa bergerak di ronde selanjutnya
+    scheduleBotTurn(game, currentRoom); 
 
-    console.log(`[${currentRoom}] Game di-restart oleh HOST`);
+    console.log(`[${currentRoom}] Game di-restart oleh HOST (Ronde: ${game.roundCount})`);
   });
 
   // ── DISCONNECT ──
