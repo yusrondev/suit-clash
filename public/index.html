@@ -2662,8 +2662,9 @@
                 justify-content: flex-start;
             `;
 
-            const isAngry = data.emoji === 'angry';
-            const lSize = isAngry ? '75px' : '120px';
+            let lSize = '120px';
+            if (data.emoji === 'angry') lSize = '75px';
+            if (data.emoji === 'cat') lSize = '80px';
 
             const lottieContainer = document.createElement('div');
             lottieContainer.style.width = lSize;
