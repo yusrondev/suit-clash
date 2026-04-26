@@ -11,6 +11,7 @@
         rel="stylesheet" />
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
 
     <style>
         /* ── TOKENS ── */
@@ -1966,7 +1967,7 @@
     </div>
 
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+
     <script>
 
         const socket = io();
@@ -1976,6 +1977,7 @@
         let matchStartTime = 0;
         let matchTimerInterval = null;
         let lastRoundCount = -1;
+        let lastStarted = false;
 
         let myIndex = -1;
         let myName = '';
@@ -1989,6 +1991,27 @@
         let pendingOptimisticCardId = null;
         let lastKnownTableCardId = null; // For Ace detection
         const LOTTIE_EMOJIS = ['cat', 'panda', 'angry', 'amongus', 'cat-laughing', 'cat-sleep', 'ok', 'cool'];
+        
+        // ── LOTTIE CACHE & PRELOAD ──
+        const lottieCache = {};
+        function preloadLotties() {
+            const list = [...LOTTIE_EMOJIS, 'recall', 'win', 'target', 'lightning', 'fall-smoke'];
+            list.forEach(emoji => {
+                if (lottieCache[emoji]) return;
+                fetch(`/${emoji}.json`)
+                    .then(r => {
+                        if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
+                        return r.json();
+                    })
+                    .then(data => {
+                        lottieCache[emoji] = data;
+                        console.log(`[Lottie] Preloaded: ${emoji}`);
+                    })
+                    .catch(err => console.warn(`[Lottie] Failed to preload: ${emoji}`, err));
+            });
+        }
+        // Jalankan preload setelah halaman stabil
+        setTimeout(preloadLotties, 2000);
 
         let lastClutch = "";
         let lastAction = "";
@@ -2415,7 +2438,8 @@
                     renderer: 'svg',
                     loop: true,
                     autoplay: true,
-                    path: `/${data.emoji}.json`
+                    animationData: lottieCache[data.emoji] ? JSON.parse(JSON.stringify(lottieCache[data.emoji])) : null,
+                    path: lottieCache[data.emoji] ? null : `/${data.emoji}.json`
                 });
             } else {
                 el.innerHTML = `
@@ -2679,7 +2703,8 @@
                 renderer: 'svg',
                 loop: false,
                 autoplay: true,
-                path: 'target.json'
+                animationData: lottieCache['target'] ? JSON.parse(JSON.stringify(lottieCache['target'])) : null,
+                path: lottieCache['target'] ? null : 'target.json'
             });
 
             anim.onComplete = () => {
@@ -2711,7 +2736,8 @@
                 renderer: 'svg',
                 loop: false,
                 autoplay: true,
-                path: '/fall-smoke.json'
+                animationData: lottieCache['fall-smoke'] ? JSON.parse(JSON.stringify(lottieCache['fall-smoke'])) : null,
+                path: lottieCache['fall-smoke'] ? null : '/fall-smoke.json'
             });
 
             anim.onComplete = () => smokeWrapper.remove();
@@ -2750,9 +2776,12 @@
 
             if (s.started) {
                 document.getElementById('overlay').classList.remove('show');
-                document.getElementById('leaderboard-panel').classList.remove('show');
+                if (!lastStarted || window.isMatchEndFlag) {
+                    document.getElementById('leaderboard-panel').classList.remove('show');
+                }
                 window.isMatchEndFlag = false;
             }
+            lastStarted = s.started;
             myIndex = s.yourIndex; // Sync early!
 
             const playersIsOut = s.playersIsOut || [];
@@ -3090,7 +3119,8 @@
                 renderer: 'svg',
                 loop: false,
                 autoplay: true,
-                path: '/lightning.json'
+                animationData: lottieCache['lightning'] ? JSON.parse(JSON.stringify(lottieCache['lightning'])) : null,
+                path: lottieCache['lightning'] ? null : '/lightning.json'
             });
 
             aceLottieInstance.addEventListener('complete', () => {
@@ -3125,7 +3155,8 @@
                 renderer: 'svg',
                 loop: false,
                 autoplay: true,
-                path: '/recall.json'
+                animationData: lottieCache['recall'] ? JSON.parse(JSON.stringify(lottieCache['recall'])) : null,
+                path: lottieCache['recall'] ? null : '/recall.json'
             });
 
             recallLottieInstance.addEventListener('complete', () => {
@@ -3173,7 +3204,8 @@
                 renderer: 'svg',
                 loop: false,
                 autoplay: true,
-                path: '/recall.json'
+                animationData: lottieCache['recall'] ? JSON.parse(JSON.stringify(lottieCache['recall'])) : null,
+                path: lottieCache['recall'] ? null : '/recall.json'
             });
 
             inst.addEventListener('complete', () => {
@@ -3425,7 +3457,8 @@
                 renderer: 'svg',
                 loop: true,
                 autoplay: true,
-                path: `/${data.emoji}.json`
+                animationData: lottieCache[data.emoji] ? JSON.parse(JSON.stringify(lottieCache[data.emoji])) : null,
+                path: lottieCache[data.emoji] ? null : `/${data.emoji}.json`
             });
 
             if (isSfxOn) {
@@ -3504,7 +3537,8 @@
                 renderer: 'svg',
                 loop: false,
                 autoplay: true,
-                path: `/win.json`
+                animationData: lottieCache['win'] ? JSON.parse(JSON.stringify(lottieCache['win'])) : null,
+                path: lottieCache['win'] ? null : `/win.json`
             });
 
             if (isSfxOn) {
