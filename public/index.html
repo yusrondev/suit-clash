@@ -10,7 +10,7 @@
         href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;500;600&display=swap"
         rel="stylesheet" />
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
 
     <style>
         /* ── TOKENS ── */
@@ -258,6 +258,12 @@
             gap: 4px;
             z-index: 10;
             transition: all 0.3s;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 12px;
+        }
+        .opponent-seat:hover {
+            background: rgba(255,255,255,0.05);
         }
 
         /* Top opponent */
@@ -343,6 +349,92 @@
             border: 1px solid rgba(201,168,76,0.3);
             border-radius: 999px;
             padding: 1px 6px;
+        }
+
+        /* ── ATTACK FEATURE ── */
+        .attack-menu {
+            position: fixed;
+            background: rgba(10, 10, 10, 0.95);
+            border: 2px solid var(--gold-dark);
+            border-radius: 16px;
+            padding: 10px;
+            z-index: 10000;
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            box-shadow: 0 15px 45px rgba(0,0,0,0.9), 0 0 20px rgba(212, 175, 55, 0.2);
+            backdrop-filter: blur(15px);
+            animation: menuPop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes menuPop {
+            from { transform: scale(0.5); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .btn-attack {
+            background: linear-gradient(135deg, #ff416c, #ff4b2b);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            padding: 6px 14px;
+            font-size: 11px;
+            font-weight: 800;
+            cursor: pointer;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 15px rgba(255, 65, 108, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .btn-attack:hover:not(:disabled) { 
+            filter: brightness(1.1); 
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 8px 25px rgba(255, 65, 108, 0.6);
+        }
+        .btn-attack:active:not(:disabled) {
+            transform: translateY(0) scale(0.98);
+        }
+        .btn-attack:disabled { 
+            opacity: 0.5; 
+            cursor: not-allowed; 
+            filter: grayscale(1); 
+            box-shadow: none;
+        }
+
+        .target-lottie-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120px;
+            height: 120px;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        /* ── ATTACK VIGNETTE ── */
+        .attack-vignette {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 9999999;
+            box-shadow: inset 0 0 0px rgba(255, 0, 0, 0);
+            transition: none;
+        }
+        @keyframes vignettePulse {
+            0% { box-shadow: inset 0 0 0px rgba(255, 0, 0, 0); }
+            20% { box-shadow: inset 0 0 80px rgba(255, 0, 0, 0.7); }
+            40% { box-shadow: inset 0 0 40px rgba(255, 0, 0, 0.4); }
+            60% { box-shadow: inset 0 0 80px rgba(255, 0, 0, 0.7); }
+            80% { box-shadow: inset 0 0 40px rgba(255, 0, 0, 0.4); }
+            100% { box-shadow: inset 0 0 0px rgba(255, 0, 0, 0); }
+        }
+        .attack-vignette.active {
+            animation: vignettePulse 2s ease-out forwards;
         }
 
         /* ── BOARD: full area with rounded-rect table ── */
@@ -1577,6 +1669,13 @@
                 <button onclick="pickRecall()" title="Recall!" style="font-size:18px;">⚡</button>
             </div>
         </div>
+
+        <!-- ATTACK MENU -->
+        <div id="attack-menu" class="attack-menu">
+            <button id="btn-attack-action" class="btn-attack" onclick="executeAttack()">
+                <i class="fa-solid fa-crosshairs"></i> Serang | <span id="attack-charges-count">2</span>x
+            </button>
+        </div>
     </div>
 
     <!-- GLOBAL CHAT (always accessible, even in lobby) -->
@@ -1585,6 +1684,9 @@
         <div id="chat-history"></div>
         <input type="text" id="chat-input" placeholder="Ketik sesuatu..." />
     </div>
+
+    <!-- DAMAGE EFFECT OVERLAY -->
+    <div id="attack-vignette" class="attack-vignette"></div>
 
     <!-- GAME OVER OVERLAY -->
     <div id="overlay">
@@ -1701,6 +1803,8 @@
         notificationSound.volume = 0.5;
         const electricSound = new Audio('/electric.mp3');
         electricSound.volume = 0.7;
+        const hitSound = new Audio('/hit.mp3');
+        hitSound.volume = 0.8;
 
         function playSfx(sound) {
             if (!isSfxOn) return;
@@ -1738,7 +1842,7 @@
             localStorage.setItem('remi_sfx', isOn);
             if (!isOn) {
                 // Hentikan semua SFX yang mungkin masih playing
-                [turnSound, popSound, tauntSound, clutchWinSound, clutchDangerSound, lightningSound, amongusSound, notificationSound, electricSound].forEach(s => {
+                [turnSound, popSound, tauntSound, clutchWinSound, clutchDangerSound, lightningSound, amongusSound, notificationSound, electricSound, hitSound].forEach(s => {
                     s.pause();
                     s.currentTime = 0;
                 });
@@ -2169,6 +2273,147 @@
             const closeBtn = document.getElementById('lb-close-btn');
             if (closeBtn) {
                 closeBtn.style.display = window.isMatchEndFlag ? 'none' : 'flex';
+            }
+        });
+
+        let attackTargetIndex = -1;
+
+        function handleSeatClick(e, index) {
+            e.stopPropagation();
+            attackTargetIndex = index;
+            const menu = document.getElementById('attack-menu');
+            
+            // Get charges for self attacking THIS target
+            const myChargesMap = (lastState && lastState.attackCharges) ? lastState.attackCharges[myIndex] : {};
+            const charges = (myChargesMap && myChargesMap[index] !== undefined) ? myChargesMap[index] : 0;
+            
+            console.log('DEBUG ATTACK:', { 
+                clickedTargetIndex: index, 
+                myIndex: myIndex, 
+                myChargesMap: myChargesMap, 
+                extractedCharges: charges,
+                fullAttackChargesArray: lastState ? lastState.attackCharges : 'null'
+            });
+            
+            document.getElementById('attack-charges-count').textContent = charges;
+            
+            const btn = document.getElementById('btn-attack-action');
+            btn.disabled = (charges <= 0);
+
+            // Position menu and ensure it stays in viewport
+            menu.style.display = 'flex';
+            menu.style.transform = 'none'; // Reset transform to get accurate size
+            const menuRect = menu.getBoundingClientRect();
+            menu.style.transform = ''; // Restore animation transform
+
+            const seat = document.querySelector(`.opponent-seat[data-index="${index}"]`);
+            const seatRect = seat ? seat.getBoundingClientRect() : { left: e.clientX, top: e.clientY, width: 0, height: 0, right: e.clientX, bottom: e.clientY };
+            const pos = seat ? seat.getAttribute('data-pos') : 'top';
+            
+            let left, top;
+
+            if (pos === 'right') {
+                // Place to the left of the seat
+                left = seatRect.left - menuRect.width - 12;
+                top = seatRect.top + (seatRect.height / 2) - (menuRect.height / 2);
+            } else if (pos === 'left') {
+                // Place to the right of the seat
+                left = seatRect.right + 12;
+                top = seatRect.top + (seatRect.height / 2) - (menuRect.height / 2);
+            } else if (pos === 'top') {
+                // Place BELOW the seat for top player (to avoid header)
+                left = seatRect.left + (seatRect.width / 2) - (menuRect.width / 2);
+                top = seatRect.bottom + 12;
+            } else {
+                // Default fallback
+                left = seatRect.left + (seatRect.width / 2) - (menuRect.width / 2);
+                top = seatRect.top - menuRect.height - 12;
+            }
+
+            // Robust Constrain to viewport boundaries
+            const padding = 8;
+            if (left < padding) left = padding;
+            if (left + menuRect.width > window.innerWidth - padding) {
+                left = window.innerWidth - menuRect.width - padding;
+            }
+            if (top < 65) { // 65px is approx header height
+                top = 65; 
+                // If it covers the seat, shift it down further
+                if (pos === 'top' || (seatRect && top + menuRect.height > seatRect.top)) {
+                    top = (seatRect ? seatRect.bottom : top) + 12;
+                }
+            }
+            if (top + menuRect.height > window.innerHeight - padding) {
+                top = window.innerHeight - menuRect.height - padding;
+            }
+
+            menu.style.left = left + 'px';
+            menu.style.top = top + 'px';
+
+            // Close menu on outside click
+            const closeMenu = () => {
+                menu.style.display = 'none';
+                window.removeEventListener('click', closeMenu);
+            };
+            setTimeout(() => window.addEventListener('click', closeMenu), 10);
+        }
+
+        function executeAttack() {
+            if (attackTargetIndex === -1) return;
+            socket.emit("attackPlayer", { targetIndex: attackTargetIndex });
+            document.getElementById('attack-menu').style.display = 'none';
+        }
+
+        function showTargetEffect(targetIndex) {
+            let container;
+            if (targetIndex === myIndex) {
+                // Show on my hand
+                container = document.createElement('div');
+                container.className = 'target-lottie-container';
+                document.getElementById('your-area').appendChild(container);
+            } else {
+                // Show on opponent seat
+                const seat = document.querySelector(`.opponent-seat[data-index="${targetIndex}"]`);
+                if (!seat) return;
+                
+                const cardsArea = seat.querySelector('.opp-cards');
+                container = document.createElement('div');
+                container.className = 'target-lottie-container';
+                cardsArea.appendChild(container);
+            }
+
+            const anim = lottie.loadAnimation({
+                container: container,
+                renderer: 'svg',
+                loop: false,
+                autoplay: true,
+                path: 'target.json'
+            });
+
+            anim.onComplete = () => {
+                container.remove();
+            };
+        }
+
+        function triggerAttackVignette() {
+            const el = document.getElementById('attack-vignette');
+            if (!el) return;
+            el.classList.remove('active');
+            void el.offsetWidth; // trigger reflow
+            el.classList.add('active');
+            setTimeout(() => el.classList.remove('active'), 2100);
+        }
+
+        socket.on("playerAttacked", (data) => {
+            showTargetEffect(data.targetIndex);
+            
+            // Toast notification
+            if (data.targetIndex === myIndex) {
+                playSfx(hitSound);
+                triggerAttackVignette();
+                toast(`Kamu diserang oleh ${data.attackerName}!`, '🎯');
+            } else {
+                toast(`${data.attackerName} menyerang ${data.targetName}!`, '🎯');
             }
         });
 
@@ -2973,6 +3218,9 @@
                     row.appendChild(div);
                 }
 
+                // Add or update click listener
+                div.onclick = (e) => handleSeatClick(e, i);
+
                 // Update attributes and classes
                 div.className = 'opponent-seat' + (isActive ? ' active-turn' : '') + (isOut ? ' is-out' : '');
                 div.setAttribute('data-pos', pos);
@@ -3593,7 +3841,7 @@
 
             if (!isClickInside) {
                 chatBox.classList.remove('active');
-                textFab.style.display = 'flex';
+                if (lastState && lastState.started) textFab.style.display = 'flex';
                 chatInput.blur();
             }
         });

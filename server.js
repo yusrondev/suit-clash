@@ -301,6 +301,7 @@ function sendState(game) {
       started: game.started,
       roundCount: game.roundCount,
       maxRounds: game.maxRounds,
+      attackCharges: game.players.map(pl => pl.attackCharges),
     });
   });
 }
@@ -492,11 +493,21 @@ function startGame(game) {
   }
 
   game.deck = createDeck();
-  game.players.forEach((p) => {
+  game.players.forEach((p, playerIdx) => {
     p.cards = [];
-    p.isOut = false; // ✅ RESET DI SINI (INI YANG KURANG)
+    p.isOut = false;
+    p.attackCharges = {}; 
+    
+    // Initialize charges for each opponent
+    game.players.forEach((_, targetIdx) => {
+      if (targetIdx !== playerIdx) {
+        p.attackCharges[targetIdx] = 2;
+      }
+    });
 
-    for (let i = 0; i < CARDS_EACH; i++) {
+    console.log(`[Game] Initialized attackCharges for ${p.name} (idx ${playerIdx}):`, p.attackCharges);
+
+    for (let k = 0; k < CARDS_EACH; k++) {
       p.cards.push(game.deck.pop());
     }
   });
@@ -565,6 +576,7 @@ io.on("connection", (socket) => {
       cards: [],
       isOut: false,
       isBot: false,
+      attackCharges: {},
     });
 
     // Tambah bot
@@ -576,6 +588,7 @@ io.on("connection", (socket) => {
       cards: [],
       isOut: false,
       isBot: true,
+      attackCharges: {},
     });
 
     console.log(`[${roomId}] ${name} vs Bot (${botName}) — Game dimulai!`);
@@ -620,6 +633,7 @@ io.on("connection", (socket) => {
       name: name || "Pemain " + (playerIndex + 1),
       cards: [],
       isOut: false,
+      attackCharges: {}, // { targetIndex: charges }
     });
 
     console.log(
@@ -726,6 +740,37 @@ io.on("connection", (socket) => {
       emoji: data.emoji,
       text: data.text
     });
+  });
+
+  socket.on("attackPlayer", ({ targetIndex }) => {
+    if (!currentRoom) return;
+    const game = rooms.get(currentRoom);
+    if (!game || !game.started) return;
+
+    const attackerIndex = game.players.findIndex(p => p.id === socket.id);
+    if (attackerIndex === -1) return;
+
+    const attacker = game.players[attackerIndex];
+    if (!attacker.attackCharges || (attacker.attackCharges[targetIndex] || 0) <= 0) {
+      socket.emit("errorMsg", { msg: "Jatah serangan ke pemain ini habis!" });
+      return;
+    }
+
+    const target = game.players[targetIndex];
+    if (!target) return;
+
+    attacker.attackCharges[targetIndex]--;
+    
+    // Broadcast attack event
+    io.to(currentRoom).emit("playerAttacked", {
+      attackerIndex,
+      targetIndex,
+      attackerName: attacker.name,
+      targetName: target.name
+    });
+
+    // Also update state to sync charges (optional, but good for UI)
+    sendState(game);
   });
 
   socket.on("chat", (msg) => {
