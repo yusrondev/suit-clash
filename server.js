@@ -243,14 +243,10 @@ function resolveTableTake(game, pIndex, roomId) {
   const msg = `${p.name}${p.isBot ? ' (Bot)' : ''} mengambil kartu meja.`;
   io.to(roomId).emit('toast', { msg });
 
-  console.log(`[${roomId}] ${p.name} takeTable. Continuing round...`);
-
-  sendState(game);
-  
-  // 🔥 TUNTUTAN USER: Jika ambil dari meja, ronde langsung berakhir.
-  // Pemenang (kartu tertinggi) akan memulai ronde baru (Free Mode).
-  // Ini memastikan urutan giliran kembali normal dari pemenang.
-  resolveRound(game, roomId);
+  // 🔥 TUNTUTAN USER (FIXED): Jangan langsung resolveRound.
+  // Gunakan nextTurn agar giliran berlanjut ke pemain C, D dst.
+  // Ronde akan otomatis berakhir via nextTurn jika semua sudah played/take.
+  nextTurn(game, roomId);
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
@@ -464,6 +460,7 @@ function resolveRound(game, roomId) {
   game.playersPlayed.clear();
   game.skipPlayer = null;
   game.controllerCard = null;
+  game.currentSuit = null;
 
   // Jika pemenang ronde sudah isOut (kartu habis = menang), cari pemain aktif berikutnya
   let nextController = winnerIndex;

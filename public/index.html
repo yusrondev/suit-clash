@@ -39,6 +39,10 @@
         html, body {
             height: 100%;
             overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
         }
 
         body {
@@ -1699,10 +1703,16 @@
         .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .2s; border-radius: 50%; }
         input:checked + .slider { background-color: var(--gold); }
         input:checked + .slider:before { transform: translateX(20px); }
+        input, textarea {
+            user-select: auto !important;
+            -webkit-user-select: auto !important;
+            -moz-user-select: auto !important;
+            -ms-user-select: auto !important;
+        }
     </style>
 </head>
 
-<body>
+<body oncontextmenu="return false;">
 
     <header id="main-header" style="display: none;">
         <div class="logo"><img src="logo.png" class="img-logo" alt=""> <div id="match-timer">00:00</div></div>
