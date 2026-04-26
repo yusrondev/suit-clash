@@ -2997,6 +2997,7 @@
 
             const overlay = document.createElement('div');
             overlay.id = 'ace-lottie-overlay';
+            overlay.className = 'game-effect-wrapper';
             const container = document.createElement('div');
             overlay.appendChild(container);
             document.body.appendChild(overlay);
@@ -3071,6 +3072,7 @@
 
             // Append INSIDE the seat, exactly like .emoji-pop
             const wrapper = document.createElement('div');
+            wrapper.className = 'game-effect-wrapper';
             wrapper.style.cssText = `
                 position: absolute;
                 left: 50%;
@@ -3124,7 +3126,7 @@
             lastClutch = type;
 
             const el = document.createElement('div');
-            el.className = 'clutch-overlay ' + type;
+            el.className = 'clutch-overlay game-effect-wrapper ' + type;
 
             if (type === "win") {
                 el.textContent = "🔥 Satu kartu lagi!";
@@ -3301,6 +3303,7 @@
 
             const size = 150;
             const wrapper = document.createElement('div');
+            wrapper.className = 'game-effect-wrapper';
             wrapper.style.cssText = `
                 position: absolute;
                 left: 50%;
@@ -3397,7 +3400,7 @@
 
             const size = isSelf ? 350 : 120;
             const wrapper = document.createElement('div');
-            
+            wrapper.className = 'game-effect-wrapper';
             wrapper.style.cssText = `
                 position: fixed;
                 left: ${rect.left}px;
@@ -3457,6 +3460,7 @@
 
             const size = 150;
             const wrapper = document.createElement('div');
+            wrapper.className = 'game-effect-wrapper';
             wrapper.style.cssText = `
                 position: absolute;
                 left: 50%;
@@ -3983,6 +3987,7 @@
         }
         function restartGame() {
             window.isMatchEndFlag = false;
+            document.querySelectorAll('.game-effect-wrapper').forEach(el => el.remove());
             document.getElementById('leaderboard-panel').classList.remove('show');
             document.getElementById('overlay').classList.remove('show');
             socket.emit('restartGame');
@@ -4009,9 +4014,13 @@
 
             if (restartBtn) {
                 if (data.isMatchEnd) {
-                    restartBtn.style.display = 'none'; // Sembunyikan kalau match beneran selesai (last round)
+                    restartBtn.style.display = 'none'; 
                 } else {
-                    restartBtn.style.display = myIndex === 0 ? 'inline-block' : 'none'; // Hanya host yang bisa lanjut ke ronde biasa
+                    const isHost = (myIndex === 0);
+                    restartBtn.style.display = isHost ? 'inline-block' : 'none';
+                    if (!isHost) {
+                        sub.innerHTML = '<span style="color:var(--gold); font-weight:700;">Menunggu host melanjutkan game...</span>';
+                    }
                 }
             }
 
