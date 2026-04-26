@@ -437,6 +437,26 @@
             animation: vignettePulse 2s ease-out forwards;
         }
 
+        .smoke-lottie-container {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            height: 120px;
+            pointer-events: none;
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            overflow: hidden;
+        }
+        .smoke-lottie-container > div {
+            width: 300px;
+            height: 300px;
+            margin-bottom: -120px; /* Offset to keep smoke at the very bottom */
+        }
+
         /* ── BOARD: full area with rounded-rect table ── */
         #board {
             position: relative;
@@ -1755,6 +1775,7 @@
         let isMyTurn = false;
         let playerNames = [];
         let prevTableCount = 0;
+        let lastTurnPlayer = -1;
         let lastState = null;
         let selectedHandIndex = null;
         let pendingOptimisticCardId = null;
@@ -2395,6 +2416,38 @@
             };
         }
 
+        function showTurnSmoke(playerIndex) {
+            let container;
+            if (playerIndex === myIndex) {
+                container = document.getElementById('your-area');
+            } else {
+                container = document.querySelector(`.opponent-seat[data-index="${playerIndex}"]`);
+            }
+            if (!container) return;
+
+            // Remove any existing smoke in this container first
+            const existing = container.querySelector('.smoke-lottie-container');
+            if (existing) existing.remove();
+
+            const smokeWrapper = document.createElement('div');
+            smokeWrapper.className = 'smoke-lottie-container';
+            const smokeDiv = document.createElement('div');
+            smokeWrapper.appendChild(smokeDiv);
+            container.appendChild(smokeWrapper);
+
+            const anim = lottie.loadAnimation({
+                container: smokeDiv,
+                renderer: 'svg',
+                loop: false,
+                autoplay: true,
+                path: '/fall-smoke.json'
+            });
+
+            anim.onComplete = () => smokeWrapper.remove();
+            // Safety timeout
+            setTimeout(() => { if (smokeWrapper.parentNode) smokeWrapper.remove(); }, 3000);
+        }
+
         function triggerAttackVignette() {
             const el = document.getElementById('attack-vignette');
             if (!el) return;
@@ -2640,6 +2693,14 @@
                 sb.classList.add('waiting');
                 document.getElementById('your-id-tag').classList.remove('active');
                 document.getElementById('your-id-tag').textContent = myName;
+            }
+
+            // Turn Smoke Effect
+            if (s.started && s.currentPlayer !== lastTurnPlayer) {
+                showTurnSmoke(s.currentPlayer);
+                lastTurnPlayer = s.currentPlayer;
+            } else if (!s.started) {
+                lastTurnPlayer = -1;
             }
 
             // ── RENDER TABLE ──
