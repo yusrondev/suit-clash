@@ -1195,15 +1195,25 @@
         }
 
         .chat-history-item {
+            position: relative;
             background: rgba(0, 0, 0, 0.45);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            padding: 8px 12px;
+            padding: 8px 12px 18px; /* Increased bottom padding for timestamp */
             border-radius: 14px;
             font-size: 13px;
             color: rgba(255, 255, 255, 0.9);
             animation: historyFadeIn 0.3s ease forwards;
             max-width: 90%;
+        }
+
+        .chat-timestamp {
+            position: absolute;
+            bottom: 4px;
+            right: 10px;
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.35);
+            font-weight: 400;
         }
 
         .chat-history-item span {
@@ -1225,15 +1235,25 @@
         }
 
         .mini-chat-item {
+            position: relative;
             background: rgba(0, 0, 0, 0.3);
             backdrop-filter: blur(4px);
-            padding: 6px;
+            padding: 6px 6px 16px; /* Space for timestamp */
             border-radius: 8px;
             font-size: 11px;
-            color: rgba(255,255,255,0.5);
+            color: rgba(255,255,255,0.7);
             animation: fadeInMiniChat 0.3s ease;
-            max-width: 40%;
+            max-width: 50%;
             line-height: 1.4;
+        }
+
+        .mini-chat-timestamp {
+            position: absolute;
+            bottom: 3px;
+            right: 6px;
+            font-size: 8px;
+            color: rgba(255, 255, 255, 0.25);
+            font-weight: 400;
         }
 
         .mini-chat-item b {
@@ -1976,7 +1996,8 @@
         }
 
         function updateChatHistory(name, msg) {
-            chatHistory.push({ name, msg });
+            const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            chatHistory.push({ name, msg, time });
             if (chatHistory.length > MAX_HISTORY) {
                 chatHistory.shift();
             }
@@ -1988,6 +2009,7 @@
             container.innerHTML = chatHistory.map(item => `
                 <div class="chat-history-item">
                     <span>${escHtml(item.name)}:</span>${escHtml(item.msg)}
+                    <div class="chat-timestamp">${item.time}</div>
                 </div>
             `).join('');
 
@@ -1998,6 +2020,7 @@
                 <div class="mini-chat-item">
                     <b>${escHtml(item.name)}</b>
                     ${escHtml(item.msg)}
+                    <div class="mini-chat-timestamp">${item.time}</div>
                 </div>
             `).join('');
 
@@ -2697,7 +2720,9 @@
 
             // Turn Smoke Effect
             if (s.started && s.currentPlayer !== lastTurnPlayer) {
-                showTurnSmoke(s.currentPlayer);
+                if (s.currentPlayer === myIndex) {
+                    showTurnSmoke(s.currentPlayer);
+                }
                 lastTurnPlayer = s.currentPlayer;
             } else if (!s.started) {
                 lastTurnPlayer = -1;
