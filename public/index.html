@@ -925,7 +925,7 @@
         .overlay-sub   { color: rgba(245,240,224,0.65); font-size: 15px; }
 
         /* ── TOAST ── */
-        #toast-container { position: fixed; top: calc(var(--header-h) + 8px); right: 12px; z-index: 200; display: flex; flex-direction: column; gap: 6px; max-width: calc(100vw - 24px); }
+        #toast-container { position: fixed; top: calc(var(--header-h) + 40px); right: 12px; z-index: 200; display: flex; flex-direction: column; gap: 6px; max-width: calc(100vw - 24px); }
         .toast {
             background: rgba(0,0,0,0.88);
             border: 1px solid rgba(201,168,76,0.3);
@@ -938,6 +938,28 @@
             animation: toastIn 0.3s ease, toastOut 0.3s ease 2.8s forwards;
             backdrop-filter: blur(8px);
             pointer-events: none;
+        }
+
+        #match-timer {
+            color: var(--gold-light);
+            padding: 4px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            display: none;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+        }
+        @media (max-width: 600px) {
+            #match-timer {
+                padding: 2px 8px;
+                font-size: 10px;
+            }
+        }
+        #match-timer::before {
+            content: '⏱';
+            font-size: 12px;
         }
         @keyframes toastIn  { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes toastOut { to   { transform: translateX(100px); opacity: 0; } }
@@ -1224,7 +1246,7 @@
 
         #mini-chat-history {
             position: fixed;
-            top: 59px;
+            top: var(--header-h) !important;
             min-width: 250px;
             display: flex;
             flex-direction: column;
@@ -1629,7 +1651,7 @@
 <body>
 
     <header id="main-header" style="display: none;">
-        <div class="logo"><img src="logo.png" class="img-logo" alt=""></div>
+        <div class="logo"><img src="logo.png" class="img-logo" alt=""> <div id="match-timer">00:00</div></div>
         <div style="display: flex; align-items: center;">
             <div id="round-badge">1/7</div>
             <button id="leaderboard-btn" onclick="openLeaderboard()"><i class="fa-solid fa-trophy"></i></button>
@@ -1881,6 +1903,10 @@
         const socket = io();
         let isBypassingUnload = false;
         let kickTargetIndex = -1;
+        
+        let matchStartTime = 0;
+        let matchTimerInterval = null;
+        let lastRoundCount = -1;
 
         let myIndex = -1;
         let myName = '';
@@ -2775,6 +2801,10 @@
                 return;
             }
 
+            document.getElementById('overlay').classList.remove('show');
+            document.getElementById('leaderboard-panel').classList.remove('show');
+            window.isMatchEndFlag = false;
+
             document.getElementById('lobby').style.display = 'none';
             document.getElementById('game').style.display = 'flex';
             document.getElementById('main-header').style.display = 'grid'; // Tampilkan header
@@ -2940,6 +2970,19 @@
             lastKnownTableCardId = topCardId;
 
             isMovePending = false;
+
+            // 🔥 MATCH TIMER (Ensured for all players)
+            if (s.started) {
+                document.getElementById('match-timer').style.display = 'flex';
+                if (s.roundCount !== lastRoundCount) {
+                    lastRoundCount = s.roundCount;
+                    startMatchTimer();
+                }
+            } else {
+                document.getElementById('match-timer').style.display = 'none';
+                stopMatchTimer();
+                lastRoundCount = -1;
+            }
         });
 
         /* ── ACE LOTTIE EFFECT ── */
@@ -3128,9 +3171,17 @@
             const totalSpreadW = peekW * (total - 1) + cardW;
             const startX = -totalSpreadW / 2;
 
-            // Sembunyikan slot yang tidak terpakai (misal awal game < 4 kartu)
+            // Sembunyikan slot yang tidak terpakai dengan efek fade out
             tableCardPool.forEach((el, i) => {
-                if (i >= total) el.style.opacity = '0';
+                if (i >= total) {
+                    if (el.style.opacity !== '0') {
+                        el.style.transition = 'opacity 1.8s ease-out, transform 1.3s ease-out';
+                        el.style.opacity = '0';
+                        // Ambil transform dasar lalu tambahkan efek melayang sedikit
+                        const baseT = el.style.getPropertyValue('--base-transform') || '';
+                        el.style.transform = baseT + ' translateY(-15px) scale(1.05)';
+                    }
+                }
             });
 
             cards.forEach((card, idx) => {
@@ -3189,6 +3240,27 @@
                 el.classList.add('card-hit');
                 setTimeout(() => el.classList.remove('card-hit'), 120);
             });
+        }
+
+        function startMatchTimer() {
+            stopMatchTimer();
+            matchStartTime = Date.now();
+            updateTimerDisplay(0);
+            matchTimerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - matchStartTime) / 1000);
+                updateTimerDisplay(elapsed);
+            }, 1000);
+        }
+
+        function stopMatchTimer() {
+            if (matchTimerInterval) clearInterval(matchTimerInterval);
+            matchTimerInterval = null;
+        }
+
+        function updateTimerDisplay(seconds) {
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            document.getElementById('match-timer').textContent = `${m}:${s}`;
         }
 
         /* ── ROUND RESOLVED — hanya tampilkan label pemenang, jangan hapus elemen ── */
