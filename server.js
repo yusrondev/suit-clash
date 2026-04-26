@@ -353,6 +353,7 @@ function nextTurn(game, roomId) {
   );
 
   if (stillNeedToPlay.length === 0) {
+    sendState(game); // 🔥 Kirim state dulu agar kartu terakhir muncul di meja semua pemain
     resolveRound(game, roomId);
     return;
   }
@@ -365,6 +366,7 @@ function nextTurn(game, roomId) {
     attempts++;
     if (attempts > game.players.length) {
       // Safety: tidak ada yang bisa main, resolve saja
+      sendState(game);
       resolveRound(game, roomId);
       return;
     }
@@ -410,6 +412,7 @@ function resolveRound(game, roomId) {
   });
 
   game.roundCards = [];
+  game.tableHistory = []; // 🔥 Bersihkan meja setelah ronde selesai
   game.playersPlayed.clear();
   game.skipPlayer = null;
   game.controllerCard = null;
@@ -436,7 +439,7 @@ function resolveRound(game, roomId) {
   setTimeout(() => {
     sendState(game);
     scheduleBotTurn(game, game._roomId);
-  }, 1200);
+  }, 500);
 }
 
 function startGame(game) {
