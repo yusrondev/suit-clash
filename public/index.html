@@ -2303,7 +2303,11 @@
                 container.appendChild(div);
             });
 
-            panel.classList.add('show');
+            if (list.length === 0 && !window.isMatchEndFlag) {
+                panel.classList.remove('show');
+            } else if (list.length > 0) {
+                panel.classList.add('show');
+            }
 
             const restartBtn = document.getElementById('lb-restart-btn');
             if (restartBtn) {
@@ -2501,6 +2505,7 @@
 
             if (s.started) {
                 document.getElementById('overlay').classList.remove('show');
+                document.getElementById('leaderboard-panel').classList.remove('show');
                 window.isMatchEndFlag = false;
             }
             myIndex = s.yourIndex; // Sync early!
@@ -3741,6 +3746,8 @@
             socket.emit('startGame');
         }
         function restartGame() {
+            window.isMatchEndFlag = false;
+            document.getElementById('leaderboard-panel').classList.remove('show');
             document.getElementById('overlay').classList.remove('show');
             socket.emit('restartGame');
         }
