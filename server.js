@@ -651,6 +651,47 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("checkRoom", ({ room }) => {
+    const roomId = (room || "default").trim().toLowerCase();
+    const game = rooms.get(roomId);
+    if (!game) {
+      socket.emit("roomInfo", { exists: false });
+    } else {
+      socket.emit("roomInfo", { 
+        exists: true, 
+        hostName: game.players[0] ? game.players[0].name : "Unknown",
+        playerCount: game.players.length,
+        started: game.started
+      });
+    }
+  });
+
+  socket.on("kickPlayer", ({ targetIndex }) => {
+    if (!currentRoom) return;
+    const game = rooms.get(currentRoom);
+    if (!game || game.started) return;
+
+    // Only host (index 0) can kick
+    if (game.players[0].id !== socket.id) return;
+
+    const target = game.players[targetIndex];
+    if (!target || target.isBot || targetIndex === 0) return;
+
+    console.log(`[${currentRoom}] Host kicking ${target.name}`);
+
+    // Notify the target
+    io.to(target.id).emit("kicked");
+
+    // Remove from room
+    game.players.splice(targetIndex, 1);
+    
+    // Broadcast leave
+    io.to(currentRoom).emit("playerLeft", { name: target.name });
+
+    // Send state to everyone
+    sendState(game);
+  });
+
   socket.on("getLeaderboard", () => {
     const game = rooms.get(currentRoom);
     // ✅ TUNTUTAN USER: Hanya tampilkan pemain yang sedang ada di room ini (biar gak global/nyampur)

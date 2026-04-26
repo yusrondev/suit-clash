@@ -1561,6 +1561,52 @@
             from { opacity: 0; transform: translateY(5px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        
+        .lobby-table {
+            width: 100%;
+            margin-top: 15px;
+            border-collapse: collapse;
+            font-size: 13px;
+            animation: fadeIn 0.3s ease-out;
+        }
+        .lobby-table tr {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .lobby-table tr:last-child {
+            border-bottom: none;
+        }
+        .lobby-table td {
+            padding: 10px 5px;
+            color: var(--cream);
+            vertical-align: middle;
+        }
+        .lobby-table .player-name {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+        .lobby-table .player-name::before {
+            content: '●';
+            color: #4ade80;
+            font-size: 8px;
+        }
+        .btn-kick {
+            background: rgba(211, 47, 47, 0.1);
+            border: 1px solid rgba(211, 47, 47, 0.3);
+            color: #ff6b6b;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            float: right;
+        }
+        .btn-kick:hover {
+            background: rgba(211, 47, 47, 0.2);
+            border-color: rgba(211, 47, 47, 0.5);
+        }
 
         .waiting {
             margin-bottom: 15px !important;
@@ -1625,7 +1671,7 @@
                 <label>Kode Room</label>
                 <input id="room-input" type="text" placeholder="Ketik kode room..." maxlength="12" />
             </div>
-            <button class="btn-gold" onclick="joinRoom()">Masuk Meja</button>
+            <button class="btn-gold" onclick="preJoinRoom()">Masuk Meja</button>
             <button style="margin-top:8px; width:100%; padding:14px; border:1px solid rgba(212,175,55,0.3); border-radius:12px; background:rgba(212,175,55,0.07); color:var(--gold-light); font-size:14px; font-weight:700; letter-spacing:1px; cursor:pointer; transition:all 0.2s;" onclick="joinWithBot()" onmouseover="this.style.background='rgba(212,175,55,0.15)'" onmouseout="this.style.background='rgba(212,175,55,0.07)'">Main vs Bot 🤖</button>
             <div id="lobby-status" class="waiting-msg" style="display:none;">
                 <div id="waiting-text">Menunggu pemain lain...</div>
@@ -1639,6 +1685,9 @@
                 </div>
 
                 <div class="waiting-spin"><span></span><span></span><span></span></div>
+                
+                <div id="lobby-user-list" style="margin-top: 20px; width: 100%;"></div>
+
                 <button id="start-btn" class="btn-gold" style="display:none; margin-top:20px; width:100%;"
                     onclick="startGameManual()">Mulai Permainan</button>
                 <button id="lobby-leave-btn" class="btn-leave" style="margin-top:10px; width:100%; padding:14px; font-size:14px;" onclick="confirmLeaveRoom()">Keluar Meja</button>
@@ -1783,11 +1832,55 @@
         </div>
     </div>
 
+        </div>
+    </div>
+
+    <!-- JOIN CONFIRMATION MODAL -->
+    <div id="join-confirm-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 99999; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
+        <div class="overlay-card" style="max-width: 320px; width: 100%; padding: 24px; box-sizing: border-box; text-align: center;">
+            <div class="overlay-title" style="font-size: 20px; margin-bottom: 10px;">Konfirmasi Masuk</div>
+            <div class="overlay-sub" style="font-size: 14px; margin-bottom: 24px; line-height: 1.5;">
+                Anda akan masuk ke dalam room yang dibuat oleh <br><b id="confirm-host-name" style="color: var(--gold-light); font-size: 16px;">Host Name</b>.
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-leave" style="flex: 1; margin: 0; padding: 12px; font-size: 14px; background: rgba(255,255,255,0.05); color: var(--cream);" onclick="document.getElementById('join-confirm-modal').style.display='none';">Batal</button>
+                <button class="btn-gold" style="flex: 1; margin: 0; padding: 12px; font-size: 14px;" onclick="confirmJoin()">Ya</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- KICKED MODAL -->
+    <div id="kicked-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 99999; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
+        <div class="overlay-card" style="max-width: 320px; width: 100%; padding: 24px; box-sizing: border-box; text-align: center;">
+            <div class="overlay-title" style="font-size: 20px; margin-bottom: 10px;">Dikeluarkan</div>
+            <div class="overlay-sub" style="font-size: 14px; margin-bottom: 24px; line-height: 1.5;">
+                Anda telah dikeluarkan dari room oleh host.
+            </div>
+            <button class="btn-gold" style="width: 100%; margin: 0; padding: 12px; font-size: 14px;" onclick="isBypassingUnload=true; window.location.reload();">Kembali ke Lobby</button>
+        </div>
+    </div>
+
+    <!-- KICK CONFIRMATION MODAL -->
+    <div id="kick-confirm-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 99999; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
+        <div class="overlay-card" style="max-width: 320px; width: 100%; padding: 24px; box-sizing: border-box; text-align: center;">            
+            <div class="overlay-title" style="font-size: 20px; margin-bottom: 10px;">Kick Pemain?</div>
+            <div class="overlay-sub" style="font-size: 14px; margin-bottom: 24px; line-height: 1.5;">
+                Apakah Anda yakin ingin mengeluarkan <b id="kick-target-name" style="color: var(--gold-light);">Pemain</b> dari room?
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-leave" style="flex: 1; margin: 0; padding: 12px; font-size: 14px; background: rgba(255,255,255,0.05); color: var(--cream);" onclick="document.getElementById('kick-confirm-modal').style.display='none';">Batal</button>
+                <button class="btn-gold" style="flex: 1; margin: 0; padding: 12px; font-size: 14px; border-color: #ff4d4d;" onclick="confirmKick()" onmouseover="this.style.background='#ff4d4d'" onmouseout="this.style.background='var(--gold)'">Ya</button>
+            </div>
+        </div>
+    </div>
+
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
     <script>
 
         const socket = io();
+        let isBypassingUnload = false;
+        let kickTargetIndex = -1;
 
         let myIndex = -1;
         let myName = '';
@@ -2069,6 +2162,36 @@
         }
 
         /* ── JOIN ROOM ── */
+        function preJoinRoom() {
+            const ni = document.getElementById('name-input');
+            const ri = document.getElementById('room-input');
+            const name = ni.value.trim() || localStorage.getItem('remi_name') || 'Pemain';
+            const room = ri.value.trim() || localStorage.getItem('remi_room') || 'default';
+
+            if (!name) { toast('Masukkan namamu dulu!', '⚠️'); return; }
+
+            localStorage.setItem('remi_name', name);
+            localStorage.setItem('remi_room', room);
+
+            socket.emit('checkRoom', { room });
+        }
+
+        socket.on('roomInfo', (data) => {
+            if (!data.exists) {
+                // If room doesn't exist, join immediately (player will be host)
+                joinRoom();
+            } else {
+                // If room exists, show confirmation
+                document.getElementById('confirm-host-name').textContent = data.hostName;
+                document.getElementById('join-confirm-modal').style.display = 'flex';
+            }
+        });
+
+        function confirmJoin() {
+            document.getElementById('join-confirm-modal').style.display = 'none';
+            joinRoom();
+        }
+
         function joinRoom() {
             const ni = document.getElementById('name-input');
             const ri = document.getElementById('room-input');
@@ -2084,6 +2207,27 @@
             ri.disabled = true;
 
             tryAutoFullscreen();
+        }
+
+        socket.on('kicked', () => {
+            localStorage.removeItem('remi_name');
+            localStorage.removeItem('remi_room');
+            document.getElementById('kicked-modal').style.display = 'flex';
+        });
+
+        function kickPlayer(index) {
+            kickTargetIndex = index;
+            const name = lastState && lastState.playerNames ? lastState.playerNames[index] : 'Pemain';
+            document.getElementById('kick-target-name').textContent = name;
+            document.getElementById('kick-confirm-modal').style.display = 'flex';
+        }
+
+        function confirmKick() {
+            if (kickTargetIndex !== -1) {
+                socket.emit('kickPlayer', { targetIndex: kickTargetIndex });
+                document.getElementById('kick-confirm-modal').style.display = 'none';
+                kickTargetIndex = -1;
+            }
         }
 
         function sendEmoji(e) {
@@ -2214,6 +2358,7 @@
         }
 
         window.addEventListener('beforeunload', (e) => {
+            if (isBypassingUnload) return;
             if (localStorage.getItem('remi_room') || myName) {
                 e.preventDefault();
                 e.returnValue = '';
@@ -2558,7 +2703,7 @@
 
                 // Hide inputs but NOT the lobby-status
                 document.querySelectorAll('.room-box > div:not(.waiting-msg)').forEach(d => d.style.display = 'none');
-                document.querySelector('.room-box > button').style.display = 'none';
+                document.querySelectorAll('.room-box > button').forEach(btn => btn.style.display = 'none');
                 document.getElementById('lobby-status').style.display = 'block';
                 document.getElementById('text-fab').style.display = 'none';
                 document.getElementById('mini-chat-history').style.display = 'none';
@@ -2568,12 +2713,29 @@
                 const waitingText = document.getElementById('waiting-text');
 
                 // Render Lobby User List
-                const lobbyList = document.getElementById('lobby-user-list') || document.createElement('div');
-                if (!lobbyList.id) {
-                    lobbyList.id = 'lobby-user-list';
-                    document.getElementById('lobby-status').appendChild(lobbyList);
-                }
-                lobbyList.innerHTML = s.playerNames.map(name => `<div class="user-chip">${escHtml(name)}</div>`).join('');
+                const lobbyList = document.getElementById('lobby-user-list');
+                if (!lobbyList) return; // Should exist in HTML now
+                
+                let tableHtml = `<table class="lobby-table">`;
+                s.playerNames.forEach((name, idx) => {
+                    const isSelf = (idx === myIndex);
+                    const isTargetHost = (idx === 0);
+                    
+                    tableHtml += `
+                        <tr>
+                            <td>
+                                <div class="player-name">
+                                    ${escHtml(name)} ${isTargetHost ? ' <span style="font-size:9px; color:var(--gold); border:1px solid var(--gold); padding:1px 4px; border-radius:4px; margin-left:4px;">HOST</span>' : ''} ${isSelf ? ' <span style="font-size:9px; color:#4ade80; opacity:0.7;">(Kamu)</span>' : ''}
+                                </div>
+                            </td>
+                            <td style="text-align:right;">
+                                ${isHost && !isSelf && !isTargetHost ? `<button class="btn-kick" onclick="kickPlayer(${idx})">Kick</button>` : ''}
+                            </td>
+                        </tr>
+                    `;
+                });
+                tableHtml += `</table>`;
+                lobbyList.innerHTML = tableHtml;
 
                 if (isHost && s.totalPlayers >= 2) {
                     startBtn.style.display = 'block';
