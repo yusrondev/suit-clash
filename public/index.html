@@ -1571,6 +1571,8 @@
                 <button onclick="pickEmoji('angry')" title="Angry">😡</button>
                 <button onclick="pickEmoji('cat')" title="Cat">🐱</button>
                 <button onclick="pickEmoji('amongus')" title="Among Us">ඞ</button>
+                <button onclick="pickEmoji('ok')" title="OK">👌</button>
+                <button onclick="pickEmoji('cool')" title="Cool">😎</button>
                 <button onclick="pickEmoji('👑')" title="King">👑</button>
                 <button onclick="pickRecall()" title="Recall!" style="font-size:18px;">⚡</button>
             </div>
@@ -1655,7 +1657,7 @@
         let selectedHandIndex = null;
         let pendingOptimisticCardId = null;
         let lastKnownTableCardId = null; // For Ace detection
-        const LOTTIE_EMOJIS = ['cat', 'panda', 'angry', 'amongus', 'cat-laughing', 'cat-sleep'];
+        const LOTTIE_EMOJIS = ['cat', 'panda', 'angry', 'amongus', 'cat-laughing', 'cat-sleep', 'ok', 'cool'];
 
         let lastClutch = "";
         let lastAction = "";
@@ -1958,6 +1960,8 @@
                 "panda": "Zzz...",
                 "cat": "",
                 "amongus": "",
+                "ok": "Oke mantap!",
+                "cool": "Kece parah!",
                 "👑": "Belajar dulu dek"
             };
 
@@ -1998,9 +2002,11 @@
             el.className = 'emoji-self';
 
             // Use the global constant
-            if (LOTTIE_EMOJIS.includes(data.emoji)) {
+            const isLottie = LOTTIE_EMOJIS.includes(data.emoji);
+            if (isLottie) {
                 const isAngry = data.emoji === 'angry';
-                const lSize = isAngry ? '70px' : '100px';
+                const isSmall = ['angry', 'cat', 'ok', 'cool'].includes(data.emoji);
+                const lSize = isSmall ? '80px' : '100px';
 
                 const lottieContainer = document.createElement('div');
                 lottieContainer.style.width = lSize;
@@ -2700,9 +2706,11 @@
         socket.on("emoji", (data) => {
             if (data.name === myName) return; // Sender already handled it locally
 
+            const isLottie = LOTTIE_EMOJIS.includes(data.emoji) || ['ok', 'cool'].includes(data.emoji);
+
             if (data.emoji === '⚡recall') {
                 playRecallLottieOnSeat(data.name);
-            } else if (LOTTIE_EMOJIS.includes(data.emoji)) {
+            } else if (isLottie) {
                 showLottieEmojiOnSeat(data.name, data);
             } else {
                 showEmoji(data.name, data);
@@ -2739,6 +2747,7 @@
             let lSize = '120px';
             if (data.emoji === 'angry') lSize = '75px';
             if (data.emoji === 'cat') lSize = '80px';
+            if (data.emoji === 'ok' || data.emoji === 'cool') lSize = '100px';
 
             const lottieContainer = document.createElement('div');
             lottieContainer.style.width = lSize;
