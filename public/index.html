@@ -94,15 +94,16 @@
             background: linear-gradient(145deg, #2c3e50, #1a252f);
             border: 1px solid var(--gold-dark);
             color: var(--gold-light);
-            width: 42px;
-            height: 42px;
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
             font-size: 20px;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
             transition: all 0.2s;
             align-items: center;
             justify-content: center;
+            font-size: 12px;
         }
         #leaderboard-btn:hover {
             transform: scale(1.1);
@@ -1226,7 +1227,9 @@
             font-size: 13px;
             color: rgba(255, 255, 255, 0.9);
             animation: historyFadeIn 0.3s ease forwards;
-            max-width: 90%;
+            max-width: 100%;
+            word-break: break-word;
+            overflow-wrap: break-word;
         }
 
         .chat-timestamp {
@@ -1246,7 +1249,7 @@
 
         #mini-chat-history {
             position: fixed;
-            top: var(--header-h) !important;
+            top: 12%;
             min-width: 250px;
             display: flex;
             flex-direction: column;
@@ -1265,8 +1268,10 @@
             font-size: 11px;
             color: rgba(255,255,255,0.7);
             animation: fadeInMiniChat 0.3s ease;
-            max-width: 50%;
+            max-width: 45%;
             line-height: 1.4;
+            word-break: break-word;
+            overflow-wrap: break-word;
         }
 
         .mini-chat-timestamp {
@@ -2055,9 +2060,11 @@
             document.getElementById('setting-modal').style.display = 'flex';
         }
 
-        document.getElementById('leaderboard-btn').onclick = () => {
+        function openLeaderboard() {
             socket.emit('getLeaderboard');
-        };
+            // Show the panel (the server will send data to fill it)
+            document.getElementById('leaderboard-panel').classList.add('show');
+        }
 
         const textFab = document.getElementById('text-fab');
         const chatBox = document.getElementById('chat-input-box');
@@ -2474,11 +2481,8 @@
                 container.appendChild(div);
             });
 
-            if (list.length === 0 && !window.isMatchEndFlag) {
-                panel.classList.remove('show');
-            } else if (list.length > 0) {
-                panel.classList.add('show');
-            }
+            // Always show the panel — let the user close it manually
+            panel.classList.add('show');
 
             const restartBtn = document.getElementById('lb-restart-btn');
             if (restartBtn) {
@@ -2676,7 +2680,6 @@
 
             if (s.started) {
                 document.getElementById('overlay').classList.remove('show');
-                document.getElementById('leaderboard-panel').classList.remove('show');
                 window.isMatchEndFlag = false;
             }
             myIndex = s.yourIndex; // Sync early!
@@ -2802,7 +2805,6 @@
             }
 
             document.getElementById('overlay').classList.remove('show');
-            document.getElementById('leaderboard-panel').classList.remove('show');
             window.isMatchEndFlag = false;
 
             document.getElementById('lobby').style.display = 'none';
@@ -3393,7 +3395,7 @@
                 };
             }
 
-            const size = isSelf ? 350 : 200;
+            const size = isSelf ? 350 : 120;
             const wrapper = document.createElement('div');
             
             wrapper.style.cssText = `
