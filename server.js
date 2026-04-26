@@ -34,6 +34,8 @@ function getRank(v) {
   return parseInt(v);
 }
 
+const CARDS_EACH = 4;
+
 function createDeck() {
   const d = [];
   suits.forEach((s) => values.forEach((v) => d.push({ value: v, suit: s })));
@@ -43,9 +45,6 @@ function createDeck() {
 // ── ROOMS ─────────────────────────────────────────────────────────────────────
 // rooms: Map<roomId, GameState>
 const rooms = new Map();
-
-// GLOBAL LEADERBOARD
-// (Removed global leaderboard for room-specific implementation)
 
 function makeGame() {
   return {
@@ -76,7 +75,6 @@ function makeGame() {
 
 const MIN_PLAYERS = 2;
 const MAX_PLAYERS = 4;
-const CARDS_EACH = 4;
 
 // ── BOT AI ────────────────────────────────────────────────────────────────────
 const BOT_ID = '__bot__';
@@ -176,8 +174,8 @@ function runBotTurn(game, roomId) {
         io.to(roomId).emit('botAction', { action: 'takeTable', botName: bot.name });
         resolveTableTake(game, botIndex, roomId);
       } else {
-        // Tidak ada pilihan, skip giliran
         game.playersPlayed.add(botIndex);
+        if (checkEnd(game, roomId)) return;
         nextTurn(game, roomId);
       }
     }
@@ -197,23 +195,32 @@ function runBotTurn(game, roomId) {
 }
 
 function resolveTableTake(game, pIndex, roomId) {
-  if (!game.tableHistory || game.tableHistory.length === 0) return;
   const p = game.players[pIndex];
+  if (!game.tableHistory || game.tableHistory.length === 0) {
+    // 🔥 Jika deck kosong & meja kosong, terpaksa skip ronde ini
+    console.log(`[${roomId}] ${p.name} skip karena deck & meja kosong`);
+    game.playersPlayed.add(pIndex);
+    if (checkEnd(game, roomId)) return;
+    nextTurn(game, roomId);
+    return;
+  }
 
   const takenCard = game.tableHistory.pop();
   if (!takenCard) return;
   p.cards.push(takenCard);
 
   // Identify who played this card to track potential winner if round ends
+  // Identify who played this card to track potential winner if round ends
   let playedBy = -1;
   if (game.controllerCard && game.controllerCard.card.suit === takenCard.suit && game.controllerCard.card.value === takenCard.value) {
     playedBy = game.controllerCard.player;
-    game.controllerCard = null; // Remove from current "highest" competition
+    // 🔥 TUNTUTAN USER: Jangan hapus controllerCard agar dia tetap dianggap pemenang 
+    // jika tidak ada yang mengeluarkan kartu lebih tinggi.
   } else {
     const rcIndex = game.roundCards.findIndex(rc => rc.card.suit === takenCard.suit && rc.card.value === takenCard.value);
     if (rcIndex !== -1) {
       playedBy = game.roundCards[rcIndex].player;
-      game.roundCards.splice(rcIndex, 1); // Remove from current "highest" competition
+      // 🔥 TUNTUTAN USER: Jangan hapus dari roundCards agar tetap masuk hitungan 'highest'
     }
   }
 
@@ -238,13 +245,38 @@ function resolveTableTake(game, pIndex, roomId) {
 
   sendState(game);
   
-  // Continue to next player or resolve if everyone acted
-  nextTurn(game, roomId);
+  // 🔥 TUNTUTAN USER: Jika ambil dari meja, ronde langsung berakhir.
+  // Pemenang (kartu tertinggi) akan memulai ronde baru (Free Mode).
+  // Ini memastikan urutan giliran kembali normal dari pemenang.
+  resolveRound(game, roomId);
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 function isActive(game, i) {
-  return game.players[i] && !game.players[i].isOut;
+  const p = game.players[i];
+  if (!p || p.isOut) return false;
+  if (p.cards.length === 0) return false; // Pemain tanpa kartu tidak aktif
+  return true;
+}
+
+function isPlayerStuck(game, pIndex) {
+  const p = game.players[pIndex];
+  if (!isActive(game, pIndex)) return false;
+
+  // Jika freeMode dan dia controller, wajib main (tidak stuck)
+  if (game.freeMode && game.controllerPlayer === pIndex) return false;
+
+  // Jika punya kartu cocok, tidak stuck
+  const hasSuit = p.cards.some((c) => c.suit === game.currentSuit);
+  if (hasSuit) return false;
+
+  // Jika deck masih ada, bisa ambil (tidak stuck)
+  if (game.deck.length > 0) return false;
+
+  // Jika meja masih ada kartu, bisa ambil (tidak stuck)
+  if (game.tableHistory && game.tableHistory.length > 0) return false;
+
+  return true;
 }
 
 function sendState(game) {
@@ -353,19 +385,18 @@ function nextTurn(game, roomId) {
   );
 
   if (stillNeedToPlay.length === 0) {
-    sendState(game); // 🔥 Kirim state dulu agar kartu terakhir muncul di meja semua pemain
+    sendState(game);
     resolveRound(game, roomId);
     return;
   }
 
-  // Cari giliran berikutnya: harus aktif, belum main, bukan skipPlayer
+  // Cari giliran berikutnya
   let next = game.currentPlayer;
   let attempts = 0;
   do {
     next = (next + 1) % game.players.length;
     attempts++;
     if (attempts > game.players.length) {
-      // Safety: tidak ada yang bisa main, resolve saja
       sendState(game);
       resolveRound(game, roomId);
       return;
@@ -375,6 +406,19 @@ function nextTurn(game, roomId) {
     game.playersPlayed.has(next) ||
     next === game.skipPlayer
   );
+
+  // 🔥 CEK APAKAH PEMAIN TERJEBAK (STUCK)
+  if (isPlayerStuck(game, next)) {
+    console.log(`[${roomId}] ${game.players[next].name} auto-skip (stuck: no cards to match/draw/take)`);
+    game.playersPlayed.add(next);
+    
+    // Kirim notifikasi ke UI
+    io.to(roomId).emit("toast", { msg: `${game.players[next].name} dilewati karena kartu habis.` });
+    
+    // Lanjut cari pemain berikutnya secara rekursif
+    nextTurn(game, roomId);
+    return;
+  }
 
   game.currentPlayer = next;
   sendState(game);
