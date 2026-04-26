@@ -1100,6 +1100,44 @@
             margin-right: 6px;
         }
 
+        #mini-chat-history {
+            position: fixed;
+            top: 59px;
+            width: 250px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            z-index: 9999;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .mini-chat-item {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(4px);
+            padding: 6px;
+            border-radius: 8px;
+            font-size: 11px;
+            color: rgba(255,255,255,0.5);
+            animation: fadeInMiniChat 0.3s ease;
+            max-width: 55%;
+            line-height: 1.4;
+        }
+
+        .mini-chat-item b {
+            color: var(--gold-light);
+            opacity: 0.8;
+            font-size: 10px;
+            text-transform: uppercase;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        @keyframes fadeInMiniChat {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
         @keyframes historyFadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to   { opacity: 1; transform: translateY(0); }
@@ -1423,6 +1461,8 @@
             <button class="btn-leave" onclick="confirmLeaveRoom()"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
         </div>
     </header>
+
+    <div id="mini-chat-history"></div>
 
     <div id="leaderboard-panel" class="leaderboard-panel">
         <div class="lb-header">
@@ -1767,10 +1807,20 @@
         textFab.addEventListener('click', () => {
             chatBox.classList.add('active');
             textFab.style.display = 'none';
+            document.getElementById('mini-chat-history').style.opacity = '0';
 
             setTimeout(() => {
                 chatInput.focus(); // buka keyboard mobile
             }, 100);
+        });
+
+        chatInput.addEventListener('blur', () => {
+            // Beri delay sedikit agar sinkron dengan blur keyboard
+            setTimeout(() => {
+                if (!chatBox.classList.contains('active')) {
+                    document.getElementById('mini-chat-history').style.opacity = '1';
+                }
+            }, 200);
         });
 
         chatInput.addEventListener('keydown', (e) => {
@@ -1795,7 +1845,6 @@
 
         function sendChat(msg) {
             socket.emit('chat', msg);
-            showSelfChat(msg); // tampilkan di tengah (POV sendiri)
             updateChatHistory("Kamu", msg); // 🔥 Update history lokal
         }
 
@@ -1814,6 +1863,23 @@
                     <span>${escHtml(item.name)}:</span>${escHtml(item.msg)}
                 </div>
             `).join('');
+
+            // Mini history at top left (last 3)
+            const mini = document.getElementById('mini-chat-history');
+            const last3 = chatHistory.slice(-3);
+            mini.innerHTML = last3.map(item => `
+                <div class="mini-chat-item">
+                    <b>${escHtml(item.name)}</b>
+                    ${escHtml(item.msg)}
+                </div>
+            `).join('');
+
+            // 🔥 Auto fadeout mini history dalam 8 detik
+            mini.style.opacity = '1';
+            clearTimeout(miniChatTimeout);
+            miniChatTimeout = setTimeout(() => {
+                mini.style.opacity = '0';
+            }, 8000);
         }
 
         function showSelfChat(msg) {
@@ -1827,6 +1893,7 @@
         }
 
         // 👇 baru lanjut code lain
+        let miniChatTimeout = null;
         let prevTurn = null;
 
         // Track which cards are currently rendered on the table (for spread effect)
@@ -2041,7 +2108,6 @@
             // 🔥 Jika itu kita sendiri, abaikan (karena sudah ditangani di sendChat sebagai "Kamu")
             if (data.name === myName) return; 
 
-            showChatOnPlayer(data.name, data.msg);
             updateChatHistory(data.name, data.msg); // 🔥 Update history global
             playSfx(notificationSound);
         });
@@ -2157,7 +2223,8 @@
                 document.querySelectorAll('.room-box > div:not(.waiting-msg)').forEach(d => d.style.display = 'none');
                 document.querySelector('.room-box > button').style.display = 'none';
                 document.getElementById('lobby-status').style.display = 'block';
-                document.getElementById('text-fab').style.display = 'flex'; // Show chat once in a room
+                document.getElementById('text-fab').style.display = 'none';
+                document.getElementById('mini-chat-history').style.display = 'none';
 
                 const isHost = (myIndex === 0);
                 const startBtn = document.getElementById('start-btn');
@@ -2215,6 +2282,8 @@
             document.getElementById('hud-top').style.display = 'flex'; // Show HUD in game
             document.getElementById('round-badge').style.display = 'flex';
             document.getElementById('round-badge').textContent = (s.roundCount || 1) + '/' + s.maxRounds;
+            document.getElementById('text-fab').style.display = 'flex'; // Show chat in-game
+            document.getElementById('mini-chat-history').style.display = 'flex';
 
             // Putar BGM hanya saat in-game
             if (isBgmOn && audioUnlocked && bgmSound.paused) {
