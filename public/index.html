@@ -1801,7 +1801,7 @@
 <body oncontextmenu="return false;">
 
     <header id="main-header" style="display: none;">
-        <div class="logo"><img src="logo.png" class="img-logo" alt=""> <div id="match-timer">00:00</div></div>
+        <div class="logo"><img src="/assets/images/logo.png" class="img-logo" alt=""> <div id="match-timer">00:00</div></div>
         <div style="display: flex; align-items: center;">
             <div id="round-badge">1/7</div>
             <button id="leaderboard-btn" onclick="openLeaderboard()"><i class="fa-solid fa-trophy"></i></button>
@@ -1832,7 +1832,7 @@
 
     <!-- LOBBY -->
     <div id="lobby">
-        <div class="lobby-title"><img src="logo.png" style="width: 210px;" alt=""></div>
+        <div class="lobby-title"><img src="/assets/images/logo.png" style="width: 210px;" alt=""></div>
         <div class="lobby-sub">Permainan Kartu Online Multiplayer</div>
         <div class="room-box">
             <div>
@@ -2101,7 +2101,7 @@
             const list = [...LOTTIE_EMOJIS, 'recall', 'win', 'target', 'lightning', 'fall-smoke'];
             list.forEach(emoji => {
                 if (lottieCache[emoji]) return;
-                fetch(`/${emoji}.json`)
+                fetch(`/assets/lottie/${emoji}.json`)
                     .then(r => {
                         if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
                         return r.json();
@@ -2135,30 +2135,30 @@
         let isBgmOn = localStorage.getItem('remi_bgm') !== 'false';
         let isSfxOn = localStorage.getItem('remi_sfx') !== 'false';
 
-        const bgmSound = new Audio('/bgm.mp3');
+        const bgmSound = new Audio('/assets/sounds/bgm.mp3');
         bgmSound.loop = true;
         bgmSound.volume = 0.25;
 
-        const turnSound = new Audio('/turn.mp3');
+        const turnSound = new Audio('/assets/sounds/turn.mp3');
         turnSound.volume = 0.6;
 
-        const popSound = new Audio('/pop.mp3');
+        const popSound = new Audio('/assets/sounds/pop.mp3');
         popSound.volume = 0.7;
 
-        const tauntSound = new Audio('/taunt.mp3');
+        const tauntSound = new Audio('/assets/sounds/taunt.mp3');
         tauntSound.volume = 0.7;
 
-        const clutchWinSound = new Audio('/win.mp3');
-        const clutchDangerSound = new Audio('/warning.mp3');
-        const lightningSound = new Audio('/lightning.mp3');
+        const clutchWinSound = new Audio('/assets/sounds/win.mp3');
+        const clutchDangerSound = new Audio('/assets/sounds/warning.mp3');
+        const lightningSound = new Audio('/assets/sounds/lightning.mp3');
         lightningSound.volume = 0.7;
-        const amongusSound = new Audio('/amongus.mp3');
+        const amongusSound = new Audio('/assets/sounds/amongus.mp3');
         amongusSound.volume = 0.7;
-        const notificationSound = new Audio('/notification.mp3');
+        const notificationSound = new Audio('/assets/sounds/notification.mp3');
         notificationSound.volume = 0.5;
-        const electricSound = new Audio('/electric.mp3');
+        const electricSound = new Audio('/assets/sounds/electric.mp3');
         electricSound.volume = 0.7;
-        const hitSound = new Audio('/hit.mp3');
+        const hitSound = new Audio('/assets/sounds/hit.mp3');
         hitSound.volume = 0.8;
 
         function playSfx(sound) {
@@ -2543,7 +2543,7 @@
                     loop: true,
                     autoplay: true,
                     animationData: lottieCache[data.emoji] ? JSON.parse(JSON.stringify(lottieCache[data.emoji])) : null,
-                    path: lottieCache[data.emoji] ? null : `/${data.emoji}.json`
+                    path: lottieCache[data.emoji] ? null : `/assets/lottie/${data.emoji}.json`
                 });
             } else {
                 el.innerHTML = `
@@ -2808,7 +2808,7 @@
                 loop: false,
                 autoplay: true,
                 animationData: lottieCache['target'] ? JSON.parse(JSON.stringify(lottieCache['target'])) : null,
-                path: lottieCache['target'] ? null : 'target.json'
+                path: lottieCache['target'] ? null : '/assets/lottie/target.json'
             });
 
             anim.onComplete = () => {
@@ -2841,7 +2841,7 @@
                 loop: false,
                 autoplay: true,
                 animationData: lottieCache['fall-smoke'] ? JSON.parse(JSON.stringify(lottieCache['fall-smoke'])) : null,
-                path: lottieCache['fall-smoke'] ? null : '/fall-smoke.json'
+                path: lottieCache['fall-smoke'] ? null : '/assets/lottie/fall-smoke.json'
             });
 
             anim.onComplete = () => smokeWrapper.remove();
@@ -3228,7 +3228,7 @@
                 loop: false,
                 autoplay: true,
                 animationData: lottieCache['lightning'] ? JSON.parse(JSON.stringify(lottieCache['lightning'])) : null,
-                path: lottieCache['lightning'] ? null : '/lightning.json'
+                path: lottieCache['lightning'] ? null : '/assets/lottie/lightning.json'
             });
 
             aceLottieInstance.addEventListener('complete', () => {
@@ -3264,7 +3264,7 @@
                 loop: false,
                 autoplay: true,
                 animationData: lottieCache['recall'] ? JSON.parse(JSON.stringify(lottieCache['recall'])) : null,
-                path: lottieCache['recall'] ? null : '/recall.json'
+                path: lottieCache['recall'] ? null : '/assets/lottie/recall.json'
             });
 
             recallLottieInstance.addEventListener('complete', () => {
@@ -3313,7 +3313,7 @@
                 loop: false,
                 autoplay: true,
                 animationData: lottieCache['recall'] ? JSON.parse(JSON.stringify(lottieCache['recall'])) : null,
-                path: lottieCache['recall'] ? null : '/recall.json'
+                path: lottieCache['recall'] ? null : '/assets/lottie/recall.json'
             });
 
             inst.addEventListener('complete', () => {
@@ -3566,7 +3566,7 @@
                 loop: true,
                 autoplay: true,
                 animationData: lottieCache[data.emoji] ? JSON.parse(JSON.stringify(lottieCache[data.emoji])) : null,
-                path: lottieCache[data.emoji] ? null : `/${data.emoji}.json`
+                path: lottieCache[data.emoji] ? null : `/assets/lottie/${data.emoji}.json`
             });
 
             if (isSfxOn) {
@@ -3646,7 +3646,7 @@
                 loop: false,
                 autoplay: true,
                 animationData: lottieCache['win'] ? JSON.parse(JSON.stringify(lottieCache['win'])) : null,
-                path: lottieCache['win'] ? null : `/win.json`
+                path: lottieCache['win'] ? null : `/assets/lottie/win.json`
             });
 
             if (isSfxOn) {
