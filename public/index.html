@@ -1460,6 +1460,92 @@
             animation: dangerFlash 0.8s;
         }
 
+        /* ── RECONNECTING LOADER ── */
+        .reconnecting-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(8px);
+            z-index: 9999999;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-align: center;
+        }
+        .reconnecting-overlay.show { display: flex; }
+        
+        .reconnecting-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255,255,255,0.1);
+            border-top: 4px solid var(--gold);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        .opp-reconnecting-loader {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            border-radius: var(--radius);
+            backdrop-filter: grayscale(1);
+        }
+        .opponent-seat.is-offline .opp-reconnecting-loader {
+            display: flex;
+        }
+        .opp-reconnecting-loader .mini-spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(255,255,255,0.2);
+            border-top: 3px solid var(--gold);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 8px;
+        }
+        .opp-reconnecting-loader span {
+            font-size: 10px;
+            color: var(--gold);
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .lobby-offline-badge {
+            font-size: 9px;
+            color: #ff3b3b;
+            border: 1px solid #ff3b3b;
+            padding: 1px 4px;
+            border-radius: 4px;
+            margin-left: 8px;
+            text-transform: uppercase;
+            font-weight: bold;
+            animation: pulse-red 1.5s infinite;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .lobby-offline-badge::before {
+            content: "";
+            width: 6px;
+            height: 6px;
+            background: #ff3b3b;
+            border-radius: 50%;
+        }
+        @keyframes pulse-red {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+
         @keyframes dangerFlash {
             0% { background-color: rgba(255,0,0,0.2); }
             100% { background-color: transparent; }
@@ -1880,7 +1966,13 @@
     <div id="attack-vignette" class="attack-vignette"></div>
 
     <!-- GAME OVER OVERLAY -->
-    <div id="overlay">
+    <div id="reconnecting-overlay" class="reconnecting-overlay">
+        <div class="reconnecting-spinner"></div>
+        <div style="font-family: 'Playfair Display', serif; font-size: 24px; color: var(--gold-light); margin-bottom: 8px;">Koneksi Terputus</div>
+        <div style="font-size: 14px; opacity: 0.8;">Sedang menghubungkan ulang...</div>
+    </div>
+
+    <div id="overlay" class="overlay">
         <div class="overlay-card">
             <div class="overlay-icon" id="overlay-icon" style="display: none;">💀</div>
             <div class="overlay-title" id="overlay-title">Permainan Selesai</div>
@@ -1991,6 +2083,7 @@
 
         let myIndex = -1;
         let myName = '';
+        let currentRoom = ''; // 🔥 Track room for auto-rejoin
         let currentSuit = null;
         let isMyTurn = false;
         let playerNames = [];
@@ -2330,6 +2423,7 @@
 
             socket.emit('joinRoom', { name: myName, room });
 
+            currentRoom = room; // 🔥 Store for auto-rejoin
             localStorage.setItem('remi_room', room);
 
             document.getElementById('lobby-status').style.display = 'block';
@@ -2859,12 +2953,16 @@
                 s.playerNames.forEach((name, idx) => {
                     const isSelf = (idx === myIndex);
                     const isTargetHost = (idx === 0);
+                    const isTargetOffline = s.playersIsOffline && s.playersIsOffline[idx];
                     
                     tableHtml += `
                         <tr>
                             <td>
                                 <div class="player-name">
-                                    ${escHtml(name)} ${isTargetHost ? ' <span style="font-size:9px; color:var(--gold); border:1px solid var(--gold); padding:1px 4px; border-radius:4px; margin-left:4px;">HOST</span>' : ''} ${isSelf ? ' <span style="font-size:9px; color:#4ade80; opacity:0.7;">(Kamu)</span>' : ''}
+                                    ${escHtml(name)} 
+                                    ${isTargetHost ? ' <span style="font-size:9px; color:var(--gold); border:1px solid var(--gold); padding:1px 4px; border-radius:4px; margin-left:4px;">HOST</span>' : ''} 
+                                    ${isTargetOffline ? ' <span class="lobby-offline-badge">Menghubungkan Ulang...</span>' : ''}
+                                    ${isSelf ? ' <span style="font-size:9px; color:#4ade80; opacity:0.7;">(Kamu)</span>' : ''}
                                 </div>
                             </td>
                             <td style="text-align:right;">
@@ -3658,6 +3756,7 @@
                 const isActive = (s.currentPlayer === i);
                 const isCtrl = (s.controller === i);
                 const isOut = s.playersIsOut && s.playersIsOut[i];
+                const isOffline = s.playersIsOffline && s.playersIsOffline[i];
                 const name = playerNames[i] || ('P' + (i + 1));
 
                 // Find existing seat or create one
@@ -3670,6 +3769,10 @@
                         <div class="opponent-name"></div>
                         <div class="opp-cards"></div>
                         <div class="opp-card-count"></div>
+                        <div class="opp-reconnecting-loader">
+                            <div class="mini-spinner"></div>
+                            <span>Signal Lemah</span>
+                        </div>
                     `;
                     row.appendChild(div);
                 }
@@ -3678,7 +3781,10 @@
                 div.onclick = (e) => handleSeatClick(e, i);
 
                 // Update attributes and classes
-                div.className = 'opponent-seat' + (isActive ? ' active-turn' : '') + (isOut ? ' is-out' : '');
+                div.className = 'opponent-seat' + 
+                                (isActive ? ' active-turn' : '') + 
+                                (isOut ? ' is-out' : '') + 
+                                (isOffline ? ' is-offline' : '');
                 div.setAttribute('data-pos', pos);
 
                 // Update sub-elements individually to preserve any emoji wrappers appended to 'div'
@@ -4187,6 +4293,32 @@
 
         socket.on('playerJoined', d => toast(d.name + ' bergabung ke meja', '♠'));
         socket.on('playerLeft', d => toast((d.name || 'Pemain') + ' meninggalkan meja', '🚪'));
+
+        socket.on('disconnect', () => {
+            console.log("Socket disconnected. Showing reconnecting overlay...");
+            document.getElementById('reconnecting-overlay').classList.add('show');
+        });
+
+        socket.on('connect', () => {
+            console.log("Socket connected! Hiding reconnecting overlay...");
+            document.getElementById('reconnecting-overlay').classList.remove('show');
+            resetMoveLock();
+            // Use tracked currentRoom first, then fall back to localStorage
+            const roomToRejoin = currentRoom || localStorage.getItem('remi_room');
+            const nameToRejoin = myName || localStorage.getItem('remi_name');
+            if (nameToRejoin && roomToRejoin) {
+                console.log("Auto-rejoining room:", roomToRejoin);
+                socket.emit('joinRoom', { name: nameToRejoin, room: roomToRejoin });
+            }
+        });
+
+        socket.on('playerStatus', (data) => {
+            console.log("Player status update:", data);
+            const seat = document.querySelector(`.opponent-seat[data-index="${data.index}"]`);
+            if (seat) {
+                seat.classList.toggle('is-offline', data.status === 'offline');
+            }
+        });
         socket.on('botAction', d => {
             const msgs = {
                 play: `${d.botName} memainkan kartu ${d.card ? d.card.value + d.card.suit : ''}`,

@@ -46,6 +46,7 @@ function createDeck() {
 // ── ROOMS ─────────────────────────────────────────────────────────────────────
 // rooms: Map<roomId, GameState>
 const rooms = new Map();
+const disconnectTimers = new Map();
 
 function makeGame() {
   return {
@@ -297,6 +298,7 @@ function sendState(game) {
       tableHistory: game.tableHistory || [],
       freeMode: game.freeMode,
       started: game.started,
+      playersIsOffline: game.players.map((pl) => !!pl.isOffline),
       roundCount: game.roundCount,
       maxRounds: game.maxRounds,
       tableColor: game.tableColor || 'green',
@@ -603,13 +605,42 @@ io.on("connection", (socket) => {
   // ── JOIN ROOM ──
   socket.on("joinRoom", ({ name, room }) => {
     const roomId = (room || "default").trim().toLowerCase();
+    const cleanName = (name || "").trim();
     currentRoom = roomId;
 
     if (!rooms.has(roomId)) rooms.set(roomId, makeGame());
     const game = rooms.get(roomId);
     game._roomId = roomId;
 
-    // If game is in progress, reject
+    // 1. Check if player is reconnecting first
+    const timerKey = roomId + "|" + cleanName;
+    const existingOfflinePlayer = game.players.find(p => p.name === cleanName && p.isOffline);
+    
+    if (existingOfflinePlayer) {
+      console.log(`[${roomId}] ${cleanName} is reconnecting. Resuming seat...`);
+      existingOfflinePlayer.id = socket.id;
+      existingOfflinePlayer.isOffline = false;
+      playerIndex = game.players.indexOf(existingOfflinePlayer);
+      
+      const timer = disconnectTimers.get(timerKey);
+      if (timer) {
+        clearTimeout(timer);
+        disconnectTimers.delete(timerKey);
+      }
+      
+      socket.join(roomId);
+      currentRoom = roomId;
+      
+      io.to(roomId).emit("playerStatus", { 
+        index: playerIndex, 
+        status: 'online' 
+      });
+      
+      sendState(game);
+      return;
+    }
+
+    // 2. If not reconnecting and game is in progress, reject
     if (game.started) {
       socket.emit("errorMsg", {
         msg: "Game sedang berlangsung, coba room lain.",
@@ -630,18 +661,18 @@ io.on("connection", (socket) => {
     playerIndex = game.players.length;
     game.players.push({
       id: socket.id,
-      name: name || "Pemain " + (playerIndex + 1),
+      name: cleanName || "Pemain " + (playerIndex + 1),
       cards: [],
       isOut: false,
       attackCharges: {}, // { targetIndex: charges }
     });
 
     console.log(
-      `[${roomId}] ${name} bergabung (${game.players.length}/${MAX_PLAYERS})`,
+      `[${roomId}] ${cleanName} bergabung (${game.players.length}/${MAX_PLAYERS})`,
     );
 
     // Notify others
-    socket.to(roomId).emit("playerJoined", { name });
+    socket.to(roomId).emit("playerJoined", { name: cleanName });
 
     // ALWAYS send state so indices (who is host) are synced
     sendState(game);
@@ -1005,24 +1036,41 @@ io.on("connection", (socket) => {
     const game = rooms.get(currentRoom);
     if (!game) return;
 
-    const p = game.players.find((pl) => pl.id === socket.id);
-    const name = p ? p.name : "Pemain";
+    const pIndex = game.players.findIndex((pl) => pl.id === socket.id);
+    if (pIndex === -1) return;
+    
+    const p = game.players[pIndex];
+    const name = p.name;
 
-    game.players = game.players.filter((pl) => pl.id !== socket.id);
-    game.started = false;
+    // Grace period for reconnection
+    p.isOffline = true;
+    io.to(currentRoom).emit("playerStatus", { index: pIndex, status: 'offline' });
+    sendState(game); // 🔥 Update everyone immediately that this player is offline
+    console.log(`[${currentRoom}] ${name} disconnected. Starting 20s grace period...`);
 
-    io.to(currentRoom).emit("playerLeft", { name });
+    const timer = setTimeout(() => {
+      // Actually remove the player if they don't reconnect
+      const gameNow = rooms.get(currentRoom);
+      if (!gameNow) return;
+      
+      const stillThere = gameNow.players.find(pl => pl.name === name && pl.isOffline);
+      if (stillThere) {
+        gameNow.players = gameNow.players.filter((pl) => pl.name !== name);
+        gameNow.started = false;
+        io.to(currentRoom).emit("playerLeft", { name });
+        
+        if (gameNow.players.length === 0) {
+          rooms.delete(currentRoom);
+          console.log(`[${currentRoom}] Room dihapus (timeout)`);
+        } else {
+          console.log(`[${currentRoom}] ${name} dihapus setelah timeout.`);
+          sendState(gameNow);
+        }
+      }
+      disconnectTimers.delete(currentRoom + "|" + name);
+    }, 20000);
 
-    // Clean empty rooms
-    if (game.players.length === 0) {
-      rooms.delete(currentRoom);
-      console.log(`[${currentRoom}] Room dihapus`);
-    } else {
-      console.log(
-        `[${currentRoom}] ${name} keluar (${game.players.length} pemain tersisa)`,
-      );
-      sendState(game);
-    }
+    disconnectTimers.set(currentRoom + "|" + name, timer);
   });
 });
 
