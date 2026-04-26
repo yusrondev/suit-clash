@@ -491,11 +491,58 @@
             padding: 16px 16px;
             position: relative;
             overflow: visible;
-            background:
-                radial-gradient(ellipse at 50% 40%, #23613d 0%, #154228 50%, #0d2818 100%);
+            background: var(--table-bg, radial-gradient(ellipse at 50% 40%, #23613d 0%, #154228 50%, #0d2818 100%));
             border: 2px solid var(--gold-dark);
             overflow: visible;
+            transition: background 0.5s ease;
         }
+
+        .table-blue { 
+            --table-bg: radial-gradient(ellipse at 50% 40%, #1a3c5a 0%, #0d2842 50%, #061525 100%); 
+            --table-bg-active: radial-gradient(ellipse at 50% 40%, #24527a 0%, #0d2842 50%, #061525 100%);
+        }
+        .table-red { 
+            --table-bg: radial-gradient(ellipse at 50% 40%, #7e1e1e 0%, #520d0d 50%, #300606 100%); 
+            --table-bg-active: radial-gradient(ellipse at 50% 40%, #a12626 0%, #520d0d 50%, #300606 100%);
+        }
+        .table-green { 
+            --table-bg: radial-gradient(ellipse at 50% 40%, #23613d 0%, #154228 50%, #0d2818 100%); 
+            --table-bg-active: radial-gradient(ellipse at 50% 40%, #2a7248 0%, #154228 50%, #0d2818 100%);
+        }
+
+        .color-palette {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 8px;
+        }
+        .color-dot {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid rgba(255,255,255,0.2);
+            transition: all 0.2s;
+            position: relative;
+        }
+        .color-dot:hover { transform: scale(1.2); }
+        .color-dot.active { 
+            border-color: var(--gold); 
+            box-shadow: 0 0 10px var(--gold);
+            transform: scale(1.1);
+        }
+        .color-dot.active::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 10px;
+            color: white;
+        }
+        .color-dot.green { background: #23613d; }
+        .color-dot.blue { background: #1a3c5a; }
+        .color-dot.red { background: #7e1e1e; }
 
         /* #center-table::before {
             content: '♠  ♥  ♦  ♣';
@@ -535,8 +582,8 @@
             top: 50%;
             left: 50%;
             transform-origin: center center;
-            transition: opacity 0.3s ease;
-            will-change: opacity;
+            transition: left 0.3s ease, transform 0.3s ease;
+            will-change: transform, left;
         }
         .table-card .tc-val { font-size: 22px; font-weight: 900; line-height: 1; }
         /* Universal corner markers for any card type */
@@ -569,7 +616,7 @@
             position: fixed;
             z-index: 2000;
             pointer-events: none;
-            transition: all 0.35s cubic-bezier(0.2,0.8,0.2,1);
+            transition: transform 0.35s cubic-bezier(0.2,0.8,0.2,1);
             box-shadow: 0 20px 40px rgba(0,0,0,0.5);
         }
 
@@ -685,6 +732,7 @@
             position: absolute;
             inset: 0;
             pointer-events: none;
+            z-index: 100;
         }
         #opponents-row .opponent-seat {
             pointer-events: auto;
@@ -873,7 +921,7 @@
         #center-table.drop-active {
             border-color: var(--gold-light);
             box-shadow: inset 0 4px 20px rgba(212, 175, 55, 0.2), 0 8px 30px rgba(0,0,0,0.5), 0 0 30px rgba(212, 175, 55, 0.3);
-            background: radial-gradient(ellipse at 50% 40%, #2a7248 0%, #154228 50%, #0d2818 100%);
+            background: var(--table-bg-active, var(--table-bg));
         }
 
         /* ── ACTION BUTTONS ── */
@@ -1704,11 +1752,27 @@
                 <div id="waiting-text">Menunggu pemain lain...</div>
 
                 <div id="host-settings" style="display:none; margin-top: 15px; color: var(--gold-light);">
-                    <label style="font-size: 11px; text-transform: uppercase; font-weight: bold;">Putaran:</label>
-                    <input type="number" id="max-rounds-input" value="7" min="1" max="20" style="width: 50px; text-align: center; border-radius: 6px; padding: 4px; margin-left: 8px; border: 1px solid var(--gold); background: rgba(0,0,0,0.5); color: white;" onchange="updateMaxRounds(this.value)">
+                    <div style="display:flex; justify-content:center; align-items:center; gap:10px; margin-bottom:12px;">
+                        <label style="font-size: 11px; text-transform: uppercase; font-weight: bold;">Putaran:</label>
+                        <input type="number" id="max-rounds-input" value="7" min="1" max="20" style="width: 50px; text-align: center; border-radius: 6px; padding: 4px; border: 1px solid var(--gold); background: rgba(0,0,0,0.5); color: white;" onchange="updateMaxRounds(this.value)">
+                    </div>
+                    <label style="font-size: 11px; text-transform: uppercase; font-weight: bold; display:block; margin-bottom:5px;">Warna Meja:</label>
+                    <div class="color-palette">
+                        <div class="color-dot green" onclick="setTableColor('green')" title="Hijau"></div>
+                        <div class="color-dot blue" onclick="setTableColor('blue')" title="Biru"></div>
+                        <div class="color-dot red" onclick="setTableColor('red')" title="Merah"></div>
+                    </div>
                 </div>
                 <div id="guest-settings" style="display:none; margin-top: 15px; color: var(--gold-light);">
-                    <label style="font-size: 11px; text-transform: uppercase; font-weight: bold;">Putaran: <b id="guest-rounds-display">7</b></label>
+                    <div style="margin-bottom:8px;">
+                        <label style="font-size: 11px; text-transform: uppercase; font-weight: bold;">Putaran: <b id="guest-rounds-display">7</b></label>
+                    </div>
+                    <label style="font-size: 11px; text-transform: uppercase; font-weight: bold; display:block; margin-bottom:5px;">Warna Meja:</label>
+                    <div id="guest-color-display" class="color-palette" style="pointer-events:none; opacity:0.8;">
+                        <div class="color-dot green" title="Hijau"></div>
+                        <div class="color-dot blue" title="Biru"></div>
+                        <div class="color-dot red" title="Merah"></div>
+                    </div>
                 </div>
 
                 <div class="waiting-spin"><span></span><span></span><span></span></div>
@@ -1901,7 +1965,7 @@
         </div>
     </div>
 
-    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
     <script>
 
@@ -2389,6 +2453,9 @@
         function updateMaxRounds(val) {
             socket.emit("setMaxRounds", val);
         }
+        function setTableColor(color) {
+            socket.emit("setTableColor", color);
+        }
 
         window.addEventListener('beforeunload', (e) => {
             if (isBypassingUnload) return;
@@ -2481,8 +2548,10 @@
                 container.appendChild(div);
             });
 
-            // Always show the panel — let the user close it manually
-            panel.classList.add('show');
+            // Only show if list has data OR if it was already showing OR if it's match end
+            if (list.length > 0 || panel.classList.contains('show') || window.isMatchEndFlag) {
+                panel.classList.add('show');
+            }
 
             const restartBtn = document.getElementById('lb-restart-btn');
             if (restartBtn) {
@@ -2677,9 +2746,11 @@
             lastState = s; // 🔥 Simpan state ke variabel global
             const wasDraw = (lastAction === "draw");
             lastAction = ""; // reset
+            const currentColor = s.tableColor || 'green';
 
             if (s.started) {
                 document.getElementById('overlay').classList.remove('show');
+                document.getElementById('leaderboard-panel').classList.remove('show');
                 window.isMatchEndFlag = false;
             }
             myIndex = s.yourIndex; // Sync early!
@@ -2796,12 +2867,24 @@
                     }
                 }
 
+                // Update active dots in lobby
+                document.querySelectorAll('.color-dot').forEach(dot => {
+                    dot.classList.toggle('active', dot.classList.contains(currentColor));
+                });
+
                 document.getElementById('round-badge').style.display = 'none';
 
                 // Jangan putar BGM di lobby/waiting
                 bgmSound.pause();
 
                 return;
+            }
+
+            // Sync Table Color (Every state update)
+            const boardEl = document.getElementById('center-table');
+            if (boardEl) {
+                boardEl.classList.remove('table-green', 'table-blue', 'table-red');
+                boardEl.classList.add('table-' + currentColor);
             }
 
             document.getElementById('overlay').classList.remove('show');
@@ -3063,7 +3146,7 @@
             let seatEl = null;
             document.querySelectorAll('.opponent-seat').forEach(seat => {
                 const nameEl = seat.querySelector('.opponent-name');
-                const baseName = nameEl?.childNodes[0]?.nodeValue?.trim();
+                const baseName = nameEl?.innerText?.trim()?.split('\n')[0];
                 if (baseName === senderName) seatEl = seat;
             });
             if (!seatEl) return;
@@ -3179,7 +3262,7 @@
             tableCardPool.forEach((el, i) => {
                 if (i >= total) {
                     if (el.style.opacity !== '0') {
-                        el.style.transition = 'opacity 1.8s ease-out, transform 1.3s ease-out';
+                        el.style.transition = 'opacity 0.1s ease-out, transform 0.1s ease-out';
                         el.style.opacity = '0';
                         // Ambil transform dasar lalu tambahkan efek melayang sedikit
                         const baseT = el.style.getPropertyValue('--base-transform') || '';
@@ -3205,7 +3288,7 @@
                     `;
                     // Fade in kartu baru
                     el.style.transition = 'none';
-                    el.style.opacity = '0';
+                    el.style.opacity = '1';
 
                     // 🔥 EFEK BAKAR (ACE) - Hanya untuk kartu paling atas (yang baru turun)
                     if (card.value === 'A' && isTop) {
@@ -3214,13 +3297,11 @@
                         setTimeout(() => el.classList.remove('card-ace-fire'), 3000);
                     }
 
-                    requestAnimationFrame(() => {
-                        el.style.transition = 'left 0.3s ease, opacity 0.25s ease';
-                        el.style.opacity = isTop ? '1' : '1';
-                    });
+                    el.style.transition = 'left 0.3s ease';
+                    el.style.opacity = '1';
                 } else {
-                    el.style.transition = 'left 0.3s ease, opacity 0.25s ease';
-                    el.style.opacity = isTop ? '1' : '1';
+                    el.style.transition = 'left 0.3s ease';
+                    el.style.opacity = '1';
                 }
 
                 el.classList.toggle('champion', isTop);
@@ -3296,7 +3377,7 @@
             let seatEl = null;
             document.querySelectorAll('.opponent-seat').forEach(seat => {
                 const nameEl = seat.querySelector('.opponent-name');
-                const baseName = nameEl?.childNodes[0]?.nodeValue?.trim();
+                const baseName = nameEl?.innerText?.trim()?.split('\n')[0];
                 if (baseName === senderName) seatEl = seat;
             });
             if (!seatEl) return;
@@ -3384,7 +3465,7 @@
                 let seatEl = null;
                 document.querySelectorAll('.opponent-seat').forEach(seat => {
                     const nameEl = seat.querySelector('.opponent-name');
-                    const baseName = nameEl?.innerText?.trim();
+                    const baseName = nameEl?.innerText?.trim()?.split('\n')[0];
                     if (baseName === senderName) seatEl = seat;
                 });
 
@@ -3453,7 +3534,7 @@
             let seatEl = null;
             document.querySelectorAll('.opponent-seat').forEach(seat => {
                 const nameEl = seat.querySelector('.opponent-name');
-                const baseName = nameEl?.childNodes[0]?.nodeValue?.trim();
+                const baseName = nameEl?.innerText?.trim()?.split('\n')[0];
                 if (baseName === name) seatEl = seat;
             });
             if (!seatEl) return;
@@ -3987,9 +4068,27 @@
         }
         function restartGame() {
             window.isMatchEndFlag = false;
+            
+            // 🔥 AGGRESSIVE CLEANUP: Hapus semua sisa kartu dan efek secara instan
             document.querySelectorAll('.game-effect-wrapper').forEach(el => el.remove());
+            document.querySelectorAll('.throwing-card').forEach(el => el.remove());
+            
+            const tableArea = document.getElementById('table-spread-area');
+            if (tableArea) {
+                tableArea.innerHTML = '';
+                tableArea.dataset.stateHash = '';
+            }
+            // Clear the pool so next renderTableSpread starts fresh
+            if (typeof tableCardPool !== 'undefined') {
+                tableCardPool.length = 0;
+            }
+
+            const winnerLabel = document.getElementById('round-winner-label');
+            if (winnerLabel) winnerLabel.classList.remove('visible');
+
             document.getElementById('leaderboard-panel').classList.remove('show');
             document.getElementById('overlay').classList.remove('show');
+            
             socket.emit('restartGame');
         }
 

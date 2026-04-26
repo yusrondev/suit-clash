@@ -6,7 +6,8 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-app.use(express.static("public"));
+const path = require("path");
+app.use(express.static(path.join(__dirname, "public")));
 
 // ── DECK ──────────────────────────────────────────────────────────────────────
 const suits = ["♠", "♥", "♦", "♣"];
@@ -68,6 +69,7 @@ function makeGame() {
     leaderboard: {}, // 🔥 per-room leaderboard
     roundCount: 0,
     maxRounds: 7, // 🔥 NEW: Dinamis dari Host
+    tableColor: 'green', // 🔥 NEW: Warna meja pilihan Host
     nextStarter: null,
     lastTakerProvider: null, // Tracks who played the card that was just taken
   };
@@ -301,6 +303,7 @@ function sendState(game) {
       started: game.started,
       roundCount: game.roundCount,
       maxRounds: game.maxRounds,
+      tableColor: game.tableColor || 'green',
       attackCharges: game.players.map(pl => pl.attackCharges),
     });
   });
@@ -710,6 +713,15 @@ io.on("connection", (socket) => {
     socket.emit("leaderboardData", sorted);
   });
 
+  socket.on("setTableColor", (color) => {
+    const game = rooms.get(currentRoom);
+    if (!game) return;
+    const isHost = game.players.findIndex(p => p.id === socket.id) === 0;
+    if (!isHost) return;
+    game.tableColor = color;
+    sendState(game);
+  });
+
   socket.on("setMaxRounds", (rounds) => {
     if (!currentRoom) return;
     const game = rooms.get(currentRoom);
@@ -1017,5 +1029,5 @@ io.on("connection", (socket) => {
   });
 });
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server: http://localhost:${PORT}`));
