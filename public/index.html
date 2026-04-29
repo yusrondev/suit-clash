@@ -1795,6 +1795,113 @@
             -moz-user-select: auto !important;
             -ms-user-select: auto !important;
         }
+
+        #text-fab, #voice-fab {
+            position: fixed;
+            left: 10px;
+            width: 50px;
+            height: 50px;
+            background: rgba(15, 23, 42, 0.9);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 999999;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            backdrop-filter: blur(8px);
+        }
+        #text-fab { 
+            bottom: 10px; 
+            background: var(--gold-dark);
+            border-color: var(--gold);
+            color: white;
+        }
+        #voice-fab { bottom: 75px; }
+        
+        #text-fab.collapsed, #voice-fab.collapsed {
+            transform: translateX(-80px);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #fab-toggle {
+            position: fixed;
+            left: 0;
+            bottom: 35px;
+            width: 20px;
+            height: 40px;
+            background: rgba(212, 175, 55, 0.3);
+            border: 1px solid var(--gold);
+            border-left: none;
+            border-radius: 0 10px 10px 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 10px;
+            cursor: pointer;
+            z-index: 999999;
+            backdrop-filter: blur(4px);
+            transition: all 0.3s;
+        }
+        #fab-toggle:hover { background: rgba(212, 175, 55, 0.5); width: 25px; }
+
+        #voice-fab.active {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            border-color: #60a5fa;
+            color: white;
+            animation: pulse-blue-fab 2s infinite;
+        }
+        @keyframes pulse-blue-fab {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+        #text-fab:not(.collapsed):hover, #voice-fab:not(.collapsed):hover {
+            transform: scale(1.1);
+        }
+        #text-fab:not(.collapsed):active, #voice-fab:not(.collapsed):active {
+            transform: scale(0.95);
+        }
+
+        /* VOICE INDICATORS */
+        .mic-indicator {
+            font-size: 11px;
+            margin-left: 6px;
+            color: #94a3b8;
+            transition: all 0.3s;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        .mic-indicator.on {
+            color: #3b82f6;
+            text-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+        }
+        
+        .speaking-pulse {
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            right: -5px;
+            bottom: -5px;
+            border-radius: 50%;
+            border: 2px solid #3b82f6;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+        .speaking .speaking-pulse {
+            opacity: 1;
+            animation: pulse-speaking 1s infinite;
+        }
+        @keyframes pulse-speaking {
+            0% { transform: scale(1); opacity: 0.8; }
+            100% { transform: scale(1.3); opacity: 0; }
+        }
     </style>
 </head>
 
@@ -1922,6 +2029,10 @@
         <!-- Status bar -->
         <!-- Your Hand -->
         <div id="your-area">
+            <div class="avatar-container">
+                <div class="avatar-bg"></div>
+                <div class="speaking-pulse"></div>
+            </div>
             <div id="your-id-tag" class="your-identity" style="display: none;">GUEST</div>
             <div id="status-bar">Menunggu giliran...</div>
             <div id="hand"></div>
@@ -1957,7 +2068,10 @@
     </div>
 
     <!-- GLOBAL CHAT (always accessible, even in lobby) -->
-    <div id="text-fab"><i class="fa-solid fa-comment"></i></div>
+    <div id="fab-toggle"><i class="fa-solid fa-chevron-right"></i></div>
+    <div id="voice-fab" title="Mulai Voice Chat"><i class="fa-solid fa-microphone-slash"></i></div>
+    <div id="text-fab" title="Chat"><i class="fa-solid fa-comment"></i></div>
+    <div id="remote-audio-container" style="display:none;"></div>
     <div id="chat-input-box">
         <div id="chat-history"></div>
         <input type="text" id="chat-input" placeholder="Ketik sesuatu..." />
@@ -2095,6 +2209,21 @@
         let pendingOptimisticCardId = null;
         let lastKnownTableCardId = null; // For Ace detection
         const LOTTIE_EMOJIS = ['cat', 'panda', 'angry', 'amongus', 'cat-laughing', 'cat-sleep', 'ok', 'cool', 'music'];
+
+        // ── VOICE CHAT STATE ──
+        let isMicOn = false;
+        let localStream = null;
+        let voicePeers = {}; // { socketId: { pc, makingOffer, ignoreOffer, analyser, stream } }
+        let audioContext = null;
+        let localAnalyser = null;
+        let playerMicStatuses = {}; // { index: bool }
+        const rtcConfig = { 
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' }
+            ] 
+        };
         
         // ── LOTTIE CACHE & PRELOAD ──
         const lottieCache = {};
@@ -2244,13 +2373,25 @@
         }
 
         function tryAutoFullscreen() {
-            if (isFsOn && !document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(()=>{});
+            if (!isFsOn) return;
+            const docEl = document.documentElement;
+            if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement && !document.msFullscreenElement) {
+                const requestFs = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+                if (requestFs) {
+                    requestFs.call(docEl).catch(() => {});
+                }
             }
         }
 
+        window.addEventListener('focus', () => {
+            // Re-check fullscreen when browser focus returns (useful after mic/permission prompts)
+            if (isFsOn) {
+                setTimeout(tryAutoFullscreen, 300);
+            }
+        });
+
         document.addEventListener('fullscreenchange', () => {
-            const isFs = !!document.fullscreenElement;
+            const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
             const toggle = document.getElementById('fs-toggle');
             if (toggle) toggle.checked = isFs;
             isFsOn = isFs;
@@ -2376,6 +2517,329 @@
 
             setTimeout(() => el.remove(), 150000);
         }
+
+        let isMicMuted = false;
+        function updateMicUI() {
+            const fab = document.getElementById('voice-fab');
+            if (fab) {
+                fab.classList.toggle('active', !isMicMuted);
+                fab.querySelector('i').className = isMicMuted ? 'fa-solid fa-microphone-slash' : 'fa-solid fa-microphone';
+            }
+            playerMicStatuses[myIndex] = !isMicMuted;
+            updateMicIcon(myIndex, !isMicMuted);
+            
+            if (isMicMuted) {
+                toast('Microphone dibungkam (Mute)', '🔇');
+            } else {
+                toast('Microphone aktif!', '🎙️');
+            }
+        }
+
+        async function toggleMic() {
+            // Coba fullscreen segera saat klik (sebelum await) agar context gesture tidak hilang
+            tryAutoFullscreen();
+
+            if (!localStream) {
+                await startVoice();
+            } else {
+                isMicMuted = !isMicMuted;
+                localStream.getAudioTracks().forEach(t => t.enabled = !isMicMuted);
+                updateMicUI();
+                socket.emit('update-mic-status', !isMicMuted);
+            }
+        }
+
+        async function startVoice() {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                isMicOn = true;
+                isMicMuted = false;
+                
+                // Initialize Audio Context for speaking indicator
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                const source = audioContext.createMediaStreamSource(localStream);
+                localAnalyser = audioContext.createAnalyser();
+                localAnalyser.fftSize = 256;
+                source.connect(localAnalyser);
+                
+                updateMicUI();
+
+                // Broadcast that I joined voice
+                socket.emit('voice-signal', { signal: { type: 'join' } }); 
+                socket.emit('update-mic-status', true);
+
+                // Kembalikan ke fullscreen jika keluar gara-gara prompt mic
+                // Beri delay sedikit agar browser "tenang" setelah dialog ijin mic hilang
+                setTimeout(tryAutoFullscreen, 500);
+                
+                monitorVolume();
+            } catch (err) {
+                console.error("Mic error:", err);
+                toast('Gagal mengakses Microphone!', '⚠️');
+            }
+        }
+
+        function stopVoice() {
+            if (localStream) {
+                localStream.getTracks().forEach(t => t.stop());
+                localStream = null;
+            }
+            isMicOn = false;
+            isMicMuted = true;
+            socket.emit('update-mic-status', false);
+            
+            const fab = document.getElementById('voice-fab');
+            if (fab) {
+                fab.classList.remove('active');
+                fab.querySelector('i').className = 'fa-solid fa-microphone-slash';
+            }
+            
+            for (let id in voicePeers) {
+                if (voicePeers[id].pc) voicePeers[id].pc.close();
+            }
+            voicePeers = {};
+            document.getElementById('remote-audio-container').innerHTML = '';
+        }
+
+        function monitorVolume() {
+            if (!isMicOn && Object.keys(voicePeers).length === 0) return;
+            
+            const bufferLength = localAnalyser ? localAnalyser.frequencyBinCount : 0;
+            const dataArray = new Uint8Array(bufferLength);
+            
+            // Local speaking check
+            if (localAnalyser) {
+                localAnalyser.getByteFrequencyData(dataArray);
+                let sum = 0;
+                for(let i=0; i<bufferLength; i++) sum += dataArray[i];
+                let average = sum / bufferLength;
+                updateSpeakingUI(myIndex, average > 30);
+            }
+
+            // Remote speaking check
+            for (let id in voicePeers) {
+                const pObj = voicePeers[id];
+                if (pObj.analyser) {
+                    const remoteData = new Uint8Array(pObj.analyser.frequencyBinCount);
+                    pObj.analyser.getByteFrequencyData(remoteData);
+                    let rSum = 0;
+                    for(let i=0; i<remoteData.length; i++) rSum += remoteData[i];
+                    let rAvg = rSum / remoteData.length;
+                    
+                    // Find player index for this socketId
+                    const pIdx = lastState?.players.findIndex(p => p.id === id);
+                    if (pIdx !== -1) {
+                        updateSpeakingUI(pIdx, rAvg > 30);
+                    }
+                }
+            }
+
+            if (isMicOn || Object.keys(voicePeers).length > 0) {
+                requestAnimationFrame(monitorVolume);
+            }
+        }
+
+        function updateSpeakingUI(idx, isSpeaking) {
+            let el;
+            if (idx === myIndex) {
+                el = document.querySelector('.my-seat .avatar-container');
+            } else {
+                el = document.querySelector(`.opponent-seat[data-index="${idx}"] .avatar-container`);
+            }
+            if (el) {
+                el.classList.toggle('speaking', isSpeaking);
+            }
+        }
+
+        socket.on('mic-status-updated', (data) => {
+            playerMicStatuses[data.index] = data.isOn;
+            updateMicIcon(data.index, data.isOn);
+        });
+
+        function updateMicIcon(idx, isOn) {
+            let container;
+            if (idx === myIndex) {
+                container = document.getElementById('your-id-tag');
+            } else {
+                const seat = document.querySelector(`.opponent-seat[data-index="${idx}"]`);
+                container = seat ? seat.querySelector('.opponent-name') : null;
+            }
+            
+            if (container) {
+                let icon = container.querySelector('.mic-indicator');
+                if (!icon) {
+                    icon = document.createElement('i');
+                    icon.style.marginLeft = '8px';
+                    container.appendChild(icon);
+                }
+                icon.className = isOn ? 'fa-solid fa-microphone mic-indicator on' : 'fa-solid fa-microphone-slash mic-indicator';
+            }
+        }
+
+        async function initPeer(peerId, incomingSignal = null) {
+            if (voicePeers[peerId]) {
+                const pObj = voicePeers[peerId];
+                if (incomingSignal) {
+                    await handleSignal(peerId, incomingSignal);
+                }
+                return pObj.pc;
+            }
+
+            console.log("Initializing Perfect Negotiation for:", peerId);
+            const pc = new RTCPeerConnection(rtcConfig);
+            const pObj = {
+                pc: pc,
+                makingOffer: false,
+                ignoreOffer: false,
+                isPolite: socket.id < peerId // Deterministic politeness
+            };
+            voicePeers[peerId] = pObj;
+
+            pc.onicecandidate = ({ candidate }) => {
+                socket.emit('voice-signal', { to: peerId, signal: { candidate } });
+            };
+
+            pc.onnegotiationneeded = async () => {
+                try {
+                    pObj.makingOffer = true;
+                    await pc.setLocalDescription();
+                    socket.emit('voice-signal', { to: peerId, signal: pc.localDescription });
+                } catch (err) {
+                    console.error("Negotiation error:", err);
+                } finally {
+                    pObj.makingOffer = false;
+                }
+            };
+
+            pc.oniceconnectionstatechange = () => {
+                if (pc.iceConnectionState === "failed") {
+                    pc.restartIce();
+                }
+            };
+
+            pc.ontrack = ({ streams: [stream] }) => {
+                console.log("Received remote track from:", peerId);
+                
+                // Add analyser for speaking indicator
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                const source = audioContext.createMediaStreamSource(stream);
+                const analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                source.connect(analyser);
+                pObj.analyser = analyser;
+                pObj.stream = stream;
+
+                let audio = document.getElementById('audio-' + peerId);
+                if (!audio) {
+                    audio = document.createElement('audio');
+                    audio.id = 'audio-' + peerId;
+                    audio.autoplay = true;
+                    audio.playsinline = true;
+                    document.getElementById('remote-audio-container').appendChild(audio);
+                }
+                audio.srcObject = stream;
+                audio.play().catch(e => console.warn("Audio play blocked:", e));
+                
+                monitorVolume();
+            };
+
+            if (localStream) {
+                localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+            }
+
+            if (incomingSignal) {
+                await handleSignal(peerId, incomingSignal);
+            }
+
+            return pc;
+        }
+
+        async function handleSignal(peerId, signal) {
+            const pObj = voicePeers[peerId];
+            if (!pObj) return;
+            const pc = pObj.pc;
+
+            try {
+                if (signal.type) {
+                    const offerCollision = (signal.type === "offer") && (pObj.makingOffer || pc.signalingState !== "stable");
+                    pObj.ignoreOffer = !pObj.isPolite && offerCollision;
+                    
+                    if (pObj.ignoreOffer) {
+                        console.log("Ignoring offer due to collision (Impolite peer)");
+                        return;
+                    }
+
+                    await pc.setRemoteDescription(new RTCSessionDescription(signal));
+                    if (signal.type === "offer") {
+                        await pc.setLocalDescription();
+                        socket.emit('voice-signal', { to: peerId, signal: pc.localDescription });
+                    }
+                } else if (signal.candidate) {
+                    try {
+                        await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+                    } catch (err) {
+                        if (!pObj.ignoreOffer) throw err;
+                    }
+                }
+            } catch (err) {
+                console.error("Signal handling error:", err);
+            }
+        }
+
+        socket.on('voice-signal', async (data) => {
+            if (!isMicOn) return;
+            const { from, signal } = data;
+
+            if (signal.type === 'join') {
+                // Someone joined, if I'm already in voice, I'll trigger negotiation
+                initPeer(from);
+            } else {
+                initPeer(from, signal);
+            }
+        });
+
+        document.getElementById('voice-fab').addEventListener('click', toggleMic);
+
+        // ── FAB AUTO-HIDE LOGIC ──
+        let fabHideTimeout = null;
+        function showFabs() {
+            const vFab = document.getElementById('voice-fab');
+            const tFab = document.getElementById('text-fab');
+            const toggle = document.getElementById('fab-toggle');
+            
+            vFab.classList.remove('collapsed');
+            tFab.classList.remove('collapsed');
+            toggle.style.display = 'none';
+
+            clearTimeout(fabHideTimeout);
+            fabHideTimeout = setTimeout(hideFabs, 5000); // Auto hide after 5s
+        }
+
+        function hideFabs() {
+            const vFab = document.getElementById('voice-fab');
+            const tFab = document.getElementById('text-fab');
+            const toggle = document.getElementById('fab-toggle');
+
+            // Only hide if game has started (FABs are visible)
+            if (vFab.style.display === 'flex') {
+                vFab.classList.add('collapsed');
+                tFab.classList.add('collapsed');
+                toggle.style.display = 'flex';
+            }
+        }
+
+        document.getElementById('fab-toggle').addEventListener('click', showFabs);
+        // Reset timer on interaction
+        [document.getElementById('voice-fab'), document.getElementById('text-fab')].forEach(el => {
+            el.addEventListener('click', () => {
+                clearTimeout(fabHideTimeout);
+                fabHideTimeout = setTimeout(hideFabs, 5000);
+            });
+        });
 
         // 👇 baru lanjut code lain
         let prevTurn = null;
@@ -2587,6 +3051,11 @@
         }
 
         function leaveRoom() {
+            isBypassingUnload = true;
+            stopVoice();
+            document.getElementById('leave-modal').style.display = 'none';
+            socket.emit('leaveRoom');
+
             // Hentikan semua audio sebelum reload
             bgmSound.pause();
             [turnSound, popSound, tauntSound, clutchWinSound, clutchDangerSound, lightningSound, amongusSound, notificationSound].forEach(s => {
@@ -2935,7 +3404,16 @@
             document.getElementById('leaderboard-btn').style.display = 'flex';
 
             // Also show actions when game started
-            if (s.started) document.getElementById('actions').style.display = 'flex';
+            if (s.started) {
+                document.getElementById('actions').style.display = 'flex';
+                document.getElementById('voice-fab').style.display = 'flex';
+                document.getElementById('text-fab').style.display = 'flex';
+                
+                // Trigger auto-hide if not already hidden
+                if (!fabHideTimeout && !document.getElementById('voice-fab').classList.contains('collapsed')) {
+                    fabHideTimeout = setTimeout(hideFabs, 5000);
+                }
+            }
 
             if (!s.started) {
 
@@ -2976,6 +3454,8 @@
                     const isTargetHost = (idx === 0);
                     const isTargetOffline = s.playersIsOffline && s.playersIsOffline[idx];
                     
+                    const isMicOnStatus = playerMicStatuses[idx] !== undefined ? playerMicStatuses[idx] : (s.playersMicStatus && s.playersMicStatus[idx]);
+
                     tableHtml += `
                         <tr>
                             <td>
@@ -2984,6 +3464,7 @@
                                     ${isTargetHost ? ' <span style="font-size:9px; color:var(--gold); border:1px solid var(--gold); padding:1px 4px; border-radius:4px; margin-left:4px;">HOST</span>' : ''} 
                                     ${isTargetOffline ? ' <span class="lobby-offline-badge">Menghubungkan Ulang...</span>' : ''}
                                     ${isSelf ? ' <span style="font-size:9px; color:#4ade80; opacity:0.7;">(Kamu)</span>' : ''}
+                                    <i class="fa-solid ${isMicOnStatus ? 'fa-microphone on' : 'fa-microphone-slash'} mic-indicator" style="margin-left:8px; font-size:10px;"></i>
                                 </div>
                             </td>
                             <td style="text-align:right;">
@@ -3155,7 +3636,14 @@
                 sb.classList.remove('your-turn');
                 sb.classList.add('waiting');
                 document.getElementById('your-id-tag').classList.remove('active');
-                document.getElementById('your-id-tag').textContent = myName;
+                
+                // Update my name safely
+                const idTag = document.getElementById('your-id-tag');
+                if (idTag.firstChild && idTag.firstChild.nodeType === 3) {
+                    if (idTag.firstChild.textContent !== myName) idTag.firstChild.textContent = myName;
+                } else if (idTag.textContent !== myName) {
+                    idTag.prepend(document.createTextNode(myName));
+                }
             }
 
             // Turn Smoke Effect
@@ -3213,6 +3701,13 @@
             lastKnownTableCardId = topCardId;
 
             isMovePending = false;
+
+            // Sync Mic Status Icons
+            const micStatuses = s.playersMicStatus || [];
+            micStatuses.forEach((isOn, idx) => {
+                const finalStatus = playerMicStatuses[idx] !== undefined ? playerMicStatuses[idx] : isOn;
+                updateMicIcon(idx, finalStatus);
+            });
 
             // 🔥 MATCH TIMER (Ensured for all players)
             if (s.started) {
@@ -3790,6 +4285,10 @@
                     div.className = 'opponent-seat';
                     div.setAttribute('data-index', i);
                     div.innerHTML = `
+                        <div class="avatar-container">
+                            <div class="avatar-bg"></div>
+                            <div class="speaking-pulse"></div>
+                        </div>
                         <div class="opponent-name"></div>
                         <div class="opp-cards"></div>
                         <div class="opp-card-count"></div>
@@ -3813,9 +4312,13 @@
 
                 // Update sub-elements individually to preserve any emoji wrappers appended to 'div'
                 const nameEl = div.querySelector('.opponent-name');
-                if (nameEl.textContent !== name) {
+                if (nameEl.innerText.trim().split('\n')[0] !== name) {
                     nameEl.textContent = name;
                 }
+                
+                // Avatar background (hidden initials per user request)
+                const avatarBg = div.querySelector('.avatar-bg');
+                if (avatarBg) avatarBg.textContent = '';
 
                 const cardsEl = div.querySelector('.opp-cards');
                 // Fan of card backs
@@ -4319,6 +4822,8 @@
         socket.on('playerLeft', d => toast((d.name || 'Pemain') + ' meninggalkan meja', '🚪'));
 
         socket.on('disconnect', () => {
+            if (isBypassingUnload) return;
+            stopVoice();
             console.log("Socket disconnected. Showing reconnecting overlay...");
             document.getElementById('reconnecting-overlay').classList.add('show');
         });

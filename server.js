@@ -303,6 +303,7 @@ function sendState(game) {
       maxRounds: game.maxRounds,
       tableColor: game.tableColor || 'green',
       attackCharges: game.players.map(pl => pl.attackCharges),
+      playersMicStatus: game.players.map(pl => !!pl.micStatus),
     });
   });
 }
@@ -558,8 +559,60 @@ io.on("connection", (socket) => {
   let currentRoom = null;
   let playerIndex = -1;
 
+  // Helper to handle player leaving a room (immediate or with grace period)
+  const handlePlayerLeave = (roomId, isImmediate = false) => {
+    if (!roomId) return;
+    const game = rooms.get(roomId);
+    if (!game) return;
+
+    const pIndex = game.players.findIndex((pl) => pl.id === socket.id);
+    if (pIndex === -1) return;
+
+    const p = game.players[pIndex];
+    const name = p.name;
+
+    if (isImmediate) {
+      game.players.splice(pIndex, 1);
+      game.started = false;
+      io.to(roomId).emit("playerLeft", { name });
+      
+      console.log(`[${roomId}] ${name} left immediately.`);
+
+      if (game.players.length === 0) {
+        rooms.delete(roomId);
+        console.log(`[${roomId}] Room dihapus (kosong)`);
+      } else {
+        sendState(game);
+      }
+    } else {
+      p.isOffline = true;
+      io.to(roomId).emit("playerStatus", { index: pIndex, status: 'offline' });
+      sendState(game); 
+      console.log(`[${roomId}] ${name} disconnected. Starting 20s grace period...`);
+
+      const timerKey = roomId + "|" + name;
+      const timer = setTimeout(() => {
+        const gameNow = rooms.get(roomId);
+        if (!gameNow) return;
+        if (p.isOffline) {
+          gameNow.players = gameNow.players.filter((pl) => pl !== p);
+          gameNow.started = false;
+          io.to(roomId).emit("playerLeft", { name });
+          if (gameNow.players.length === 0) {
+            rooms.delete(roomId);
+          } else {
+            sendState(gameNow);
+          }
+        }
+        disconnectTimers.delete(timerKey);
+      }, 20000);
+      disconnectTimers.set(timerKey, timer);
+    }
+  };
+
   // ── JOIN WITH BOT (1v1) ──
   socket.on("joinWithBot", ({ name }) => {
+    if (currentRoom) handlePlayerLeave(currentRoom, true);
     // Buat room unik per sesi
     const roomId = 'bot_' + socket.id.slice(0, 8);
     currentRoom = roomId;
@@ -579,6 +632,7 @@ io.on("connection", (socket) => {
       isOut: false,
       isBot: false,
       attackCharges: {},
+      micStatus: false
     });
 
     // Tambah bot
@@ -591,6 +645,7 @@ io.on("connection", (socket) => {
       isOut: false,
       isBot: true,
       attackCharges: {},
+      micStatus: false
     });
 
     console.log(`[${roomId}] ${name} vs Bot (${botName}) — Game dimulai!`);
@@ -606,6 +661,7 @@ io.on("connection", (socket) => {
   socket.on("joinRoom", ({ name, room }) => {
     const roomId = (room || "default").trim().toLowerCase();
     const cleanName = (name || "").trim();
+    if (currentRoom && currentRoom !== roomId) handlePlayerLeave(currentRoom, true);
     currentRoom = roomId;
 
     if (!rooms.has(roomId)) rooms.set(roomId, makeGame());
@@ -665,6 +721,7 @@ io.on("connection", (socket) => {
       cards: [],
       isOut: false,
       attackCharges: {}, // { targetIndex: charges }
+      micStatus: false
     });
 
     console.log(
@@ -1030,49 +1087,48 @@ io.on("connection", (socket) => {
     console.log(`[${currentRoom}] Game di-restart oleh HOST (Ronde: ${game.roundCount})`);
   });
 
+  socket.on("leaveRoom", () => {
+    if (currentRoom) {
+      handlePlayerLeave(currentRoom, true);
+      currentRoom = null;
+    }
+  });
+
+  socket.on("voice-signal", (data) => {
+    if (data.to) {
+      io.to(data.to).emit("voice-signal", {
+        from: socket.id,
+        signal: data.signal
+      });
+    } else if (currentRoom) {
+      // Broadcast ke semua orang di room tersebut (kecuali pengirim)
+      socket.to(currentRoom).emit("voice-signal", {
+        from: socket.id,
+        signal: data.signal
+      });
+    }
+  });
+
+  socket.on("update-mic-status", (isOn) => {
+    if (currentRoom) {
+      const game = rooms.get(currentRoom);
+      if (!game) return;
+      const i = game.players.findIndex(p => p.id === socket.id);
+      if (i !== -1) {
+        game.players[i].micStatus = isOn;
+        // Broadcast to update UI on all clients
+        io.to(currentRoom).emit("mic-status-updated", { index: i, isOn });
+      }
+    }
+  });
+
   // ── DISCONNECT ──
   socket.on("disconnect", () => {
-    if (!currentRoom) return;
-    const game = rooms.get(currentRoom);
-    if (!game) return;
-
-    const pIndex = game.players.findIndex((pl) => pl.id === socket.id);
-    if (pIndex === -1) return;
-    
-    const p = game.players[pIndex];
-    const name = p.name;
-
-    // Grace period for reconnection
-    p.isOffline = true;
-    io.to(currentRoom).emit("playerStatus", { index: pIndex, status: 'offline' });
-    sendState(game); // 🔥 Update everyone immediately that this player is offline
-    console.log(`[${currentRoom}] ${name} disconnected. Starting 20s grace period...`);
-
-    const timer = setTimeout(() => {
-      // Actually remove the player if they don't reconnect
-      const gameNow = rooms.get(currentRoom);
-      if (!gameNow) return;
-      
-      const stillThere = gameNow.players.find(pl => pl.name === name && pl.isOffline);
-      if (stillThere) {
-        gameNow.players = gameNow.players.filter((pl) => pl.name !== name);
-        gameNow.started = false;
-        io.to(currentRoom).emit("playerLeft", { name });
-        
-        if (gameNow.players.length === 0) {
-          rooms.delete(currentRoom);
-          console.log(`[${currentRoom}] Room dihapus (timeout)`);
-        } else {
-          console.log(`[${currentRoom}] ${name} dihapus setelah timeout.`);
-          sendState(gameNow);
-        }
-      }
-      disconnectTimers.delete(currentRoom + "|" + name);
-    }, 20000);
-
-    disconnectTimers.set(currentRoom + "|" + name, timer);
+    if (currentRoom) {
+      handlePlayerLeave(currentRoom, false);
+    }
   });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT ||3001;
 server.listen(PORT, () => console.log(`Server: http://localhost:${PORT}`));
