@@ -305,6 +305,8 @@ function sendState(game) {
       attackCharges: game.players.map(pl => pl.attackCharges),
       playersMicStatus: game.players.map(pl => !!pl.micStatus),
       playerIds: game.players.map(pl => pl.id),
+      matchStartTime: game.matchStartTime,
+      serverTime: Date.now(),
     });
   });
 }
@@ -494,6 +496,7 @@ function resolveRound(game, roomId) {
 function startGame(game) {
   if (game.roundCount === 0) {
     game.leaderboard = {};
+    game.matchStartTime = Date.now();
   }
 
   game.deck = createDeck();

@@ -979,19 +979,70 @@
         .overlay-sub   { color: rgba(245,240,224,0.65); font-size: 15px; }
 
         /* ── TOAST ── */
-        #toast-container { position: fixed; top: calc(var(--header-h) + 40px); right: 12px; z-index: 200; display: flex; flex-direction: column; gap: 6px; max-width: calc(100vw - 24px); }
-        .toast {
-            background: rgba(0,0,0,0.88);
-            border: 1px solid rgba(201,168,76,0.3);
-            border-left: 3px solid var(--gold);
-            border-radius: 8px;
-            padding: 9px 13px;
-            color: var(--cream);
-            font-size: 12px;
-            font-weight: 500;
-            animation: toastIn 0.3s ease, toastOut 0.3s ease 2.8s forwards;
-            backdrop-filter: blur(8px);
+        #toast-container { 
+            position: fixed; 
+            top: 20px; 
+            right: 20px; 
+            z-index: 9999999; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px; 
+            max-width: 320px; 
             pointer-events: none;
+        }
+        .toast {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-left: 4px solid var(--gold);
+            border-radius: 16px;
+            padding: 12px 16px;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 
+                0 10px 30px rgba(0, 0, 0, 0.3),
+                inset 0 1px 1px rgba(255, 255, 255, 0.1);
+            animation: toastIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), 
+                       toastOut 0.4s ease 2.8s forwards;
+            position: relative;
+            overflow: hidden;
+        }
+        .toast::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        }
+        .toast-icon {
+            font-size: 18px;
+            width: 32px;
+            height: 32px;
+            background: rgba(212, 175, 55, 0.15);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gold-light);
+            flex-shrink: 0;
+        }
+        .toast-msg {
+            line-height: 1.4;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        @keyframes toastIn  { 
+            from { transform: translateX(50px) scale(0.9); opacity: 0; } 
+            to { transform: translateX(0) scale(1); opacity: 1; } 
+        }
+        @keyframes toastOut { 
+            to { transform: translateX(30px) scale(0.95); opacity: 0; } 
         }
 
         #match-timer {
@@ -3156,11 +3207,22 @@
         };
 
         function toast(msg, icon = '♠') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
             const el = document.createElement('div');
             el.className = 'toast';
-            el.textContent = icon + '  ' + msg;
-            document.getElementById('toast-container').appendChild(el);
-            setTimeout(() => el.remove(), 3300);
+            el.innerHTML = `
+                <div class="toast-icon">${icon}</div>
+                <div class="toast-msg">${msg}</div>
+            `;
+            
+            container.appendChild(el);
+            
+            // Auto remove
+            setTimeout(() => {
+                if (el.parentNode) el.remove();
+            }, 3300);
         }
 
         /* ── HELPERS ── */
@@ -3478,13 +3540,28 @@
             if (s.started) {
                 document.getElementById('actions').style.display = 'flex';
                 
+                
                 // Trigger auto-hide if not already hidden
                 if (!fabHideTimeout && !document.getElementById('voice-fab').classList.contains('collapsed')) {
                     fabHideTimeout = setTimeout(hideFabs, 5000);
                 }
+
+                // 🔥 SYNC TIMER
+                if (s.matchStartTime && s.serverTime) {
+                    const elapsedMs = s.serverTime - s.matchStartTime;
+                    const syncedMatchStartTime = Date.now() - elapsedMs;
+                    
+                    if (!matchTimerInterval) {
+                        startMatchTimer(syncedMatchStartTime);
+                    } else {
+                        // Just update the reference point to stay in sync
+                        matchStartTime = syncedMatchStartTime;
+                    }
+                }
             }
 
             if (!s.started) {
+                stopMatchTimer();
 
                 // 🔥 TAMBAHKAN DI SINI
                 const restartBtn = document.querySelector('#overlay button');
@@ -4051,13 +4128,17 @@
             });
         }
 
-        function startMatchTimer() {
+        function startMatchTimer(startTime) {
             stopMatchTimer();
-            matchStartTime = Date.now();
-            updateTimerDisplay(0);
+            matchStartTime = startTime || Date.now();
+            
+            // Initial update
+            const initialElapsed = Math.floor((Date.now() - matchStartTime) / 1000);
+            updateTimerDisplay(initialElapsed > 0 ? initialElapsed : 0);
+
             matchTimerInterval = setInterval(() => {
                 const elapsed = Math.floor((Date.now() - matchStartTime) / 1000);
-                updateTimerDisplay(elapsed);
+                updateTimerDisplay(elapsed > 0 ? elapsed : 0);
             }, 1000);
         }
 
@@ -4080,6 +4161,65 @@
             label.classList.add('visible');
             setTimeout(() => label.classList.remove('visible'), 1200);
             // Elemen kartu TIDAK dihapus — renderTableSpread akan update sendiri saat state berikutnya datang
+        });
+
+        socket.on("playerOut", (data) => {
+            if (isSfxOn) {
+                clutchWinSound.pause();
+                clutchWinSound.currentTime = 0;
+                clutchWinSound.play().catch(()=>{});
+            }
+            showWinLottie(data.name);
+            toast(`${data.name} telah menghabiskan kartu!`, '🏆');
+        });
+
+        socket.on("gameOver", (data) => {
+            bgmSound.pause();
+            
+            window.isMatchEndFlag = true;
+            document.getElementById('overlay').classList.add('show');
+            document.querySelector('#overlay h1').textContent = data.isMatchEnd ? "MATCH SELESAI!" : "PERMAINAN SELESAI!";
+            document.querySelector('#overlay p').textContent = `${data.loserName} kalah di ronde ini.`;
+            
+            const restartBtn = document.querySelector('#overlay button');
+            if (restartBtn) {
+                restartBtn.textContent = data.isMatchEnd ? "RESTART MATCH" : "LANJUT RONDE BERIKUTNYA";
+                if (myIndex === 0) restartBtn.style.display = 'inline-block';
+            }
+        });
+
+        socket.on("toast", (data) => {
+            toast(data.msg, data.icon || '♠');
+        });
+
+        socket.on("playerStatus", (data) => {
+            if (data.status === 'offline') {
+                const name = playerNames[data.index] || `P${data.index + 1}`;
+                toast(`${name} terputus. Menunggu kembali...`, '📡');
+            }
+        });
+
+        socket.on("mic-status-updated", (data) => {
+            playerMicStatuses[data.index] = data.isOn;
+            updateMicIcon(data.index, data.isOn);
+        });
+
+        socket.on("botAction", (data) => {
+            if (data.action === 'play') {
+                toast(`${data.botName} mengeluarkan kartu.`, '🤖');
+            } else if (data.action === 'draw') {
+                toast(`${data.botName} mengambil kartu deck.`, '🤖');
+            } else if (data.action === 'takeTable') {
+                toast(`${data.botName} mengambil kartu meja.`, '🤖');
+            }
+        });
+
+        socket.on("errorMsg", (data) => {
+            toast(data.msg, '❌');
+        });
+
+        socket.on("playerLeft", (data) => {
+            toast(`${data.name} meninggalkan room.`, '🚪');
         });
 
         socket.on("emoji", (data) => {
@@ -4192,7 +4332,7 @@
             } else {
                 let seatEl = null;
                 document.querySelectorAll('.opponent-seat').forEach(seat => {
-                    const nameEl = seat.querySelector('.opponent-name');
+                    const nameEl = seat.querySelector('.name-text') || seat.querySelector('.opponent-name');
                     const baseName = nameEl?.innerText?.trim()?.split('\n')[0];
                     if (baseName === senderName) seatEl = seat;
                 });
