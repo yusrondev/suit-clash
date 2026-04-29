@@ -1943,6 +1943,7 @@
                 <button onclick="pickEmoji('ok')" title="OK">👌</button>
                 <button onclick="pickEmoji('cool')" title="Cool">😎</button>
                 <button onclick="pickEmoji('👑')" title="King">👑</button>
+                <button onclick="pickEmoji('music')" title="Music">🎵</button>
                 <button onclick="pickRecall()" title="Recall!" style="font-size:18px;">⚡</button>
             </div>
         </div>
@@ -2093,7 +2094,7 @@
         let selectedHandIndex = null;
         let pendingOptimisticCardId = null;
         let lastKnownTableCardId = null; // For Ace detection
-        const LOTTIE_EMOJIS = ['cat', 'panda', 'angry', 'amongus', 'cat-laughing', 'cat-sleep', 'ok', 'cool'];
+        const LOTTIE_EMOJIS = ['cat', 'panda', 'angry', 'amongus', 'cat-laughing', 'cat-sleep', 'ok', 'cool', 'music'];
         
         // ── LOTTIE CACHE & PRELOAD ──
         const lottieCache = {};
@@ -2160,11 +2161,23 @@
         electricSound.volume = 0.7;
         const hitSound = new Audio('/assets/sounds/hit.mp3');
         hitSound.volume = 0.8;
+        const viralSound = new Audio('/assets/sounds/viral.mp3');
+        viralSound.volume = 1.0;
 
         function playSfx(sound) {
             if (!isSfxOn) return;
             sound.currentTime = 0;
             sound.play().catch(()=>{});
+        }
+
+        function playViralMusic() {
+            playSfx(viralSound);
+            if (isBgmOn && !bgmSound.paused) {
+                bgmSound.pause();
+                setTimeout(() => {
+                    if (isBgmOn) bgmSound.play().catch(()=>{});
+                }, 5000);
+            }
         }
 
         // 🔥 UNLOCK AUDIO (TARUH DI SINI)
@@ -2478,7 +2491,8 @@
                 "amongus": "",
                 "ok": "Oke mantap!",
                 "cool": "Kece parah!",
-                "👑": "Belajar dulu dek"
+                "👑": "Belajar dulu dek",
+                "music": "Party Time! 🎉"
             };
 
             const payload = {
@@ -2493,6 +2507,7 @@
 
             showSelfEmoji(payload);
             if (e === 'amongus') playSfx(amongusSound);
+            if (e === 'music') playViralMusic();
         }
 
         function pickRecall() {
@@ -2545,6 +2560,11 @@
                     animationData: lottieCache[data.emoji] ? JSON.parse(JSON.stringify(lottieCache[data.emoji])) : null,
                     path: lottieCache[data.emoji] ? null : `/assets/lottie/${data.emoji}.json`
                 });
+
+                if (data.emoji === 'music') {
+                    el.style.width = '180px';
+                    el.style.height = '180px';
+                }
             } else {
                 el.innerHTML = `
                     <div style="font-size: 64px;">${data.emoji}</div>
@@ -2554,11 +2574,12 @@
 
             document.body.appendChild(el);
 
+            const duration = (data.emoji === 'music') ? 5000 : 4000;
             setTimeout(() => {
                 el.style.opacity = '0';
                 el.style.transition = 'opacity 0.5s';
                 setTimeout(() => el.remove(), 500);
-            }, 4000);
+            }, duration);
         }
 
         function confirmLeaveRoom() {
@@ -3572,6 +3593,8 @@
             if (isSfxOn) {
                 if (data.emoji === 'amongus') {
                     playSfx(amongusSound);
+                } else if (data.emoji === 'music') {
+                    playViralMusic();
                 } else {
                     tauntSound.pause();
                     tauntSound.currentTime = 0;
@@ -3579,6 +3602,7 @@
                 }
             }
 
+            const duration = (data.emoji === 'music') ? 5000 : 4000;
             setTimeout(() => {
                 wrapper.style.transition = 'all 0.4s ease-out';
                 wrapper.style.opacity = '0';
@@ -3587,7 +3611,7 @@
                     wrapper.remove();
                     inst.destroy();
                 }, 500);
-            }, 4000);
+            }, duration);
         }
 
         function showWinLottie(senderName) {
