@@ -573,16 +573,24 @@ io.on("connection", (socket) => {
     const name = p.name;
 
     if (isImmediate) {
-      game.players.splice(pIndex, 1);
-      game.started = false;
-      io.to(roomId).emit("playerLeft", { name });
-      
-      console.log(`[${roomId}] ${name} left immediately.`);
+      if (game.started) {
+        // Match in progress: DO NOT splice (it breaks all indices). 
+        // Just mark offline and decouple socket.
+        p.isOffline = true;
+        p.id = null;
+        console.log(`[${roomId}] ${name} left during active game. Keeping ghost seat.`);
+      } else {
+        game.players.splice(pIndex, 1);
+        console.log(`[${roomId}] ${name} left lobby.`);
+      }
 
-      if (game.players.length === 0) {
+      // Only reset to lobby if the room becomes empty
+      if (game.players.length === 0 || game.players.every(pl => pl.isOffline && !pl.id)) {
+        game.started = false; 
         rooms.delete(roomId);
         console.log(`[${roomId}] Room dihapus (kosong)`);
       } else {
+        io.to(roomId).emit("playerLeft", { name });
         sendState(game);
       }
     } else {
@@ -596,12 +604,20 @@ io.on("connection", (socket) => {
         const gameNow = rooms.get(roomId);
         if (!gameNow) return;
         if (p.isOffline) {
-          gameNow.players = gameNow.players.filter((pl) => pl !== p);
-          gameNow.started = false;
-          io.to(roomId).emit("playerLeft", { name });
-          if (gameNow.players.length === 0) {
-            rooms.delete(roomId);
+          if (!gameNow.started) {
+            // Only safe to remove if game hasn't started
+            gameNow.players = gameNow.players.filter((pl) => pl !== p);
           } else {
+            // In game: just leave as offline ghost
+            p.id = null; 
+          }
+
+          // If no one is left online
+          if (gameNow.players.length === 0 || gameNow.players.every(pl => pl.isOffline && !pl.id)) {
+             gameNow.started = false;
+             rooms.delete(roomId);
+          } else {
+            io.to(roomId).emit("playerLeft", { name });
             sendState(gameNow);
           }
         }
@@ -669,15 +685,20 @@ io.on("connection", (socket) => {
     const game = rooms.get(roomId);
     game._roomId = roomId;
 
-    // 1. Check if player is reconnecting first
+    // 1. Check if player is reconnecting first (by name, case-insensitive and trimmed)
     const timerKey = roomId + "|" + cleanName;
-    const existingOfflinePlayer = game.players.find(p => p.name === cleanName && p.isOffline);
+    const existingPlayer = game.players.find(p => p.name.trim().toLowerCase() === cleanName.toLowerCase());
     
-    if (existingOfflinePlayer) {
-      console.log(`[${roomId}] ${cleanName} is reconnecting. Resuming seat...`);
-      existingOfflinePlayer.id = socket.id;
-      existingOfflinePlayer.isOffline = false;
-      playerIndex = game.players.indexOf(existingOfflinePlayer);
+    if (existingPlayer) {
+      // Prevent duplicate join from the same socket
+      if (existingPlayer.id === socket.id && !existingPlayer.isOffline) {
+          return;
+      }
+
+      console.log(`[${roomId}] ${cleanName} re-joining (Socket: ${socket.id.slice(0,5)}). Resuming seat ${game.players.indexOf(existingPlayer)}...`);
+      existingPlayer.id = socket.id;
+      existingPlayer.isOffline = false;
+      playerIndex = game.players.indexOf(existingPlayer);
       
       const timer = disconnectTimers.get(timerKey);
       if (timer) {
@@ -696,6 +717,8 @@ io.on("connection", (socket) => {
       sendState(game);
       return;
     }
+
+    console.log(`[${roomId}] ${cleanName} attempting to join as new player...`);
 
     // 2. If not reconnecting and game is in progress, reject
     if (game.started) {

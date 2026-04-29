@@ -3868,7 +3868,7 @@
             // Find the opponent seat by name — same logic as showEmoji
             let seatEl = null;
             document.querySelectorAll('.opponent-seat').forEach(seat => {
-                const nameEl = seat.querySelector('.opponent-name');
+                const nameEl = seat.querySelector('.name-text') || seat.querySelector('.opponent-name');
                 const baseName = nameEl?.innerText?.trim()?.split('\n')[0];
                 if (baseName === senderName) seatEl = seat;
             });
@@ -3882,8 +3882,8 @@
             wrapper.style.cssText = `
                 position: absolute;
                 left: 50%;
-                top: 0;
-                transform: translateX(-50%) translateY(-25%);
+                top: 50%;
+                transform: translate(-50%, -50%);
                 width: ${size}px;
                 height: ${size}px;
                 pointer-events: none;
@@ -4100,7 +4100,7 @@
         function showLottieEmojiOnSeat(senderName, data) {
             let seatEl = null;
             document.querySelectorAll('.opponent-seat').forEach(seat => {
-                const nameEl = seat.querySelector('.opponent-name');
+                const nameEl = seat.querySelector('.name-text') || seat.querySelector('.opponent-name');
                 const baseName = nameEl?.innerText?.trim()?.split('\n')[0];
                 if (baseName === senderName) seatEl = seat;
             });
@@ -4112,8 +4112,8 @@
             wrapper.style.cssText = `
                 position: absolute;
                 left: 50%;
-                top: 0;
-                transform: translateX(-50%) translateY(-25%);
+                top: 50%;
+                transform: translate(-50%, -50%);
                 width: ${size}px;
                 height: ${size}px;
                 pointer-events: none;
@@ -4169,7 +4169,7 @@
             setTimeout(() => {
                 wrapper.style.transition = 'all 0.4s ease-out';
                 wrapper.style.opacity = '0';
-                wrapper.style.transform = 'translateX(-50%) translateY(-25%) scale(0.9)';
+                wrapper.style.transform = 'translate(-50%, -50%) scale(0.9)';
                 setTimeout(() => {
                     wrapper.remove();
                     inst.destroy();
@@ -4262,7 +4262,7 @@
         function showEmoji(name, data) {
             let seatEl = null;
             document.querySelectorAll('.opponent-seat').forEach(seat => {
-                const nameEl = seat.querySelector('.opponent-name');
+                const nameEl = seat.querySelector('.name-text') || seat.querySelector('.opponent-name');
                 const baseName = nameEl?.innerText?.trim()?.split('\n')[0];
                 if (baseName === name) seatEl = seat;
             });
@@ -4274,8 +4274,8 @@
             wrapper.style.cssText = `
                 position: absolute;
                 left: 50%;
-                top: 0;
-                transform: translateX(-50%) translateY(-15%);
+                top: 50%;
+                transform: translate(-50%, -50%);
                 width: ${size}px;
                 height: ${size}px;
                 pointer-events: none;
@@ -4302,7 +4302,7 @@
             setTimeout(() => {
                 wrapper.style.transition = 'all 0.4s ease-out';
                 wrapper.style.opacity = '0';
-                wrapper.style.transform = 'translateX(-50%) translateY(-15%) scale(0.9)';
+                wrapper.style.transform = 'translate(-50%, -50%) scale(0.9)';
                 setTimeout(() => wrapper.remove(), 500);
             }, 4000);
         }
