@@ -281,13 +281,13 @@
         /* Left opponent */
         .opponent-seat[data-pos="left"] {
             left: 10px;
-            top: 50%;
+            top: 40%;
             transform: translateY(-50%);
         }
         /* Right opponent */
         .opponent-seat[data-pos="right"] {
             right: 10px;
-            top: 50%;
+            top: 40%;
             transform: translateY(-50%);
         }
 
@@ -1882,25 +1882,58 @@
             text-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
         }
         
-        .speaking-pulse {
-            position: absolute;
-            top: -5px;
-            left: -5px;
-            right: -5px;
-            bottom: -5px;
-            border-radius: 50%;
-            border: 2px solid #3b82f6;
+        /* Pulse removed per user request */
+        .player-name.speaking {
+            color: #3b82f6;
+            text-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
+        }
+        .player-name.speaking::before {
+            color: #3b82f6 !important;
+            animation: pulse-speaking-dot 1s infinite;
+        }
+        @keyframes pulse-speaking-dot {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0.5; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Voice Spectrum */
+        .voice-spectrum {
+            display: flex;
+            visibility: hidden;
             opacity: 0;
+            transform: translateY(3px) scale(0.9);
+            align-items: flex-end;
+            justify-content: center;
+            gap: 2px;
+            height: 16px;
+            margin-bottom: 5px;
+            width: 100%;
             pointer-events: none;
-            transition: opacity 0.2s;
+            transition: opacity 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        .speaking .speaking-pulse {
+        .speaking .voice-spectrum {
+            visibility: visible;
             opacity: 1;
-            animation: pulse-speaking 1s infinite;
+            transform: translateY(0) scale(1);
         }
-        @keyframes pulse-speaking {
-            0% { transform: scale(1); opacity: 0.8; }
-            100% { transform: scale(1.3); opacity: 0; }
+        .voice-spectrum .bar {
+            width: 3px;
+            height: 3px;
+            background: #facc15; /* Bright yellow */
+            border-radius: 1px;
+            box-shadow: 0 0 8px rgba(250, 204, 21, 0.5); /* Glowing yellow effect */
+            animation: spectrum-anim 0.5s ease-in-out infinite alternate;
+        }
+        .voice-spectrum .bar:nth-child(1) { animation-delay: 0.1s; }
+        .voice-spectrum .bar:nth-child(2) { animation-delay: 0.3s; }
+        .voice-spectrum .bar:nth-child(3) { animation-delay: 0.2s; }
+        .voice-spectrum .bar:nth-child(4) { animation-delay: 0.4s; }
+        .voice-spectrum .bar:nth-child(5) { animation-delay: 0.1s; }
+
+        @keyframes spectrum-anim {
+            0% { height: 3px; }
+            100% { height: 14px; }
         }
     </style>
 </head>
@@ -2031,7 +2064,6 @@
         <div id="your-area">
             <div class="avatar-container">
                 <div class="avatar-bg"></div>
-                <div class="speaking-pulse"></div>
             </div>
             <div id="your-id-tag" class="your-identity" style="display: none;">GUEST</div>
             <div id="status-bar">Menunggu giliran...</div>
@@ -2628,10 +2660,12 @@
                     for(let i=0; i<remoteData.length; i++) rSum += remoteData[i];
                     let rAvg = rSum / remoteData.length;
                     
-                    // Find player index for this socketId
-                    const pIdx = lastState?.players.findIndex(p => p.id === id);
-                    if (pIdx !== -1) {
-                        updateSpeakingUI(pIdx, rAvg > 30);
+                    // Find player index for this socketId using playerIds array from state
+                    if (lastState && lastState.playerIds) {
+                        const pIdx = lastState.playerIds.indexOf(id);
+                        if (pIdx !== -1) {
+                            updateSpeakingUI(pIdx, rAvg > 30);
+                        }
                     }
                 }
             }
@@ -2642,14 +2676,21 @@
         }
 
         function updateSpeakingUI(idx, isSpeaking) {
-            let el;
-            if (idx === myIndex) {
-                el = document.querySelector('.my-seat .avatar-container');
-            } else {
-                el = document.querySelector(`.opponent-seat[data-index="${idx}"] .avatar-container`);
+            // Disable all speaking indicators for the own player (pulse/spectrum) in game view
+            if (idx === myIndex) return;
+
+            const seat = document.querySelector(`.opponent-seat[data-index="${idx}"]`);
+            if (seat) {
+                seat.classList.toggle('speaking', isSpeaking);
+                // Toggle on avatar-container for pulse effect
+                const avatar = seat.querySelector('.avatar-container');
+                if (avatar) avatar.classList.toggle('speaking', isSpeaking);
             }
-            if (el) {
-                el.classList.toggle('speaking', isSpeaking);
+
+            // Lobby speaking indicator (keep this for everyone)
+            const lobbyEl = document.querySelector(`.player-name[data-index="${idx}"]`);
+            if (lobbyEl) {
+                lobbyEl.classList.toggle('speaking', isSpeaking);
             }
         }
 
@@ -2659,22 +2700,48 @@
         });
 
         function updateMicIcon(idx, isOn) {
+            // Update in Game View
             let container;
+            let pos = 'top';
             if (idx === myIndex) {
                 container = document.getElementById('your-id-tag');
+                pos = 'bottom'; // Self is at the bottom
             } else {
                 const seat = document.querySelector(`.opponent-seat[data-index="${idx}"]`);
-                container = seat ? seat.querySelector('.opponent-name') : null;
+                container = seat ? (seat.querySelector('.opponent-name-container') || seat.querySelector('.opponent-name')) : null;
+                pos = seat ? seat.getAttribute('data-pos') : 'top';
             }
             
             if (container) {
                 let icon = container.querySelector('.mic-indicator');
                 if (!icon) {
                     icon = document.createElement('i');
+                    icon.className = 'mic-indicator';
+                }
+                
+                // Position logic: Icons towards center
+                // If on the right side, icon on the left (prepend)
+                // If on the left side, icon on the right (append)
+                if (pos === 'right') {
+                    icon.style.marginRight = '8px';
+                    icon.style.marginLeft = '0';
+                    container.prepend(icon);
+                } else {
                     icon.style.marginLeft = '8px';
+                    icon.style.marginRight = '0';
                     container.appendChild(icon);
                 }
+                
                 icon.className = isOn ? 'fa-solid fa-microphone mic-indicator on' : 'fa-solid fa-microphone-slash mic-indicator';
+            }
+
+            // Update in Lobby View (Always append for lobby table)
+            const lobbyNameEl = document.querySelector(`.player-name[data-index="${idx}"]`);
+            if (lobbyNameEl) {
+                let lobbyIcon = lobbyNameEl.querySelector('.mic-indicator');
+                if (lobbyIcon) {
+                    lobbyIcon.className = isOn ? 'fa-solid fa-microphone mic-indicator on' : 'fa-solid fa-microphone-slash mic-indicator';
+                }
             }
         }
 
@@ -3403,11 +3470,13 @@
             document.getElementById('hud-top').style.display = 'flex';
             document.getElementById('leaderboard-btn').style.display = 'flex';
 
+            // Show voice and text FABs as soon as joined
+            document.getElementById('voice-fab').style.display = 'flex';
+            document.getElementById('text-fab').style.display = 'flex';
+
             // Also show actions when game started
             if (s.started) {
                 document.getElementById('actions').style.display = 'flex';
-                document.getElementById('voice-fab').style.display = 'flex';
-                document.getElementById('text-fab').style.display = 'flex';
                 
                 // Trigger auto-hide if not already hidden
                 if (!fabHideTimeout && !document.getElementById('voice-fab').classList.contains('collapsed')) {
@@ -3437,8 +3506,7 @@
                 document.querySelectorAll('.room-box > div:not(.waiting-msg)').forEach(d => d.style.display = 'none');
                 document.querySelectorAll('.room-box > button').forEach(btn => btn.style.display = 'none');
                 document.getElementById('lobby-status').style.display = 'block';
-                document.getElementById('text-fab').style.display = 'none';
-                document.getElementById('mini-chat-history').style.display = 'none';
+                document.getElementById('mini-chat-history').style.display = 'flex';
 
                 const isHost = (myIndex === 0);
                 const startBtn = document.getElementById('start-btn');
@@ -3459,7 +3527,7 @@
                     tableHtml += `
                         <tr>
                             <td>
-                                <div class="player-name">
+                                <div class="player-name" data-index="${idx}">
                                     ${escHtml(name)} 
                                     ${isTargetHost ? ' <span style="font-size:9px; color:var(--gold); border:1px solid var(--gold); padding:1px 4px; border-radius:4px; margin-left:4px;">HOST</span>' : ''} 
                                     ${isTargetOffline ? ' <span class="lobby-offline-badge">Menghubungkan Ulang...</span>' : ''}
@@ -4289,7 +4357,12 @@
                             <div class="avatar-bg"></div>
                             <div class="speaking-pulse"></div>
                         </div>
-                        <div class="opponent-name"></div>
+                        <div class="voice-spectrum">
+                            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+                        </div>
+                        <div class="opponent-name-container">
+                            <span class="name-text"></span>
+                        </div>
                         <div class="opp-cards"></div>
                         <div class="opp-card-count"></div>
                         <div class="opp-reconnecting-loader">
@@ -4298,6 +4371,32 @@
                         </div>
                     `;
                     row.appendChild(div);
+                }
+
+                // Upgrade existing seats: Ensure voice-spectrum and name-container exist
+                if (!div.querySelector('.voice-spectrum')) {
+                    const spectrum = document.createElement('div');
+                    spectrum.className = 'voice-spectrum';
+                    spectrum.innerHTML = '<div class="bar"></div>'.repeat(5);
+                    const nameEl = div.querySelector('.opponent-name') || div.querySelector('.opponent-name-container');
+                    if (nameEl) div.insertBefore(spectrum, nameEl);
+                }
+                if (!div.querySelector('.opponent-name-container')) {
+                    const nameEl = div.querySelector('.opponent-name');
+                    if (nameEl) {
+                        const container = document.createElement('div');
+                        container.className = 'opponent-name-container';
+                        const span = document.createElement('span');
+                        span.className = 'name-text';
+                        span.textContent = name;
+                        container.appendChild(span);
+                        
+                        // Transfer any existing mic-indicator
+                        const mic = nameEl.querySelector('.mic-indicator');
+                        if (mic) container.appendChild(mic);
+                        
+                        div.replaceChild(container, nameEl);
+                    }
                 }
 
                 // Add or update click listener
@@ -4310,10 +4409,10 @@
                                 (isOffline ? ' is-offline' : '');
                 div.setAttribute('data-pos', pos);
 
-                // Update sub-elements individually to preserve any emoji wrappers appended to 'div'
-                const nameEl = div.querySelector('.opponent-name');
-                if (nameEl.innerText.trim().split('\n')[0] !== name) {
-                    nameEl.textContent = name;
+                // Update name text safely
+                const nameTextEl = div.querySelector('.name-text');
+                if (nameTextEl) {
+                    if (nameTextEl.textContent !== name) nameTextEl.textContent = name;
                 }
                 
                 // Avatar background (hidden initials per user request)

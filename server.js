@@ -304,6 +304,7 @@ function sendState(game) {
       tableColor: game.tableColor || 'green',
       attackCharges: game.players.map(pl => pl.attackCharges),
       playersMicStatus: game.players.map(pl => !!pl.micStatus),
+      playerIds: game.players.map(pl => pl.id),
     });
   });
 }
