@@ -4773,7 +4773,7 @@
                 lobbyAuth.style.display = 'none';
             } else {
                 lobbyAuth.style.display = 'block';
-                authBtn.innerText = isLoggedIn ? 'Profile' : 'Login / Register';
+                authBtn.innerHTML = isLoggedIn ? '<i class="fa-solid fa-user"></i>' : 'Login / Register';
             }
         }
 
@@ -6796,7 +6796,7 @@
             socket.emit("auth", data.token);
 
             // Update UI
-            document.querySelector('.btn-login-header').innerText = 'Profile';
+            document.querySelector('.btn-login-header').innerText = '<i class="fa-solid fa-user"></i>';
             if (document.getElementById('name-input')) {
                 document.getElementById('name-input').value = data.user.username;
             }
