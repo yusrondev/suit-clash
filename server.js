@@ -443,9 +443,10 @@ function checkEnd(game, roomId) {
       });
 
       // 🔥 TUNTUTAN USER: Update Total Menang (wins) hanya untuk juara 1 (Rank 1)
-      // Dan hanya jika BUKAN mode Bot
+      // DAN HANYA pada Ronde Terakhir (misal ronde 7 dari 7)
       const isBotMatch = game.players.some(pl => pl.isBot);
-      if (game.outOrder.length === 1 && !isBotMatch && p.dbId) {
+      const isLastRound = game.roundCount === game.maxRounds;
+      if (game.outOrder.length === 1 && !isBotMatch && p.dbId && isLastRound) {
         updateUserStats(p.dbId, 1, 0).then(newStats => {
           if (newStats && p.id) {
             io.to(p.id).emit("sync-stats", newStats);
@@ -629,8 +630,8 @@ function resolveRound(game, roomId) {
 function startGame(game) {
   if (game.roundCount === 0) {
     game.leaderboard = {};
-    game.matchStartTime = Date.now();
   }
+  game.matchStartTime = Date.now(); // Reset timer every round
 
   game.deck = createDeck();
   game.players.forEach((p, playerIdx) => {
