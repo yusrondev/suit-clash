@@ -1,13 +1,80 @@
+require('dotenv').config();
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const db = require('./db');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
 const path = require("path");
+app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
+
+// ── AUTH ENDPOINTS ───────────────────────────────────────────────────────────
+app.post("/api/auth/register", async (req, res) => {
+  const { username, email, password } = req.body;
+  if (!username || !email || !password) return res.status(400).json({ success: false, msg: "Data tidak lengkap." });
+
+  try {
+    const passwordHash = await bcrypt.hash(password, 10);
+    const result = await db.query(
+      "INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING id, username, email, gold, diamonds, wins, matches_played",
+      [username, email, passwordHash]
+    );
+    res.json({ success: true, user: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ success: false, msg: "Username atau Email sudah terdaftar." });
+  }
+});
+
+app.post("/api/auth/login", async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const result = await db.query("SELECT * FROM users WHERE email = $1", [email]);
+    if (result.rows.length === 0) return res.status(401).json({ success: false, msg: "User tidak ditemukan." });
+
+    const user = result.rows[0];
+    const valid = await bcrypt.compare(password, user.password_hash);
+    if (!valid) return res.status(401).json({ success: false, msg: "Password salah." });
+
+    const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET);
+    res.json({ 
+      success: true, 
+      token, 
+      user: { id: user.id, username: user.username, gold: user.gold, diamonds: user.diamonds, wins: user.wins, matches_played: user.matches_played, avatar_url: user.avatar_url } 
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, msg: "Server error." });
+  }
+});
+
+app.post("/api/auth/google", async (req, res) => {
+  const { email, name, googleId, avatar } = req.body;
+  if (!email || !googleId) return res.status(400).json({ success: false, msg: "Invalid Google data." });
+
+  try {
+    const result = await db.query(
+      `INSERT INTO users (username, email, google_id, avatar_url) 
+       VALUES ($1, $2, $3, $4) 
+       ON CONFLICT (email) DO UPDATE 
+       SET google_id = EXCLUDED.google_id, avatar_url = EXCLUDED.avatar_url
+       RETURNING id, username, email, gold, diamonds, wins, matches_played`,
+      [name, email, googleId, avatar]
+    );
+    const user = result.rows[0];
+    const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET);
+    res.json({ success: true, token, user });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, msg: "Google login failed." });
+  }
+});
 
 // ── DECK ──────────────────────────────────────────────────────────────────────
 const suits = ["♠", "♥", "♦", "♣"];
@@ -251,6 +318,20 @@ function resolveTableTake(game, pIndex, roomId) {
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
+async function updateUserStats(dbId, winsDelta = 0, matchesDelta = 0) {
+  if (!dbId) return;
+  try {
+    const result = await db.query(
+      "UPDATE users SET wins = wins + $1, matches_played = matches_played + $2 WHERE id = $3 RETURNING gold, diamonds, wins, matches_played",
+      [winsDelta, matchesDelta, dbId]
+    );
+    // Find socket associated with this dbId if possible, or handle via separate emit
+    return result.rows[0];
+  } catch (err) {
+    console.error("Gagal update user stats:", err);
+  }
+}
+
 function isActive(game, i) {
   const p = game.players[i];
   if (!p || p.isOut) return false;
@@ -373,6 +454,17 @@ function checkEnd(game, roomId) {
     });
 
     game.started = false;
+
+    // 🔥 TUNTUTAN USER: Update Total Pertandingan (matches_played) untuk semua authenticated players
+    game.players.forEach(async (p) => {
+      if (p.dbId) {
+        const newStats = await updateUserStats(p.dbId, 0, 1);
+        if (newStats && p.id) {
+          io.to(p.id).emit("sync-stats", newStats);
+        }
+      }
+    });
+
     return true;
   }
 
@@ -460,6 +552,16 @@ function resolveRound(game, roomId) {
       game.players[winnerIndex]?.name || "Pemain " + (winnerIndex + 1),
     roundCards: game.roundCards,
   });
+
+  // 🔥 TUNTUTAN USER: Update Total Menang (wins) untuk round winner
+  const roundWinner = game.players[winnerIndex];
+  if (roundWinner && roundWinner.dbId) {
+    updateUserStats(roundWinner.dbId, 1, 0).then(newStats => {
+      if (newStats && roundWinner.id) {
+        io.to(roundWinner.id).emit("sync-stats", newStats);
+      }
+    });
+  }
 
   game.roundCards = [];
   game.tableHistory = []; // 🔥 Bersihkan meja setelah ronde selesai
@@ -562,6 +664,31 @@ function startGame(game) {
 io.on("connection", (socket) => {
   let currentRoom = null;
   let playerIndex = -1;
+  let userId = null;
+
+  socket.on("auth", async (token) => {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      userId = decoded.id;
+      // Sync stats from DB
+      const result = await db.query("SELECT gold, diamonds, wins, matches_played FROM users WHERE id = $1", [userId]);
+      if (result.rows[0]) {
+        socket.emit("sync-stats", result.rows[0]);
+      }
+      console.log(`[Socket] Authenticated user ID: ${userId}`);
+
+      // If already in a room, update the player object with dbId
+      if (currentRoom) {
+        const game = rooms.get(currentRoom);
+        if (game) {
+          const p = game.players.find(pl => pl.id === socket.id);
+          if (p) p.dbId = userId;
+        }
+      }
+    } catch (err) {
+      // console.log("Auth failed for socket", socket.id);
+    }
+  });
 
   // Helper to handle player leaving a room (immediate or with grace period)
   const handlePlayerLeave = (roomId, isImmediate = false) => {
@@ -651,6 +778,7 @@ io.on("connection", (socket) => {
       cards: [],
       isOut: false,
       isBot: false,
+      dbId: userId, // Store DB ID for stats tracking
       attackCharges: {},
       micStatus: false
     });
@@ -747,6 +875,7 @@ io.on("connection", (socket) => {
       name: cleanName || "Pemain " + (playerIndex + 1),
       cards: [],
       isOut: false,
+      dbId: userId, // Store DB ID for stats tracking
       attackCharges: {}, // { targetIndex: charges }
       micStatus: false
     });
