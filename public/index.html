@@ -320,27 +320,6 @@
             color: white;
         }
 
-        #profile-btn-header {
-            background: linear-gradient(145deg, #2c3e50, #1a252f);
-            border: 1px solid var(--gold-dark);
-            color: var(--gold-light);
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-            transition: all 0.2s;
-        }
-
-        #profile-btn-header:hover {
-            transform: scale(1.1);
-            box-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
-        }
-
         /* ── AUTH MODAL ── */
         .auth-panel {
             position: fixed;
@@ -1716,18 +1695,19 @@
         }
 
         .overlay-card {
-            background: rgba(12, 38, 25, 0.97);
-            border: 2px solid var(--gold-dark);
-            border-radius: 20px;
-            padding: 36px 40px;
-            /* display: flex; */
+            background: rgba(12, 38, 25, 0.65);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 24px;
+            padding: 40px;
             flex-direction: column;
             align-items: center;
-            gap: 14px;
-            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7);
+            gap: 16px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             text-align: center;
-            width: 100%;
-            max-width: 340px;
+            width: 90%;
+            max-width: 380px;
         }
 
         .overlay-icon {
@@ -2592,6 +2572,18 @@
             }
         }
 
+        /* 🔥 EFFECT: MATCH OVER BLUR */
+        #game.match-over-blur {
+            filter: blur(15px);
+            pointer-events: none;
+            transition: filter 0.8s ease;
+        }
+
+        #lobby.match-over-blur {
+            filter: blur(10px);
+            pointer-events: none;
+        }
+
         .leaderboard-panel {
             position: fixed;
             top: 50%;
@@ -3206,9 +3198,6 @@
                 <button class="btn-login-header" onclick="toggleProfile()">Login / Register</button>
             </div>
             <div id="hud-top" style="display:none;">
-                <button id="profile-btn-header" onclick="toggleProfile()" title="Profile" style="margin-right: 8px;">
-                    <i class="fa-solid fa-user"></i>
-                </button>
                 <button class="btn-setting" onclick="settingComponent()"><i class="fa-solid fa-gear"></i></button>
                 <button class="btn-leave" onclick="confirmLeaveRoom()"><i
                         class="fa-solid fa-arrow-right-from-bracket"></i></button>
@@ -3338,9 +3327,6 @@
 
     <!-- LOBBY -->
     <div id="lobby">
-        <div class="lobby-sub"
-            style="margin-top: 40px; font-size: 16px; letter-spacing: 1px; color: var(--gold-light); font-weight: 500;">
-            Silahkan isi nama dan room</div>
         <div class="room-box">
             <div>
                 <label>Nama Pemain</label>
@@ -3483,7 +3469,7 @@
     <div id="fab-toggle"><i class="fa-solid fa-chevron-right"></i></div>
     <div id="voice-fab" title="Mulai Voice Chat"><i class="fa-solid fa-microphone-slash"></i></div>
     <div id="text-fab" title="Chat"><i class="fa-solid fa-comment"></i></div>
-    <div id="remote-audio-container" style="display:none;"></div>
+    <div id="remote-audio-container" style="position: fixed; left: -9999px; visibility: hidden;"></div>
     <div id="chat-input-box">
         <div id="chat-history"></div>
         <input type="text" id="chat-input" placeholder="Ketik sesuatu..." />
@@ -3784,6 +3770,11 @@
         let audioUnlocked = false;
 
         document.addEventListener('click', () => {
+            // Resume AudioContext on every interaction (browser suspended policy)
+            if (audioContext && audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+
             if (audioUnlocked) return;
 
             // Unlock audio context dengan dummy play/pause
@@ -3802,8 +3793,12 @@
                 })
             ]).then(() => {
                 audioUnlocked = true;
+                // 🔥 Unlock all existing remote audio tags
+                document.querySelectorAll('audio').forEach(a => {
+                    a.play().then(() => { a.pause(); }).catch(() => {});
+                });
             }).catch(() => { });
-        }, { once: true });
+        });
 
         function toggleSfx(isOn) {
             isSfxOn = isOn;
@@ -4066,6 +4061,10 @@
                 if (!audioContext) {
                     audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 }
+                // Resume if suspended by browser policy (critical for audio to work)
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                }
                 const source = audioContext.createMediaStreamSource(localStream);
                 localAnalyser = audioContext.createAnalyser();
                 localAnalyser.fftSize = 256;
@@ -4082,6 +4081,14 @@
                 setTimeout(tryAutoFullscreen, 500);
 
                 monitorVolume();
+
+                // Re-add tracks to any existing peers that don't have them yet
+                for (let id in voicePeers) {
+                    const pc = voicePeers[id].pc;
+                    if (pc.getSenders().filter(s => s.track).length === 0) {
+                        localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+                    }
+                }
             } catch (err) {
                 console.error("Mic error:", err);
                 toast('Gagal mengakses Microphone!', '⚠️');
@@ -4111,7 +4118,9 @@
         }
 
         function monitorVolume() {
-            if (!isMicOn && Object.keys(voicePeers).length === 0) return;
+            // Keep running if: mic is on, OR we have remote peers
+            const hasPeers = Object.keys(voicePeers).length > 0;
+            if (!isMicOn && !hasPeers) return;
 
             const bufferLength = localAnalyser ? localAnalyser.frequencyBinCount : 0;
             const dataArray = new Uint8Array(bufferLength);
@@ -4169,10 +4178,6 @@
             }
         }
 
-        socket.on('mic-status-updated', (data) => {
-            playerMicStatuses[data.index] = data.isOn;
-            updateMicIcon(data.index, data.isOn);
-        });
 
         function updateMicIcon(idx, isOn) {
             // Update in Game View
@@ -4214,15 +4219,24 @@
             const lobbyNameEl = document.querySelector(`.player-name[data-index="${idx}"]`);
             if (lobbyNameEl) {
                 let lobbyIcon = lobbyNameEl.querySelector('.mic-indicator');
-                if (lobbyIcon) {
-                    lobbyIcon.className = isOn ? 'fa-solid fa-microphone mic-indicator on' : 'fa-solid fa-microphone-slash mic-indicator';
+                if (!lobbyIcon) {
+                    lobbyIcon = document.createElement('i');
+                    lobbyIcon.className = 'mic-indicator';
+                    lobbyIcon.style.marginLeft = '8px';
+                    lobbyIcon.style.fontSize = '10px';
+                    lobbyNameEl.appendChild(lobbyIcon);
                 }
+                lobbyIcon.className = isOn ? 'fa-solid fa-microphone mic-indicator on' : 'fa-solid fa-microphone-slash mic-indicator';
             }
         }
 
         async function initPeer(peerId, incomingSignal = null) {
             if (voicePeers[peerId]) {
                 const pObj = voicePeers[peerId];
+                // 🔥 Fix: Ensure tracks are added if missing
+                if (localStream && pObj.pc.getSenders().length === 0) {
+                    localStream.getTracks().forEach(track => pObj.pc.addTrack(track, localStream));
+                }
                 if (incomingSignal) {
                     await handleSignal(peerId, incomingSignal);
                 }
@@ -4268,6 +4282,10 @@
                 if (!audioContext) {
                     audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 }
+                // Resume suspended AudioContext (browser policy)
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
                 const source = audioContext.createMediaStreamSource(stream);
                 const analyser = audioContext.createAnalyser();
                 analyser.fftSize = 256;
@@ -4285,8 +4303,15 @@
                     document.getElementById('remote-audio-container').appendChild(audio);
                 }
                 audio.srcObject = stream;
-                audio.play().catch(e => console.warn("Audio play blocked:", e));
+                const playAudio = () => {
+                    audio.play().catch(e => {
+                        console.warn("Audio play blocked, retrying on next click:", e);
+                        document.addEventListener('click', () => audio.play().catch(() => {}), { once: true });
+                    });
+                };
+                playAudio();
 
+                // Start monitor loop for this remote peer
                 monitorVolume();
             };
 
@@ -4334,11 +4359,12 @@
         }
 
         socket.on('voice-signal', async (data) => {
+            // Only process voice signals when our mic is active
             if (!isMicOn) return;
             const { from, signal } = data;
 
             if (signal.type === 'join') {
-                // Someone joined, if I'm already in voice, I'll trigger negotiation
+                // Someone with mic enabled joined — initiate peer connection
                 initPeer(from);
             } else {
                 initPeer(from, signal);
@@ -4449,6 +4475,9 @@
             document.getElementById('lobby-status').style.display = 'block';
             ni.disabled = true;
             ri.disabled = true;
+
+            // 🔥 Notify others to start voice negotiation even if we don't have mic yet
+            socket.emit('voice-signal', { signal: { type: 'join' } });
 
             tryAutoFullscreen();
         }
@@ -4626,10 +4655,33 @@
             }
         });
 
-        window.onload = () => {
-            const sn = localStorage.getItem('remi_name');
-            if (sn) joinRoom();
-        };
+
+        function syncHeaderAuth() {
+            const authBtn = document.querySelector('.btn-login-header');
+            const lobbyAuth = document.getElementById('lobby-auth');
+            if (!authBtn || !lobbyAuth) return;
+
+            const user = JSON.parse(localStorage.getItem('sc_user') || '{}');
+            const isLoggedIn = !!(user.id || user.username);
+
+            if (isLoggedIn) {
+                authBtn.innerText = 'Profile';
+                // User requested: hilangkan tombol profile pada saat in game
+                if (lastState && lastState.started) {
+                    lobbyAuth.style.display = 'none';
+                } else {
+                    lobbyAuth.style.display = 'block';
+                }
+            } else {
+                // Hide if in room (either game started or waiting list)
+                if (currentRoom) {
+                    lobbyAuth.style.display = 'none';
+                } else {
+                    authBtn.innerText = 'Login / Register';
+                    lobbyAuth.style.display = 'block';
+                }
+            }
+        }
 
         function toast(msg, icon = '♠') {
             const container = document.getElementById('toast-container');
@@ -4666,27 +4718,8 @@
             const els = document.querySelectorAll('.opponent-name');
 
             els.forEach(el => {
-                if (el.textContent === name) {
-                    socket.on("leaderboardData", (data) => {
-                        updateLeaderboard(data);
-                    });
-
-                    socket.on("sync-stats", (stats) => {
-                        const user = JSON.parse(localStorage.getItem('sc_user') || '{}');
-                        user.gold = stats.gold;
-                        user.diamonds = stats.diamonds;
-                        user.wins = stats.wins;
-                        user.matches_played = stats.matches_played;
-                        localStorage.setItem('sc_user', JSON.stringify(user));
-                        // Update profile UI if open
-                        const profilePanel = document.getElementById('profile-panel');
-                        if (profilePanel && profilePanel.classList.contains('show')) {
-                            document.getElementById('profile-gold').innerText = stats.gold;
-                            document.getElementById('profile-diamonds').innerText = stats.diamonds;
-                            document.getElementById('profile-wins').innerText = stats.wins;
-                            document.getElementById('profile-matches').innerText = stats.matches_played;
-                        }
-                    });
+                const baseName = el.textContent.trim().split('\n')[0];
+                if (baseName === name) {
                     const parent = el.parentElement;
 
                     const bubble = document.createElement('div');
@@ -4695,7 +4728,11 @@
 
                     parent.appendChild(bubble);
 
-                    setTimeout(() => bubble.remove(), 150000);
+                    setTimeout(() => {
+                        bubble.style.transition = 'opacity 0.5s';
+                        bubble.style.opacity = '0';
+                        setTimeout(() => bubble.remove(), 500);
+                    }, 5000);
                 }
             });
         }
@@ -4743,6 +4780,11 @@
             // Only show if list has data OR if it was already showing OR if it's match end
             if (list.length > 0 || panel.classList.contains('show') || window.isMatchEndFlag) {
                 panel.classList.add('show');
+                // 🔥 Only blur if it's actually the end of the match
+                if (window.isMatchEndFlag) {
+                    document.getElementById('game').classList.add('match-over-blur');
+                    document.getElementById('lobby').classList.add('match-over-blur');
+                }
             }
 
             const restartBtn = document.getElementById('lb-restart-btn');
@@ -4946,6 +4988,8 @@
                 document.getElementById('overlay').classList.remove('show');
                 if (!lastStarted || window.isMatchEndFlag) {
                     document.getElementById('leaderboard-panel').classList.remove('show');
+                    document.getElementById('game').classList.remove('match-over-blur');
+                    document.getElementById('lobby').classList.remove('match-over-blur');
                 }
                 window.isMatchEndFlag = false;
             }
@@ -4974,7 +5018,8 @@
             prevTableCount = currentTableCount;
 
             // Always show the header (Logo + Leaderboard + Leave button) once joined
-            document.getElementById('lobby-auth').style.display = 'none';
+            syncHeaderAuth();
+            
             document.getElementById('hud-top').style.display = 'flex';
             document.getElementById('leaderboard-btn').style.display = 'flex';
 
@@ -5024,7 +5069,7 @@
                 document.getElementById('lobby').style.display = 'flex';
                 document.getElementById('game').style.display = 'none';
                 document.getElementById('hud-top').style.display = 'none';
-                document.getElementById('lobby-auth').style.display = 'flex';
+                syncHeaderAuth();
                 document.getElementById('leaderboard-btn').style.display = 'none';
 
                 // Hide inputs but NOT the lobby-status
@@ -5478,6 +5523,8 @@
 
         function closeLeaderboard() {
             document.getElementById('leaderboard-panel').classList.remove('show');
+            document.getElementById('game').classList.remove('match-over-blur');
+            document.getElementById('lobby').classList.remove('match-over-blur');
         }
 
         function getOrCreateTableSlot(idx) {
@@ -5603,85 +5650,133 @@
 
         /* ── ROUND RESOLVED — hanya tampilkan label pemenang, jangan hapus elemen ── */
         socket.on('roundResolved', (data) => {
-            const label = document.getElementById('round-winner-label');
-            const isMe = data.winner === myIndex;
-            label.textContent = '🏅 ' + escHtml(data.winnerName) + (isMe ? ' (Kamu)' : '') + ' menang putaran!';
-            label.classList.add('visible');
-            setTimeout(() => label.classList.remove('visible'), 1200);
-            // Elemen kartu TIDAK dihapus — renderTableSpread akan update sendiri saat state berikutnya datang
+            // Already handled by playerOut and gameOver toasts
         });
 
         socket.on("playerOut", (data) => {
-            if (isSfxOn) {
-                clutchWinSound.pause();
-                clutchWinSound.currentTime = 0;
-                clutchWinSound.play().catch(() => { });
+            toast(`${data.name} berhasil menghabiskan kartu!`, '🏆');
+            if (data.name === myName) {
+                toast('Kamu menang di ronde ini!', '🎉');
             }
             showWinLottie(data.name);
-            toast(`${data.name} telah menghabiskan kartu!`, '🏆');
+        });
+
+        socket.on("sync-stats", (stats) => {
+            const user = JSON.parse(localStorage.getItem('sc_user') || '{}');
+            user.gold = stats.gold;
+            user.diamonds = stats.diamonds;
+            user.wins = stats.wins;
+            user.matches_played = stats.matches_played;
+            localStorage.setItem('sc_user', JSON.stringify(user));
+            const profilePanel = document.getElementById('profile-panel');
+            if (profilePanel && profilePanel.classList.contains('show')) {
+                document.getElementById('profile-gold').innerText = stats.gold;
+                document.getElementById('profile-diamonds').innerText = stats.diamonds;
+                document.getElementById('profile-wins').innerText = stats.wins;
+                document.getElementById('profile-matches').innerText = stats.matches_played;
+            }
         });
 
         socket.on("gameOver", (data) => {
             bgmSound.pause();
+            stopMatchTimer();
+            console.log("GAME OVER EVENT RECEIVED:", data);
 
-            window.isMatchEndFlag = true;
-            document.getElementById('overlay').classList.add('show');
-            document.querySelector('#overlay h1').textContent = data.isMatchEnd ? "MATCH SELESAI!" : "PERMAINAN SELESAI!";
-            document.querySelector('#overlay p').textContent = `${data.loserName} kalah di ronde ini.`;
+            if (data.isMatchEnd) {
+                // 🔥 MATCH END: Show leaderboard immediately with blur
+                window.isMatchEndFlag = true;
+                socket.emit('getLeaderboard');
+                document.getElementById('overlay').classList.remove('show');
+            } else {
+                // ── ROUND END (not match end): Show continue overlay ──
+                window.isMatchEndFlag = false;
+                document.getElementById('overlay').classList.add('show');
+                
+                const title = document.getElementById('overlay-title');
+                const sub = document.getElementById('overlay-sub');
+                if (title) title.textContent = "PERMAINAN SELESAI!";
+                // 🔥 User requested to remove "kalah di ronde ini"
+                if (sub) sub.textContent = "Siapkan dirimu untuk ronde berikutnya.";
 
-            const restartBtn = document.querySelector('#overlay button');
-            if (restartBtn) {
-                restartBtn.textContent = data.isMatchEnd ? "RESTART MATCH" : "LANJUT RONDE BERIKUTNYA";
-                if (myIndex === 0) restartBtn.style.display = 'inline-block';
+                const restartBtn = document.querySelector('#overlay button');
+                if (restartBtn) {
+                    restartBtn.textContent = "LANJUT RONDE BERIKUTNYA";
+                    // Only host can continue
+                    if (myIndex === 0) {
+                        restartBtn.style.display = 'inline-block';
+                    } else {
+                        restartBtn.style.display = 'none';
+                        if (sub) sub.innerHTML += '<br><span style="color:var(--gold); font-size:12px; font-weight:700;">Menunggu host melanjutkan...</span>';
+                    }
+                }
             }
         });
 
-        socket.on("toast", (data) => {
-            toast(data.msg, data.icon || '♠');
-        });
+        socket.on("toast", (data) => toast(data.msg, data.icon));
 
         socket.on("playerStatus", (data) => {
-            if (data.status === 'offline') {
-                const name = playerNames[data.index] || `P${data.index + 1}`;
-                toast(`${name} terputus. Menunggu kembali...`, '📡');
+            const seat = document.querySelector(`.opponent-seat[data-index="${data.index}"]`);
+            if (seat) {
+                seat.classList.toggle('is-offline', data.status === 'offline');
             }
         });
 
         socket.on("mic-status-updated", (data) => {
-            playerMicStatuses[data.index] = data.isOn;
-            updateMicIcon(data.index, data.isOn);
+            updateMicIcon(data.index, data.isOn); // Use data.isOn from server
         });
 
         socket.on("botAction", (data) => {
-            if (data.action === 'play') {
-                toast(`${data.botName} mengeluarkan kartu.`, '🤖');
-            } else if (data.action === 'draw') {
-                toast(`${data.botName} mengambil kartu deck.`, '🤖');
-            } else if (data.action === 'takeTable') {
-                toast(`${data.botName} mengambil kartu meja.`, '🤖');
-            }
+            const msgs = {
+                play: `${data.botName} memainkan kartu`,
+                draw: `${data.botName} mengambil kartu...`,
+                takeTable: `${data.botName} mengambil kartu dari meja!`,
+            };
+            toast(msgs[data.action] || `${data.botName} bergerak`, '🤖');
         });
 
         socket.on("errorMsg", (data) => {
-            toast(data.msg, '❌');
+            resetMoveLock();
+            toast(data.msg, '⚠️');
         });
 
         socket.on("playerLeft", (data) => {
-            toast(`${data.name} meninggalkan room.`, '🚪');
+            toast(`${data.name || 'Pemain'} meninggalkan meja`, '🚪');
         });
 
         socket.on("emoji", (data) => {
-            if (data.name === myName) return; // Sender already handled it locally
-
-            const isLottie = LOTTIE_EMOJIS.includes(data.emoji) || ['ok', 'cool'].includes(data.emoji);
-
-            if (data.emoji === '⚡recall') {
-                playRecallLottieOnSeat(data.name);
-            } else if (isLottie) {
+            if (data.name === myName) return;
+            // Both show chat bubble and lottie effect
+            showChatOnPlayer(data.name, data.text || data.emoji);
+            if (typeof showLottieEmojiOnSeat === 'function') {
                 showLottieEmojiOnSeat(data.name, data);
-            } else {
-                showEmoji(data.name, data);
             }
+        });
+
+        socket.on('playerJoined', d => toast(d.name + ' bergabung ke meja', '♠'));
+
+        socket.on('disconnect', () => {
+            const overlay = document.getElementById('reconnecting-overlay');
+            if (overlay) overlay.classList.add('show');
+        });
+
+        socket.on('connect', () => {
+            const overlay = document.getElementById('reconnecting-overlay');
+            if (overlay) overlay.classList.remove('show');
+            const sn = localStorage.getItem('remi_name');
+            const sr = localStorage.getItem('remi_room');
+            if (sn && sr && typeof isBypassingUnload !== 'undefined' && isBypassingUnload === false) {
+                socket.emit('joinRoom', { name: sn, room: sr });
+            }
+        });
+
+        socket.on('deckExhausted', d => {
+            toast(d.takerName + ' ambil ' + d.cardCount + ' kartu dari meja! Giliran ke ' + d.nextPlayerName, '🂠');
+        });
+
+        socket.on('waitingForPlayers', d => {
+            const lobbyStatus = document.getElementById('lobby-status');
+            if (lobbyStatus) lobbyStatus.style.display = 'block';
+            toast('Menunggu pemain... (' + d.count + '/4)', '⏳');
         });
 
 
@@ -5689,8 +5784,12 @@
             let seatEl = null;
             document.querySelectorAll('.opponent-seat').forEach(seat => {
                 const nameEl = seat.querySelector('.name-text') || seat.querySelector('.opponent-name');
-                const baseName = nameEl?.innerText?.trim()?.split('\n')[0];
-                if (baseName === senderName) seatEl = seat;
+                const fullName = nameEl?.innerText?.trim() || "";
+                // Match the name portion only (before any icons or spaces)
+                const baseNameInDOM = fullName.split('\n')[0].split(' ')[0].split('\t')[0];
+                const baseSenderName = senderName.split(' ')[0].split('\t')[0];
+
+                if (baseNameInDOM === baseSenderName) seatEl = seat;
             });
             if (!seatEl) return;
 
@@ -6452,108 +6551,14 @@
 
             document.getElementById('leaderboard-panel').classList.remove('show');
             document.getElementById('overlay').classList.remove('show');
+            
+            // 🔥 REMOVE BLUR on restart
+            document.getElementById('game').classList.remove('match-over-blur');
+            document.getElementById('lobby').classList.remove('match-over-blur');
 
             socket.emit('restartGame');
         }
 
-        /* ── GAME OVER ── */
-        socket.on('gameOver', (data) => {
-            const isWinner = (data.winner === myIndex);
-            const winnerName = data.winnerName;
-            const loserName = data.loserName;
-            const isLoser = (data.loser === myIndex);
-
-            const title = document.getElementById('overlay-title');
-            const icon = document.getElementById('overlay-icon');
-            const sub = document.getElementById('overlay-sub');
-            const restartBtn = document.querySelector('#overlay button');
-
-            if (isWinner) {
-                icon.textContent = '🏆';
-                title.textContent = 'Kamu Menang!';
-                title.style.color = 'var(--gold-light)';
-                sub.textContent = 'Hebat! Kamu berhasil menghabiskan semua kartu!';
-            }
-
-            if (restartBtn) {
-                if (data.isMatchEnd) {
-                    restartBtn.style.display = 'none';
-                } else {
-                    const isHost = (myIndex === 0);
-                    restartBtn.style.display = isHost ? 'inline-block' : 'none';
-                    if (!isHost) {
-                        sub.innerHTML = '<span style="color:var(--gold); font-weight:700;">Menunggu host melanjutkan game...</span>';
-                    }
-                }
-            }
-
-            document.getElementById('overlay').classList.add('show');
-            toast('Game selesai!');
-
-            if (data.isMatchEnd) {
-                window.isMatchEndFlag = true;
-                setTimeout(() => {
-                    socket.emit('getLeaderboard');
-                    document.getElementById('overlay').classList.remove('show');
-                }, 2500);
-            }
-        });
-
-        socket.on('playerOut', (data) => {
-            showWinLottie(data.name);
-            const msg = (data.name === myName) ? 'Kamu keluar dari ronde!' : data.name + ' keluar dari ronde!';
-            toast(msg, '🏆');
-        });
-
-        socket.on('playerJoined', d => toast(d.name + ' bergabung ke meja', '♠'));
-        socket.on('playerLeft', d => toast((d.name || 'Pemain') + ' meninggalkan meja', '🚪'));
-
-        socket.on('disconnect', () => {
-            if (isBypassingUnload) return;
-            stopVoice();
-            console.log("Socket disconnected. Showing reconnecting overlay...");
-            document.getElementById('reconnecting-overlay').classList.add('show');
-        });
-
-        socket.on('connect', () => {
-            console.log("Socket connected! Hiding reconnecting overlay...");
-            document.getElementById('reconnecting-overlay').classList.remove('show');
-            resetMoveLock();
-            // Use tracked currentRoom first, then fall back to localStorage
-            const roomToRejoin = currentRoom || localStorage.getItem('remi_room');
-            const nameToRejoin = myName || localStorage.getItem('remi_name');
-            if (nameToRejoin && roomToRejoin) {
-                console.log("Auto-rejoining room:", roomToRejoin);
-                socket.emit('joinRoom', { name: nameToRejoin, room: roomToRejoin });
-            }
-        });
-
-        socket.on('playerStatus', (data) => {
-            console.log("Player status update:", data);
-            const seat = document.querySelector(`.opponent-seat[data-index="${data.index}"]`);
-            if (seat) {
-                seat.classList.toggle('is-offline', data.status === 'offline');
-            }
-        });
-        socket.on('botAction', d => {
-            const msgs = {
-                play: `${d.botName} memainkan kartu ${d.card ? d.card.value + d.card.suit : ''}`,
-                draw: `${d.botName} mengambil kartu dari deck...`,
-                takeTable: `${d.botName} mengambil kartu dari meja!`,
-            };
-            toast(msgs[d.action] || `${d.botName} bergerak`, '🤖');
-        });
-        socket.on('deckExhausted', d => {
-            toast(d.takerName + ' ambil ' + d.cardCount + ' kartu dari meja! Giliran ke ' + d.nextPlayerName, '🂠');
-        });
-        socket.on('waitingForPlayers', d => {
-            document.getElementById('lobby-status').style.display = 'block';
-            toast('Menunggu pemain... (' + d.count + '/4)', '⏳');
-        });
-        socket.on('errorMsg', d => {
-            resetMoveLock(); // Release lock on error
-            toast(d.msg, '⚠️');
-        });
 
         /* ── KEYBOARD ── */
         document.getElementById('name-input').addEventListener('keydown', e => {
@@ -6701,10 +6706,15 @@
             location.reload();
         }
 
-        // Google Init
+        // Google Init & Page Load
         window.onload = function () {
+            // First onload logic (auto-join)
+            const sn = localStorage.getItem('remi_name');
+            if (sn) joinRoom();
+
+            // Google login logic
             google.accounts.id.initialize({
-                client_id: "568103016226-rbmjn2577vshs1cjmdpd8ofm3qeko5p1.apps.googleusercontent.com", // Change in .env too
+                client_id: "568103016226-rbmjn2577vshs1cjmdpd8ofm3qeko5p1.apps.googleusercontent.com",
                 callback: handleGoogleCallback
             });
             google.accounts.id.renderButton(
@@ -6717,8 +6727,8 @@
             if (token) {
                 socket.emit("auth", token);
                 const user = JSON.parse(localStorage.getItem('sc_user') || '{}');
-                if (user.username) {
-                    document.querySelector('.btn-login-header').innerText = 'Profile';
+                if (user.username || user.id) {
+                    syncHeaderAuth();
                     if (document.getElementById('name-input')) document.getElementById('name-input').value = user.username;
                 }
             }

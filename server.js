@@ -1226,14 +1226,16 @@ io.on("connection", (socket) => {
 
     if (game.players.length < MIN_PLAYERS) return;
 
-    // 🔥 NEW: Reset Match jika sudah selesai
+    // 🔥 NEW: Reset Match jika sudah selesai atau diset paksa oleh logic ini
     const isMatchEnd = game.roundCount >= game.maxRounds || game.roundCount === 0;
+    
     if (isMatchEnd) {
-        console.log(`[${currentRoom}] Match Reset: Resetting roundCount and leaderboard.`);
-        game.roundCount = 0;
+        console.log(`[${currentRoom}] 🔥 MATCH RESETTING: Round hit ${game.roundCount}/${game.maxRounds}. Starting new session.`);
+        game.roundCount = 0; // startGame akan increment jadi 1
         game.leaderboard = {};
-        // Notify everyone that leaderboard is now empty
         io.to(currentRoom).emit("leaderboardData", []);
+    } else {
+        console.log(`[${currentRoom}] Continuing Match: Round ${game.roundCount}/${game.maxRounds} -> ${game.roundCount + 1}/${game.maxRounds}`);
     }
 
     startGame(game);
