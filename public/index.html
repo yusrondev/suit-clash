@@ -210,7 +210,6 @@
         }
 
         .profile-info h3 {
-            font-family: 'Playfair Display', serif;
             font-size: 20px;
             color: var(--gold-light);
             margin-bottom: 4px;
@@ -3437,11 +3436,11 @@
         <div class="room-box">
             <div>
                 <label>Nama Pemain</label>
-                <input id="name-input" type="text" placeholder="Masukkan namamu..." maxlength="16" />
+                <input id="name-input" type="text" autocomplete="off" placeholder="Masukkan namamu..." maxlength="16" />
             </div>
             <div>
                 <label>Kode Room</label>
-                <input id="room-input" type="text" placeholder="Ketik kode room..." maxlength="12" />
+                <input id="room-input" autocomplete="off" type="text" placeholder="Ketik kode room..." maxlength="12" />
             </div>
             <button class="btn-gold" onclick="preJoinRoom()">Masuk Meja</button>
             <button
