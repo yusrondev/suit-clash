@@ -465,49 +465,55 @@ function checkEnd(game, roomId) {
 
     console.log(`Game selesai! ${loser.name} kalah`);
 
-    // 🔥 HITUNG POIN BERDASARKAN URUTAN
-    const pointsTable = [10, 7, 5, 3]; // bisa adjust
+    // 🔥 Kirim state terakhir agar kartu terakhir terlihat di meja sebelum overlay muncul
+    sendState(game);
 
-    game.outOrder.forEach((playerIndex, rank) => {
-      const player = game.players[playerIndex];
-      const point = pointsTable[rank] || 1;
+    // 🔥 TUNTUTAN USER: Kasih jeda sebelum alert/overlay win muncul (1.5 detik)
+    setTimeout(async () => {
+        // 🔥 HITUNG POIN BERDASARKAN URUTAN
+        const pointsTable = [10, 7, 5, 3]; // bisa adjust
 
-      if (!game.leaderboard[player.name]) {
-        game.leaderboard[player.name] = { win: 0, lose: 0, point: 0 };
-      }
+        game.outOrder.forEach((playerIndex, rank) => {
+          const player = game.players[playerIndex];
+          const point = pointsTable[rank] || 1;
 
-      game.leaderboard[player.name].win += 1;
-      game.leaderboard[player.name].point += point;
-    });
-
-    // ❌ loser
-    if (!game.leaderboard[loser.name]) {
-      game.leaderboard[loser.name] = { win: 0, lose: 0, point: 0 };
-    }
-    game.leaderboard[loser.name].lose += 1;
-
-    const isMatchEnd = game.roundCount >= game.maxRounds;
-
-    io.to(roomId).emit("gameOver", {
-      loserName: loser.name,
-      isMatchEnd: isMatchEnd,
-    });
-
-    game.started = false;
-
-    // 🔥 TUNTUTAN USER: Update Total Pertandingan (matches_played) hanya untuk non-bot match
-    // Dan hanya bertambah di akhir seluruh pertandingan (Match), bukan tiap ronde.
-    const isBotMatch = game.players.some(pl => pl.isBot);
-    if (!isBotMatch && isMatchEnd) {
-      game.players.forEach(async (p) => {
-        if (p.dbId) {
-          const newStats = await updateUserStats(p.dbId, 0, 1);
-          if (newStats && p.id) {
-            io.to(p.id).emit("sync-stats", newStats);
+          if (!game.leaderboard[player.name]) {
+            game.leaderboard[player.name] = { win: 0, lose: 0, point: 0 };
           }
+
+          game.leaderboard[player.name].win += 1;
+          game.leaderboard[player.name].point += point;
+        });
+
+        // ❌ loser
+        if (!game.leaderboard[loser.name]) {
+          game.leaderboard[loser.name] = { win: 0, lose: 0, point: 0 };
         }
-      });
-    }
+        game.leaderboard[loser.name].lose += 1;
+
+        const isMatchEnd = game.roundCount >= game.maxRounds;
+
+        io.to(roomId).emit("gameOver", {
+          loserName: loser.name,
+          isMatchEnd: isMatchEnd,
+        });
+
+        game.started = false;
+
+        // 🔥 TUNTUTAN USER: Update Total Pertandingan (matches_played) hanya untuk non-bot match
+        // Dan hanya bertambah di akhir seluruh pertandingan (Match), bukan tiap ronde.
+        const isBotMatch = game.players.some(pl => pl.isBot);
+        if (!isBotMatch && isMatchEnd) {
+          game.players.forEach(async (p) => {
+            if (p.dbId) {
+              const newStats = await updateUserStats(p.dbId, 0, 1);
+              if (newStats && p.id) {
+                io.to(p.id).emit("sync-stats", newStats);
+              }
+            }
+          });
+        }
+    }, 1500);
 
     return true;
   }
@@ -698,6 +704,9 @@ function startGame(game) {
 
 // ── SOCKET ────────────────────────────────────────────────────────────────────
 io.on("connection", (socket) => {
+  socket.on('ping_lat', (callback) => {
+    if (typeof callback === 'function') callback();
+  });
   let currentRoom = null;
   let playerIndex = -1;
   let userId = null;

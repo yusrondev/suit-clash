@@ -2682,19 +2682,33 @@
             position: fixed;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%) scale(0.95);
-            width: 85%;
-            max-width: 320px;
-            background: rgba(15, 23, 42, 0.95);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: 24px;
-            z-index: 9999;
+            transform: translate(-50%, -50%) scale(0.9);
+            width: 90%;
+            max-width: 380px;
+            background: linear-gradient(145deg, rgba(15, 23, 42, 0.9), rgba(8, 15, 30, 0.95));
+            backdrop-filter: blur(30px) saturate(160%);
+            -webkit-backdrop-filter: blur(30px) saturate(160%);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 32px;
+            padding: 32px;
+            z-index: 100000;
             opacity: 0;
             pointer-events: none;
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+        }
+
+        .leaderboard-panel::before {
+            content: '';
+            position: fixed;
+            inset: -200vh;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            pointer-events: none;
         }
 
         .leaderboard-panel.show {
@@ -2703,52 +2717,68 @@
             pointer-events: all;
         }
 
+        .leaderboard-panel.show::before {
+            opacity: 1;
+        }
+
         .lb-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            font-size: 20px;
-            font-weight: 900;
-            color: var(--gold);
+            margin-bottom: 24px;
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--gold-light);
+            letter-spacing: 1px;
         }
 
         .lb-header button {
-            background: rgba(255, 255, 255, 0.05);
-            border: none;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             color: var(--cream);
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            border-radius: 12px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
-            transition: background 0.2s;
+            font-size: 16px;
+            transition: all 0.2s;
         }
 
         .lb-header button:hover {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.15);
+            transform: rotate(90deg);
         }
 
         .lb-list {
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            max-height: 350px;
+            gap: 12px;
+            max-height: 400px;
             overflow-y: auto;
-            padding-right: 4px;
+            padding-right: 6px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--gold) transparent;
+        }
+
+        .lb-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        .lb-list::-webkit-scrollbar-thumb {
+            background: var(--gold);
+            border-radius: 10px;
         }
 
         .lb-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 12px 16px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 14px;
+            padding: 14px 18px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
             transition: transform 0.2s, background 0.2s;
         }
 
@@ -2836,10 +2866,23 @@
             padding: 4px 10px;
             border-radius: 12px;
             font-size: 12px;
-            font-weight: 600;
-            margin-right: 8px;
+            font-weight: 700;
+            margin-right : 7px;
+        }
+
+        #ping-badge {
+            background: rgba(255, 255, 255, 0.05);
+            color: #4ade80; /* Green default */
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 4px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            margin-left: 8px;
+            transition: all 0.3s;
             display: none;
             align-items: center;
+            gap: 4px;
         }
 
         #lobby-user-list {
@@ -3286,6 +3329,7 @@
             <div id="round-badge" style="display: none;">1/7</div>
             <button id="leaderboard-btn" onclick="openLeaderboard()" style="display: none;"><i
                     class="fa-solid fa-trophy"></i></button>
+            <div id="ping-badge">0ms</div>
         </div>
         <div id="header-right">
             <div id="lobby-auth">
@@ -3303,7 +3347,7 @@
 
     <div id="leaderboard-panel" class="leaderboard-panel">
         <div class="lb-header">
-            <div>🏆 Leaderboard</div>
+            <div><i class="fa-solid fa-award"></i> Leaderboard</div>
             <button id="lb-close-btn" onclick="closeLeaderboard()">✖</button>
         </div>
 
@@ -5116,6 +5160,7 @@
             
             document.getElementById('hud-top').style.display = 'flex';
             document.getElementById('leaderboard-btn').style.display = 'flex';
+            document.getElementById('ping-badge').style.display = 'flex';
 
             // Show voice and text FABs as soon as joined
             document.getElementById('voice-fab').style.display = 'flex';
@@ -5165,6 +5210,7 @@
                 document.getElementById('hud-top').style.display = 'none';
                 syncHeaderAuth();
                 document.getElementById('leaderboard-btn').style.display = 'none';
+                document.getElementById('ping-badge').style.display = 'none';
 
                 // Hide inputs but NOT the lobby-status
                 document.querySelectorAll('.room-box > div:not(.waiting-msg)').forEach(d => d.style.display = 'none');
@@ -5856,6 +5902,7 @@
         socket.on('connect', () => {
             const overlay = document.getElementById('reconnecting-overlay');
             if (overlay) overlay.classList.remove('show');
+            startPingLoop();
             const sn = localStorage.getItem('remi_name');
             const sr = localStorage.getItem('remi_room');
             if (sn && sr && typeof isBypassingUnload !== 'undefined' && isBypassingUnload === false) {
@@ -5872,6 +5919,26 @@
             if (lobbyStatus) lobbyStatus.style.display = 'block';
             toast('Menunggu pemain... (' + d.count + '/4)', '⏳');
         });
+
+        /* ── PING LOOP ── */
+        let pingInterval = null;
+        function startPingLoop() {
+            if (pingInterval) clearInterval(pingInterval);
+            const badge = document.getElementById('ping-badge');
+
+            pingInterval = setInterval(() => {
+                const start = Date.now();
+                socket.emit('ping_lat', () => {
+                    const latency = Date.now() - start;
+                    if (badge) {
+                        badge.innerText = `${latency}ms`;
+                        if (latency <= 60) badge.style.color = '#4ade80';
+                        else if (latency < 100) badge.style.color = '#fb923c';
+                        else badge.style.color = '#f87171';
+                    }
+                });
+            }, 3000);
+        }
 
 
         function showLottieEmojiOnSeat(senderName, data) {
