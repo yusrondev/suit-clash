@@ -14,6 +14,12 @@ const path = require("path");
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
+// ── SECURITY HEADERS FOR GOOGLE AUTH ─────────────────────────────────────────
+app.use((req, res, next) => {
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+  next();
+});
+
 // ── AUTH ENDPOINTS ───────────────────────────────────────────────────────────
 app.post("/api/auth/register", async (req, res) => {
   const { username, email, password } = req.body;
@@ -59,20 +65,42 @@ app.post("/api/auth/google", async (req, res) => {
   if (!email || !googleId) return res.status(400).json({ success: false, msg: "Invalid Google data." });
 
   try {
-    const result = await db.query(
-      `INSERT INTO users (username, email, google_id, avatar_url) 
-       VALUES ($1, $2, $3, $4) 
-       ON CONFLICT (email) DO UPDATE 
-       SET google_id = EXCLUDED.google_id, avatar_url = EXCLUDED.avatar_url
-       RETURNING id, username, email, gold, diamonds, wins, matches_played`,
-      [name, email, googleId, avatar]
-    );
-    const user = result.rows[0];
+    // 1. Cek apakah email sudah ada
+    let result = await db.query("SELECT * FROM users WHERE email = $1", [email]);
+    let user;
+
+    if (result.rows.length > 0) {
+      // 2. Jika sudah ada, update google_id dan avatar
+      user = result.rows[0];
+      const updateRes = await db.query(
+        "UPDATE users SET google_id = $1, avatar_url = $2 WHERE id = $3 RETURNING id, username, email, gold, diamonds, wins, matches_played, avatar_url",
+        [googleId, avatar, user.id]
+      );
+      user = updateRes.rows[0];
+    } else {
+      // 3. Jika belum ada, coba insert dengan username unik
+      let finalUsername = name || email.split('@')[0];
+      
+      // Pastikan username tidak bentrok
+      const nameCheck = await db.query("SELECT id FROM users WHERE username = $1", [finalUsername]);
+      if (nameCheck.rows.length > 0) {
+        finalUsername = finalUsername + Math.floor(Math.random() * 1000);
+      }
+
+      const insertRes = await db.query(
+        `INSERT INTO users (username, email, google_id, avatar_url) 
+         VALUES ($1, $2, $3, $4) 
+         RETURNING id, username, email, gold, diamonds, wins, matches_played, avatar_url`,
+        [finalUsername, email, googleId, avatar]
+      );
+      user = insertRes.rows[0];
+    }
+
     const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET);
     res.json({ success: true, token, user });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, msg: "Google login failed." });
+    console.error("GOOGLE AUTH ERROR:", err);
+    res.status(500).json({ success: false, msg: "Google login failed: " + err.message });
   }
 });
 
