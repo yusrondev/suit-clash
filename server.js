@@ -441,6 +441,17 @@ function checkEnd(game, roomId) {
       io.to(roomId).emit("playerOut", {
         name: p.name,
       });
+
+      // 🔥 TUNTUTAN USER: Update Total Menang (wins) hanya untuk juara 1 (Rank 1)
+      // Dan hanya jika BUKAN mode Bot
+      const isBotMatch = game.players.some(pl => pl.isBot);
+      if (game.outOrder.length === 1 && !isBotMatch && p.dbId) {
+        updateUserStats(p.dbId, 1, 0).then(newStats => {
+          if (newStats && p.id) {
+            io.to(p.id).emit("sync-stats", newStats);
+          }
+        });
+      }
     }
   });
 
@@ -581,15 +592,7 @@ function resolveRound(game, roomId) {
     roundCards: game.roundCards,
   });
 
-  // 🔥 TUNTUTAN USER: Update Total Menang (wins) untuk round winner
-  const roundWinner = game.players[winnerIndex];
-  if (roundWinner && roundWinner.dbId) {
-    updateUserStats(roundWinner.dbId, 1, 0).then(newStats => {
-      if (newStats && roundWinner.id) {
-        io.to(roundWinner.id).emit("sync-stats", newStats);
-      }
-    });
-  }
+  // Wins are now handled in checkEnd for the overall match winner (Rank 1)
 
   game.roundCards = [];
   game.tableHistory = []; // 🔥 Bersihkan meja setelah ronde selesai
