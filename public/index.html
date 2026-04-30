@@ -4538,10 +4538,19 @@
         function preJoinRoom() {
             const ni = document.getElementById('name-input');
             const ri = document.getElementById('room-input');
-            const name = ni.value.trim() || localStorage.getItem('remi_name') || 'Pemain';
-            const room = ri.value.trim() || localStorage.getItem('remi_room') || 'default';
+            const name = ni.value.trim();
+            const room = ri.value.trim();
 
-            if (!name) { toast('Masukkan namamu dulu!', '⚠️'); return; }
+            if (!name) { 
+                toast('Nama pemain tidak boleh kosong!', '👤'); 
+                ni.focus();
+                return; 
+            }
+            if (!room) { 
+                toast('Kode room tidak boleh kosong!', '🔑'); 
+                ri.focus();
+                return; 
+            }
 
             localStorage.setItem('remi_name', name);
             localStorage.setItem('remi_room', room);
