@@ -495,15 +495,19 @@ function checkEnd(game, roomId) {
 
     game.started = false;
 
-    // 🔥 TUNTUTAN USER: Update Total Pertandingan (matches_played) untuk semua authenticated players
-    game.players.forEach(async (p) => {
-      if (p.dbId) {
-        const newStats = await updateUserStats(p.dbId, 0, 1);
-        if (newStats && p.id) {
-          io.to(p.id).emit("sync-stats", newStats);
+    // 🔥 TUNTUTAN USER: Update Total Pertandingan (matches_played) hanya untuk non-bot match
+    // Dan hanya bertambah di akhir seluruh pertandingan (Match), bukan tiap ronde.
+    const isBotMatch = game.players.some(pl => pl.isBot);
+    if (!isBotMatch && isMatchEnd) {
+      game.players.forEach(async (p) => {
+        if (p.dbId) {
+          const newStats = await updateUserStats(p.dbId, 0, 1);
+          if (newStats && p.id) {
+            io.to(p.id).emit("sync-stats", newStats);
+          }
         }
-      }
-    });
+      });
+    }
 
     return true;
   }
