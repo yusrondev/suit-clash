@@ -1905,7 +1905,7 @@
 
         #match-timer {
             color: var(--gold-light);
-            padding: 4px 10px;
+            padding: 2px 8px;
             border-radius: 10px;
             font-size: 11px;
             font-weight: 700;
@@ -1920,11 +1920,6 @@
                 padding: 2px 8px;
                 font-size: 10px;
             }
-        }
-
-        #match-timer::before {
-            content: '⏱';
-            font-size: 12px;
         }
 
         @keyframes toastIn {
@@ -2862,12 +2857,11 @@
         #round-badge {
             background: rgba(212, 175, 55, 0.1);
             color: var(--gold-light);
-            border: 1px solid rgba(212, 175, 55, 0.3);
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 12px;
+            /* border: 1px solid rgba(212, 175, 55, 0.3); */
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 10px;
             font-weight: 700;
-            margin-right : 7px;
         }
 
         #ping-badge {
@@ -3323,19 +3317,23 @@
     <header id="main-header">
         <div class="logo">
             <img src="/assets/images/logo.png" class="img-logo" alt="SuitClash">
-            <div id="match-timer">00:00</div>
+            <div style="display: flex; align-items: center; margin-top: -2px;">
+                <div style="display: flex;border: 1px solid rgba(212, 175, 55, 0.3);border-radius: 10px;">
+                    <div id="round-badge" style="display: none;">1/7</div>
+                    <div id="match-timer">00:00</div>
+                </div>
+            </div>
         </div>
         <div id="header-center" style="display: flex; align-items: center; justify-content: center;">
-            <div id="round-badge" style="display: none;">1/7</div>
             <button id="leaderboard-btn" onclick="openLeaderboard()" style="display: none;"><i
                     class="fa-solid fa-trophy"></i></button>
-            <div id="ping-badge">0ms</div>
         </div>
         <div id="header-right">
             <div id="lobby-auth">
                 <button class="btn-login-header" onclick="toggleProfile()">Login / Register</button>
             </div>
             <div id="hud-top" style="display:none;">
+                <div id="ping-badge">0ms</div>
                 <button class="btn-setting" onclick="settingComponent()"><i class="fa-solid fa-gear"></i></button>
                 <button class="btn-leave" onclick="confirmLeaveRoom()"><i
                         class="fa-solid fa-arrow-right-from-bracket"></i></button>
