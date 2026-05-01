@@ -222,7 +222,15 @@ app.get("/api/user/inventory", authenticateToken, async (req, res) => {
       JOIN shop_items s ON i.item_id = s.id 
       WHERE i.user_id = $1
     `, [req.user.id]);
-    res.json({ success: true, inventory: result.rows });
+
+    const userRes = await db.query("SELECT equipped_emojis FROM users WHERE id = $1", [req.user.id]);
+    const equipped = userRes.rows[0].equipped_emojis || [];
+
+    res.json({ 
+      success: true, 
+      inventory: result.rows,
+      equipped_emojis: equipped
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, msg: "Failed to fetch inventory." });
@@ -232,34 +240,30 @@ app.get("/api/user/inventory", authenticateToken, async (req, res) => {
 app.post("/api/user/inventory/toggle-equip", authenticateToken, async (req, res) => {
   const { itemId } = req.body;
   const userId = req.user.id;
+  const itemIdStr = itemId.toString();
 
   try {
-    // 1. Check if item is already in inventory
-    const checkRes = await db.query("SELECT is_equipped FROM user_inventory WHERE user_id = $1 AND item_id = $2", [userId, itemId]);
-    
-    if (checkRes.rows.length > 0) {
-      const currentStatus = checkRes.rows[0].is_equipped;
-      
-      // If equipping, check limit
-      if (!currentStatus) {
-        const countRes = await db.query("SELECT count(*) FROM user_inventory WHERE user_id = $1 AND is_equipped = TRUE", [userId]);
-        if (parseInt(countRes.rows[0].count) >= 10) {
-          return res.json({ success: false, msg: "Maksimal 10 emoji di menu!" });
-        }
+    // Get current equipped list
+    const userRes = await db.query("SELECT equipped_emojis FROM users WHERE id = $1", [userId]);
+    let equipped = userRes.rows[0].equipped_emojis || [];
+
+    const index = equipped.indexOf(itemIdStr);
+    if (index > -1) {
+      // Unequip
+      if (equipped.length <= 1) {
+        return res.json({ success: false, msg: "Minimal harus ada 1 emoji!" });
       }
-      
-      await db.query("UPDATE user_inventory SET is_equipped = $1 WHERE user_id = $2 AND item_id = $3", [!currentStatus, userId, itemId]);
-      res.json({ success: true, is_equipped: !currentStatus });
+      equipped.splice(index, 1);
     } else {
-      // It's a default item (free)
-      const countRes = await db.query("SELECT count(*) FROM user_inventory WHERE user_id = $1 AND is_equipped = TRUE", [userId]);
-      if (parseInt(countRes.rows[0].count) >= 10) {
+      // Equip
+      if (equipped.length >= 10) {
         return res.json({ success: false, msg: "Maksimal 10 emoji di menu!" });
       }
-      
-      await db.query("INSERT INTO user_inventory (user_id, item_id, is_equipped) VALUES ($1, $2, TRUE)", [userId, itemId]);
-      res.json({ success: true, is_equipped: true });
+      equipped.push(itemIdStr);
     }
+
+    await db.query("UPDATE users SET equipped_emojis = $1 WHERE id = $2", [equipped, userId]);
+    res.json({ success: true, equipped_emojis: equipped });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, msg: "Gagal mengubah status equipment." });

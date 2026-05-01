@@ -4587,10 +4587,8 @@
                     const invData = await invRes.json();
                     if (invData.success) {
                         myInventory = invData.inventory;
-                        // Sync active emojis from server
-                        activeEmojiIds = myInventory
-                            .filter(i => i.is_equipped)
-                            .map(i => i.item_id.toString());
+                        // Sync active emojis from server (new array-based system)
+                        activeEmojiIds = invData.equipped_emojis || [];
                     }
                 }
 
