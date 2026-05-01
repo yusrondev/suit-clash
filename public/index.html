@@ -6834,12 +6834,16 @@
             document.getElementById('table-spread-area').classList.remove('drop-target');
 
             if (dragInfo.isDragging) {
-                if (isOver) {
+                const playable = dragInfo.el.dataset.playable === 'true';
+                if (isOver && playable) {
                     // Play card!
                     playCardByIndex(dragInfo.index, dragInfo.el, true);
                 } else {
                     // Snap back
                     dragInfo.el.classList.remove('dragging');
+                    if (isOver && !playable) {
+                        toast("Kartu ini tidak bisa dikeluarkan (Suit tidak cocok)", "⚠️");
+                    }
                 }
 
                 if (dragInfo.ghost) {
