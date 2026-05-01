@@ -6743,6 +6743,22 @@
                 handlePointerUp(ev); // Treat cancel as up
             };
 
+            el.onpointermove = (ev) => {
+                const dist = Math.hypot(ev.clientX - e.clientX, ev.clientY - e.clientY);
+                if (dist > 10) {
+                    if (peekTimeout) {
+                        clearTimeout(peekTimeout);
+                        peekTimeout = null;
+                    }
+                    if (localPeekIndex !== null) {
+                        localPeekIndex = null;
+                        el.classList.remove('peeking');
+                        socket.emit('peekCard', { index: null });
+                    }
+                }
+                if (isMyTurn && dragInfo.index !== null) handlePointerMove(ev);
+            };
+
             if (!isMyTurn) return;
 
             // Record drag start
@@ -6751,8 +6767,6 @@
             dragInfo.startX = e.clientX;
             dragInfo.startY = e.clientY;
             dragInfo.isDragging = false; // Haven't moved yet
-
-            el.onpointermove = (ev) => handlePointerMove(ev);
         }
 
         function cleanupPointerHandlers(el) {
