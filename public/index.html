@@ -4454,7 +4454,9 @@
             backdrop.classList.add('show');
 
             confirmBtn.onclick = async () => {
-                closeBuyConfirm();
+                confirmBtn.disabled = true;
+                confirmBtn.innerText = 'Memproses...';
+
                 try {
                     const res = await fetch('/api/shop/buy', {
                         method: 'POST',
@@ -4464,31 +4466,44 @@
                         },
                         body: JSON.stringify({ itemId, currency })
                     });
-                    const data = await res.json();
-                    if (!data.success) throw new Error(data.msg);
-
-                    toast('Berhasil membeli item!', '🎉');
                     
-                    // Auto-equip item (add to active list if not already there)
-                    if (!activeEmojiIds.includes(itemId.toString())) {
-                        if (activeEmojiIds.length < 10) {
-                            activeEmojiIds.push(itemId.toString());
-                            localStorage.setItem('sc_active_emojis', JSON.stringify(activeEmojiIds));
+                    const contentType = res.headers.get("content-type");
+                    if (contentType && contentType.includes("application/json")) {
+                        const data = await res.json();
+                        if (!data.success) throw new Error(data.msg);
+
+                        closeBuyConfirm();
+                        toast('Berhasil membeli item!', '🎉');
+                        
+                        // Auto-equip item (add to active list if not already there)
+                        if (!activeEmojiIds.includes(itemId.toString())) {
+                            if (activeEmojiIds.length < 10) {
+                                activeEmojiIds.push(itemId.toString());
+                                localStorage.setItem('sc_active_emojis', JSON.stringify(activeEmojiIds));
+                            }
                         }
-                    }
 
-                    // Sync user stats & inventory
-                    const user = JSON.parse(localStorage.getItem('sc_user') || '{}');
-                    if (currency === 'gold') user.gold = (user.gold || 0) - data.price;
-                    if (currency === 'diamonds') user.diamonds = (user.diamonds || 0) - data.price;
-                    localStorage.setItem('sc_user', JSON.stringify(user));
-                    
-                    await loadInventory(); // Re-fetch inventory from server
-                    loadShopItems();      // Refresh shop UI
-                    renderInventoryUI();  // Update inventory modal if open
-                    renderEmojiFAB();     // Update the floating action button menu
+                        // Sync user stats & inventory
+                        const user = JSON.parse(localStorage.getItem('sc_user') || '{}');
+                        const updatedUser = { ...user, ...data.user };
+                        localStorage.setItem('sc_user', JSON.stringify(updatedUser));
+                        updateEconomyUI(updatedUser);
+                        
+                        await loadInventory(); // Re-fetch inventory from server
+                        loadShopItems();      // Refresh shop UI
+                        renderInventoryUI();  // Update inventory modal if open
+                        renderEmojiFAB();     // Update the floating action button menu
+                    } else {
+                        // Respon bukan JSON (biasanya HTML error dari server/proxy)
+                        const text = await res.text();
+                        console.error("Non-JSON response:", text);
+                        throw new Error("Server mengalami gangguan (Respon bukan JSON).");
+                    }
                 } catch (err) {
                     toast(err.message, '❌');
+                } finally {
+                    confirmBtn.disabled = false;
+                    confirmBtn.innerText = 'Beli & Pasang';
                 }
             };
         }

@@ -197,7 +197,7 @@ app.post("/api/shop/buy", authenticateToken, async (req, res) => {
   } catch (err) {
     await client.query('ROLLBACK');
     console.error(err);
-    res.status(400).json({ success: false, msg: err.message || "Pembelian gagal." });
+    res.json({ success: false, msg: err.message || "Pembelian gagal." });
   } finally {
     client.release();
   }
