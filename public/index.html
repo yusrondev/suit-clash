@@ -3669,7 +3669,23 @@
             color: white;
         }
 
+        /* ── ADS STYLING ── */
+        .ad-container {
+            width: 100%;
+            margin: 15px 0;
+            min-height: 90px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border: 1px dashed rgba(212, 175, 55, 0.1);
+        }
     </style>
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
+    
     <!-- External Shop Styles -->
     <link rel="stylesheet" href="/css/shop.css">
 </head>
@@ -3738,6 +3754,18 @@
         <div class="shop-content" id="shop-items-container">
             <!-- Items will be loaded here -->
         </div>
+
+        <!-- Shop Bottom Ad -->
+        <div class="ad-container">
+            <ins class="adsbygoogle"
+                 style="display:block"
+                 data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+                 data-ad-slot="XXXXXXXXXX"
+                 data-ad-format="auto"
+                 data-full-width-responsive="true"></ins>
+            <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+        </div>
+
         <div id="shop-guest-shield" class="shop-guest-shield">
             <div id="shop-guest-overlay" class="shop-guest-overlay">
                 <div style="font-size: 56px; margin-bottom: 25px;">🔒</div>
@@ -3915,6 +3943,18 @@
                 style="margin-top:8px; width:100%; padding:14px; border:1px solid rgba(212,175,55,0.3); border-radius:12px; background:rgba(212,175,55,0.07); color:var(--gold-light); font-size:14px; font-weight:700; letter-spacing:1px; cursor:pointer; transition:all 0.2s;"
                 onclick="joinWithBot()" onmouseover="this.style.background='rgba(212,175,55,0.15)'"
                 onmouseout="this.style.background='rgba(212,175,55,0.07)'">Main vs Bot 🤖</button>
+            
+            <!-- Lobby Main Ad -->
+            <div class="ad-container">
+                <ins class="adsbygoogle"
+                     style="display:block"
+                     data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+                     data-ad-slot="XXXXXXXXXX"
+                     data-ad-format="auto"
+                     data-full-width-responsive="true"></ins>
+                <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+            </div>
+
             <div id="lobby-status" class="waiting-msg" style="display:none; width: 100%;">
                 
                 <div class="glass-config-card">
