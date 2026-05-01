@@ -905,6 +905,8 @@
             height: 32px;
             width: 70px;
             justify-content: center;
+            perspective: 800px;
+            transform-style: preserve-3d;
         }
 
         .opp-card-back {
@@ -919,6 +921,74 @@
                 repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.05) 0px, rgba(255, 255, 255, 0.05) 2px, transparent 2px, transparent 6px),
                 repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.05) 0px, rgba(255, 255, 255, 0.05) 2px, transparent 2px, transparent 6px);
             transition: transform 0.2s;
+        }
+
+        /* 🔥 EFFECT: REVEAL CARD 🔥 */
+        .opp-card-front {
+            position: absolute;
+            width: 28px;
+            height: 42px;
+            border-radius: 5px;
+            background: white;
+            border: 1px solid #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            font-weight: 900;
+            color: black;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.9), 0 5px 20px rgba(0,0,0,0.6);
+            z-index: 9999 !important;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            animation: peekPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            backface-visibility: hidden;
+            transform-style: preserve-3d;
+        }
+        .opp-card-front.red-card { color: var(--red); }
+        .opp-card-front .val { line-height: 0.8; }
+        .opp-card-front .suit { font-size: 11px; line-height: 1; }
+
+        @keyframes peekPop {
+            0% { 
+                transform: translate(-50%, 20px) translateZ(0px) scale(0.4) rotateY(-180deg) rotateX(20deg); 
+                opacity: 0; 
+            }
+            60% {
+                transform: translate(-50%, -120%) translateZ(120px) scale(1.5) rotateY(10deg) rotateX(-10deg);
+                opacity: 1;
+            }
+            100% { 
+                transform: translate(-50%, -110%) translateZ(100px) scale(1.4) rotateY(0deg) rotateX(0deg); 
+                opacity: 1; 
+            }
+        }
+
+        .hand-card.peeking {
+            box-shadow: 0 0 25px var(--gold) !important;
+            border: 2px solid var(--gold) !important;
+            z-index: 9999 !important;
+        }
+
+        .hand-card.peeking::before {
+            content: "\f06e";
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            position: absolute;
+            top: -45px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 22px;
+            color: var(--gold-light);
+            filter: drop-shadow(0 0 8px var(--gold));
+            animation: eyeIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none;
+            z-index: 10000;
+        }
+
+        @keyframes eyeIn {
+            0% { opacity: 0; transform: translateX(-50%) translateY(10px) scale(0.5); }
+            100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
         }
 
         .badge-ctrl {
@@ -1674,8 +1744,12 @@
         }
 
         .hand-card.invalid {
-            filter: brightness(0.45) saturate(0.2);
+            background: #444;
+            border-color: #333;
             cursor: not-allowed;
+        }
+        .hand-card.invalid > div {
+            filter: brightness(0.5) saturate(0.2);
         }
 
         .hand-card .hv,
@@ -3843,6 +3917,9 @@
         const socket = io();
         let isBypassingUnload = false;
         let kickTargetIndex = -1;
+        let peekStates = {}; // { playerIndex: { cardIndex, card } }
+        let peekTimeout = null; // 🔥 Timer untuk delay hold
+        let localPeekIndex = null; // 🔥 Indikator kartu yang sedang di-hold sendiri
 
         let matchStartTime = 0;
         let matchTimerInterval = null;
@@ -5924,6 +6001,16 @@
             updateMicIcon(data.index, data.isOn); // Use data.isOn from server
         });
 
+        socket.on("peekState", (data) => {
+            const { playerIndex, cardIndex, card } = data;
+            if (cardIndex === null) {
+                delete peekStates[playerIndex];
+            } else {
+                peekStates[playerIndex] = { cardIndex, card };
+            }
+            if (lastState) renderOpponents(lastState);
+        });
+
         socket.on("botAction", (data) => {
             const msgs = {
                 play: `${data.botName} memainkan kartu`,
@@ -5936,6 +6023,15 @@
         socket.on("errorMsg", (data) => {
             resetMoveLock();
             toast(data.msg, '⚠️');
+            // Jika belum masuk game, kembalikan input agar bisa diedit
+            if (!lastState || !lastState.started) {
+                const ni = document.getElementById('name-input');
+                const ri = document.getElementById('room-input');
+                if (ni) ni.disabled = false;
+                if (ri) ri.disabled = false;
+                const ls = document.getElementById('lobby-status');
+                if (ls) ls.style.display = 'none';
+            }
         });
 
         socket.on("playerLeft", (data) => {
@@ -6332,10 +6428,24 @@
                 // Fan of card backs
                 let cardsHtml = '';
                 const maxDisplay = Math.min(cnt, 8);
+                const peek = peekStates[i];
+
                 for (let j = 0; j < maxDisplay; j++) {
                     const angle = (j - (maxDisplay - 1) / 2) * 7;
                     const shift = (j - (maxDisplay - 1) / 2) * 10;
                     cardsHtml += `<div class="opp-card-back" style="transform: rotate(${angle}deg) translateX(${shift}px); z-index:${j}"></div>`;
+                }
+
+                // 🔥 TUNTUTAN USER: Pastikan kartu yang dibuka ada di paling depan (last child)
+                if (peek && peek.card) {
+                    const c = peek.card;
+                    const red = (c.suit === '♥' || c.suit === '♦');
+                    cardsHtml += `
+                        <div class="opp-card-front ${red ? 'red-card' : ''}" style="left: 50%; top: 50%; z-index:9999">
+                            <div class="val">${escHtml(c.value)}</div>
+                            <div class="suit">${c.suit}</div>
+                        </div>
+                    `;
                 }
                 if (cardsEl.innerHTML !== cardsHtml) {
                     cardsEl.innerHTML = cardsHtml;
@@ -6487,8 +6597,10 @@
                 const scale = isSelected ? 1.06 : 1;
 
                 div.className = `hand-card ${red ? 'red-card' : 'black-card'} ${playable ? 'playable' : (myTurn ? 'invalid' : '')} ${isSelected ? 'selected' : ''}`;
+                if (localPeekIndex === i) div.classList.add('peeking');
 
                 div.style.transform = `translate(calc(-50% + ${tx}px), ${ty + lift}px) scale(${scale})`;
+                div.style.overflow = 'visible'; // 🔥 Pastikan icon mata tidak terpotong
 
                 // Bottom row (higher ty) gets higher zIndex so it appears in front
                 const rowBonus = ty > 0 ? 50 : (isSelected ? 1000 : 0);
@@ -6497,7 +6609,6 @@
 
                 // ── DRAG & DROP HANDLERS (POINTER EVENTS) ──
                 div.onpointerdown = (e) => {
-                    if (!myTurn || !playable) return;
                     handlePointerDown(e, i, div);
                 };
 
@@ -6612,6 +6723,26 @@
         // setupTableDropZone(); // 🔥 DIMATIKAN (Ganti sistem Klik)
 
         function handlePointerDown(e, index, el) {
+            // 🔥 BROADCAST PEEK (Dengan Delay 0.5s)
+            if (peekTimeout) clearTimeout(peekTimeout);
+            peekTimeout = setTimeout(() => {
+                socket.emit('peekCard', { index });
+                localPeekIndex = index;
+                el.classList.add('peeking'); // Tampilkan icon mata
+            }, 500);
+
+            el._lastPointerId = e.pointerId;
+            el.setPointerCapture(e.pointerId);
+
+            el.onpointerup = (ev) => {
+                cleanupPointerHandlers(el);
+                handlePointerUp(ev);
+            };
+            el.onpointercancel = (ev) => {
+                cleanupPointerHandlers(el);
+                handlePointerUp(ev); // Treat cancel as up
+            };
+
             if (!isMyTurn) return;
 
             // Record drag start
@@ -6621,18 +6752,7 @@
             dragInfo.startY = e.clientY;
             dragInfo.isDragging = false; // Haven't moved yet
 
-            el._lastPointerId = e.pointerId;
-            el.setPointerCapture(e.pointerId);
-
             el.onpointermove = (ev) => handlePointerMove(ev);
-            el.onpointerup = (ev) => {
-                cleanupPointerHandlers(el);
-                handlePointerUp(ev);
-            };
-            el.onpointercancel = (ev) => {
-                cleanupPointerHandlers(el);
-                handlePointerUp(ev); // Treat cancel as up (cancel drag)
-            };
         }
 
         function cleanupPointerHandlers(el) {
@@ -6640,6 +6760,12 @@
             el.onpointerup = null;
             el.onpointercancel = null;
             try { el.releasePointerCapture(el._lastPointerId); } catch (e) { }
+
+            // 🔥 Safety: Pastikan peek dibersihkan
+            if (peekTimeout) clearTimeout(peekTimeout);
+            localPeekIndex = null;
+            el.classList.remove('peeking');
+            socket.emit('peekCard', { index: null });
         }
 
         function handlePointerMove(e) {
@@ -6679,6 +6805,12 @@
         }
 
         function handlePointerUp(e) {
+            // 🔥 CLEAR PEEK
+            if (peekTimeout) clearTimeout(peekTimeout);
+            localPeekIndex = null;
+            if (dragInfo.el) dragInfo.el.classList.remove('peeking');
+            socket.emit('peekCard', { index: null });
+
             if (dragInfo.index === null) return;
 
             const table = document.getElementById('center-table');
@@ -6923,7 +7055,7 @@
             socket.emit("auth", data.token);
 
             // Update UI
-            document.querySelector('.btn-login-header').innerText = '<i class="fa-solid fa-user"></i>';
+            document.querySelector('.btn-login-header').innerHTML = '<i class="fa-solid fa-user"></i>';
             if (document.getElementById('name-input')) {
                 document.getElementById('name-input').value = data.user.username;
             }

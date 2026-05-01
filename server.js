@@ -866,9 +866,13 @@ io.on("connection", (socket) => {
     const existingPlayer = game.players.find(p => p.name.trim().toLowerCase() === cleanName.toLowerCase());
     
     if (existingPlayer) {
-      // Prevent duplicate join from the same socket
-      if (existingPlayer.id === socket.id && !existingPlayer.isOffline) {
-          return;
+      // 🔥 TUNTUTAN USER: Cek jika nama sudah ada dan pemain tersebut sedang ONLINE
+      // Jika id berbeda dan sedang online, berarti ada orang lain yang pakai nama ini
+      if (!existingPlayer.isOffline && existingPlayer.id !== socket.id) {
+        socket.emit("errorMsg", {
+          msg: "Nama ini sudah digunakan oleh pemain lain di room ini. Silakan gunakan nama lain."
+        });
+        return;
       }
 
       console.log(`[${roomId}] ${cleanName} re-joining (Socket: ${socket.id.slice(0,5)}). Resuming seat ${game.players.indexOf(existingPlayer)}...`);
@@ -1124,6 +1128,20 @@ io.on("connection", (socket) => {
     io.to(currentRoom).emit("chat", {
       name: p.name,
       msg
+    });
+  });
+
+  socket.on("peekCard", (data) => {
+    if (!currentRoom) return;
+    const game = rooms.get(currentRoom);
+    if (!game) return;
+    const pIdx = game.players.findIndex(p => p.id === socket.id);
+    if (pIdx === -1) return;
+    const card = (data.index !== null && game.players[pIdx].cards[data.index]) ? game.players[pIdx].cards[data.index] : null;
+    socket.to(currentRoom).emit("peekState", { 
+      playerIndex: pIdx, 
+      cardIndex: data.index, 
+      card: card 
     });
   });
 
