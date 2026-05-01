@@ -104,6 +104,137 @@ app.post("/api/auth/google", async (req, res) => {
   }
 });
 
+// ── SHOP & INVENTORY ENDPOINTS ────────────────────────────────────────────────
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  if (!token) return res.status(401).json({ success: false, msg: "Token missing." });
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) return res.status(403).json({ success: false, msg: "Token invalid." });
+    req.user = user;
+    next();
+  });
+};
+
+app.get("/api/shop/items", async (req, res) => {
+  try {
+    const result = await db.query("SELECT * FROM shop_items ORDER BY rarity DESC, price_gold ASC");
+    res.json({ success: true, items: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, msg: "Failed to fetch items." });
+  }
+});
+
+app.get("/api/shop/defaults", async (req, res) => {
+  const fs = require('fs');
+  const path = require('path');
+  const lottieDir = path.join(__dirname, 'public', 'assets', 'lottie');
+  
+  try {
+    const files = fs.readdirSync(lottieDir);
+    const systemFiles = ['recall.json', 'win.json', 'target.json', 'lightning.json', 'fall-smoke.json'];
+    const defaults = files
+      .filter(f => f.endsWith('.json') && !systemFiles.includes(f))
+      .map(f => ({
+        id: f.replace('.json', ''),
+        name: f.replace('.json', '').replace(/-/g, ' ').toUpperCase(),
+        lottie_url: `/assets/lottie/${f}`,
+        rarity: 'common',
+        is_default: true
+      }));
+    res.json({ success: true, defaults });
+  } catch (err) {
+    res.status(500).json({ success: false, msg: "Failed to fetch default emojis." });
+  }
+});
+
+app.post("/api/shop/buy", authenticateToken, async (req, res) => {
+  const { itemId, currency } = req.body; // currency: 'gold' or 'diamonds'
+  const userId = req.user.id;
+
+  try {
+    // 1. Get item details
+    const itemRes = await db.query("SELECT * FROM shop_items WHERE id = $1", [itemId]);
+    if (itemRes.rows.length === 0) return res.status(404).json({ success: false, msg: "Item not found." });
+    const item = itemRes.rows[0];
+
+    // 2. Get user details
+    const userRes = await db.query("SELECT gold, diamonds FROM users WHERE id = $1", [userId]);
+    const user = userRes.rows[0];
+
+    // 3. Check if user already has it
+    const ownRes = await db.query("SELECT id FROM user_inventory WHERE user_id = $1 AND item_id = $2", [userId, itemId]);
+    if (ownRes.rows.length > 0) return res.status(400).json({ success: false, msg: "You already own this item." });
+
+    // 4. Check balance and deduct
+    let price = 0;
+    if (currency === 'gold') {
+      price = item.price_gold;
+      if (user.gold < price) return res.status(400).json({ success: false, msg: "Not enough gold." });
+      await db.query("UPDATE users SET gold = gold - $1 WHERE id = $2", [price, userId]);
+    } else if (currency === 'diamonds') {
+      price = item.price_diamonds;
+      if (user.diamonds < price) return res.status(400).json({ success: false, msg: "Not enough diamonds." });
+      await db.query("UPDATE users SET diamonds = diamonds - $1 WHERE id = $2", [price, userId]);
+    } else {
+      return res.status(400).json({ success: false, msg: "Invalid currency." });
+    }
+
+    // 5. Add to inventory
+    await db.query("INSERT INTO user_inventory (user_id, item_id) VALUES ($1, $2)", [userId, itemId]);
+
+    // 6. Return updated stats
+    const updatedUserRes = await db.query("SELECT gold, diamonds, wins, matches_played, avatar_url FROM users WHERE id = $1", [userId]);
+    res.json({ success: true, msg: "Purchase successful!", user: updatedUserRes.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, msg: "Purchase failed." });
+  }
+});
+
+app.get("/api/user/inventory", authenticateToken, async (req, res) => {
+  try {
+    const result = await db.query(`
+      SELECT i.*, s.name, s.type, s.lottie_url, s.sound_url, s.additional_text, s.rarity 
+      FROM user_inventory i 
+      JOIN shop_items s ON i.item_id = s.id 
+      WHERE i.user_id = $1
+    `, [req.user.id]);
+    res.json({ success: true, inventory: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, msg: "Failed to fetch inventory." });
+  }
+});
+
+app.post("/api/user/equip", authenticateToken, async (req, res) => {
+  const { itemId } = req.body;
+  const userId = req.user.id;
+
+  try {
+    // Unequip all items of the same type (currently only 'emoticon')
+    const itemTypeRes = await db.query("SELECT type FROM shop_items WHERE id = $1", [itemId]);
+    if (itemTypeRes.rows.length === 0) return res.status(404).json({ success: false, msg: "Item not found." });
+    const type = itemTypeRes.rows[0].type;
+
+    await db.query(`
+      UPDATE user_inventory 
+      SET is_equipped = FALSE 
+      WHERE user_id = $1 AND item_id IN (SELECT id FROM shop_items WHERE type = $2)
+    `, [userId, type]);
+
+    // Equip the new one
+    await db.query("UPDATE user_inventory SET is_equipped = TRUE WHERE user_id = $1 AND item_id = $2", [userId, itemId]);
+
+    res.json({ success: true, msg: "Item equipped!" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, msg: "Failed to equip item." });
+  }
+});
+
 // ── DECK ──────────────────────────────────────────────────────────────────────
 const suits = ["♠", "♥", "♦", "♣"];
 const values = [
@@ -131,6 +262,7 @@ function getRank(v) {
 }
 
 const CARDS_EACH = 4;
+const DEFAULT_INITIAL_CARDS = 4;
 
 function createDeck() {
   const d = [];
@@ -165,6 +297,7 @@ function makeGame() {
     leaderboard: {}, // 🔥 per-room leaderboard
     roundCount: 0,
     maxRounds: 7, // 🔥 NEW: Dinamis dari Host
+    initialCards: DEFAULT_INITIAL_CARDS, // 🔥 NEW: Dinamis dari Host
     tableColor: 'green', // 🔥 NEW: Warna meja pilihan Host
     nextStarter: null,
     lastTakerProvider: null, // Tracks who played the card that was just taken
@@ -350,7 +483,7 @@ async function updateUserStats(dbId, winsDelta = 0, matchesDelta = 0) {
   if (!dbId) return;
   try {
     const result = await db.query(
-      "UPDATE users SET wins = wins + $1, matches_played = matches_played + $2 WHERE id = $3 RETURNING gold, diamonds, wins, matches_played",
+      "UPDATE users SET wins = wins + $1, matches_played = matches_played + $2, gold = gold + ($1 * 100) WHERE id = $3 RETURNING gold, diamonds, wins, matches_played",
       [winsDelta, matchesDelta, dbId]
     );
     // Find socket associated with this dbId if possible, or handle via separate emit
@@ -415,6 +548,7 @@ function sendState(game) {
       playersMicStatus: game.players.map(pl => !!pl.micStatus),
       playerIds: game.players.map(pl => pl.id),
       matchStartTime: game.matchStartTime,
+      initialCards: game.initialCards || DEFAULT_INITIAL_CARDS,
       serverTime: Date.now(),
     });
   });
@@ -442,17 +576,7 @@ function checkEnd(game, roomId) {
         name: p.name,
       });
 
-      // 🔥 TUNTUTAN USER: Update Total Menang (wins) hanya untuk juara 1 (Rank 1)
-      // DAN HANYA pada Ronde Terakhir (misal ronde 7 dari 7)
-      const isBotMatch = game.players.some(pl => pl.isBot);
-      const isLastRound = game.roundCount === game.maxRounds;
-      if (game.outOrder.length === 1 && !isBotMatch && p.dbId && isLastRound) {
-        updateUserStats(p.dbId, 1, 0).then(newStats => {
-          if (newStats && p.id) {
-            io.to(p.id).emit("sync-stats", newStats);
-          }
-        });
-      }
+      // Wins are now handled at the end of the entire match based on overall points ranking.
     }
   });
 
@@ -500,13 +624,26 @@ function checkEnd(game, roomId) {
 
         game.started = false;
 
-        // 🔥 TUNTUTAN USER: Update Total Pertandingan (matches_played) hanya untuk non-bot match
-        // Dan hanya bertambah di akhir seluruh pertandingan (Match), bukan tiap ronde.
-        const isBotMatch = game.players.some(pl => pl.isBot);
-        if (!isBotMatch && isMatchEnd) {
+        // 🔥 TUNTUTAN USER (FIXED): Update Total Pertandingan (matches_played) & Menang (wins)
+        if (isMatchEnd) {
+          // 1. Find the overall winner (Rank 1 by points)
+          let overallWinnerName = null;
+          let maxPoints = -1;
+          Object.entries(game.leaderboard).forEach(([name, data]) => {
+            if (data.point > maxPoints) {
+              maxPoints = data.point;
+              overallWinnerName = name;
+            }
+          });
+
+          // 2. Update stats for each player
           game.players.forEach(async (p) => {
-            if (p.dbId) {
-              const newStats = await updateUserStats(p.dbId, 0, 1);
+            if (p.dbId && !p.isBot) {
+              const isWinner = (p.name === overallWinnerName);
+              const winsDelta = isWinner ? 1 : 0;
+              const matchesDelta = 1;
+
+              const newStats = await updateUserStats(p.dbId, winsDelta, matchesDelta);
               if (newStats && p.id) {
                 io.to(p.id).emit("sync-stats", newStats);
               }
@@ -658,7 +795,7 @@ function startGame(game) {
 
     console.log(`[Game] Initialized attackCharges for ${p.name} (idx ${playerIdx}):`, p.attackCharges);
 
-    for (let k = 0; k < CARDS_EACH; k++) {
+    for (let k = 0; k < (game.initialCards || CARDS_EACH); k++) {
       p.cards.push(game.deck.pop());
     }
   });
@@ -1027,6 +1164,21 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("setInitialCards", (count) => {
+    if (!currentRoom) return;
+    const game = rooms.get(currentRoom);
+    if (!game || game.started) return;
+
+    // Hanya host (index 0) yang bisa ubah
+    if (game.players[0].id !== socket.id) return;
+
+    const c = parseInt(count);
+    if (c >= 1 && c <= 15) {
+      game.initialCards = c;
+      sendState(game);
+    }
+  });
+
   socket.on("takeTableCard", () => {
     if (!currentRoom) return;
     const game = rooms.get(currentRoom);
@@ -1081,7 +1233,9 @@ io.on("connection", (socket) => {
     io.to(currentRoom).emit("emoji", {
       name: player.name,
       emoji: data.emoji,
-      text: data.text
+      text: data.text,
+      lottieUrl: data.lottieUrl,
+      soundUrl: data.soundUrl
     });
   });
 
@@ -1306,6 +1460,23 @@ io.on("connection", (socket) => {
     scheduleBotTurn(game, currentRoom); 
 
     console.log(`[${currentRoom}] Game di-restart oleh HOST (Ronde: ${game.roundCount})`);
+  });
+
+  socket.on("backToLobby", () => {
+    if (!currentRoom) return;
+    const game = rooms.get(currentRoom);
+    if (!game) return;
+
+    // Only host can go back to lobby
+    if (game.players[0].id !== socket.id) return;
+
+    // Stop game and reset round count
+    game.started = false;
+    game.roundCount = 0;
+    
+    // Broadcast state so players see the lobby
+    sendState(game);
+    console.log(`[${currentRoom}] Host kembali ke lobby.`);
   });
 
   socket.on("leaveRoom", () => {

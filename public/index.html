@@ -135,8 +135,8 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%) scale(0.9);
-            width: 90%;
-            max-width: 390px;
+            width: 95%;
+            max-width: 580px;
             /* Deep glassmorphism: dark tint + strong blur */
             background: linear-gradient(145deg,
                 rgba(8, 22, 14, 0.88) 0%,
@@ -368,6 +368,179 @@
 
         .profile-close-btn:hover {
             color: white;
+        }
+
+
+        /* ── INVENTORY IN PROFILE ── */
+        .inventory-section {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 10px;
+            /* Custom Scrollbar */
+            scrollbar-width: thin;
+            scrollbar-color: rgba(212, 175, 55, 0.3) transparent;
+        }
+
+        .inventory-grid::-webkit-scrollbar {
+            width: 6px;
+        }
+        .inventory-grid::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+        .inventory-grid::-webkit-scrollbar-thumb {
+            background: rgba(212, 175, 55, 0.3);
+            border-radius: 10px;
+        }
+        .inventory-grid::-webkit-scrollbar-thumb:hover {
+            background: rgba(212, 175, 55, 0.5);
+        }
+
+        .inventory-item {
+            aspect-ratio: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(212, 175, 55, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .inventory-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--gold);
+        }
+
+        .inventory-item.equipped {
+            border-color: var(--gold);
+            background: rgba(212, 175, 55, 0.15);
+            box-shadow: 0 0 10px rgba(212, 175, 55, 0.2);
+        }
+
+        .inventory-item.equipped::after {
+            content: '\f00c';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: var(--gold);
+            color: #1a1100;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            font-size: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-buy:hover {
+            background: var(--gold-dark);
+            color: #1a1100;
+        }
+
+        .btn-buy.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            filter: grayscale(1);
+        }
+
+        .btn-shop-floating {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1a1100;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.4);
+            z-index: 1000;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-shop-floating:hover {
+            transform: scale(1.1) rotate(5deg);
+            box-shadow: 0 15px 40px rgba(212, 175, 55, 0.6);
+        }
+
+        /* ── INVENTORY IN PROFILE ── */
+        .inventory-section {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(212, 175, 55, 0.15);
+        }
+
+
+
+        .inventory-item {
+            aspect-ratio: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(212, 175, 55, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .inventory-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--gold);
+        }
+
+        .inventory-item.equipped {
+            border-color: var(--gold);
+            background: rgba(212, 175, 55, 0.15);
+            box-shadow: 0 0 10px rgba(212, 175, 55, 0.2);
+        }
+
+        .inventory-item.equipped::after {
+            content: '\f00c';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: var(--gold);
+            color: #1a1100;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            font-size: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .inventory-item .item-thumb {
+            width: 80%;
+            height: 80%;
         }
 
         /* ── AUTH MODAL ── */
@@ -1890,6 +2063,7 @@
             outline: 1px solid rgba(255, 255, 255, 0.03);
             border-radius: 32px;
             padding: 48px 32px;
+            display: flex;
             flex-direction: column;
             align-items: center;
             gap: 24px;
@@ -1933,6 +2107,7 @@
             font-size: 14px;
             line-height: 1.6;
             max-width: 280px;
+            margin: 0 auto;
             letter-spacing: 0.5px;
         }
 
@@ -2605,12 +2780,27 @@
             }
         }
 
-        .taunt-text {
-            font-size: 11px;
-            margin-top: 2px;
-            color: #fff;
-            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+        .emoji-taunt-text {
+            background: rgba(0, 0, 0, 0.85);
+            color: var(--gold-light);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 700;
+            border: 1px solid rgba(212, 175, 55, 0.4);
             white-space: nowrap;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            margin-top: -5px;
+            animation: tauntPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 10;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            pointer-events: none;
+        }
+
+        @keyframes tauntPop {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
         }
 
         .card-hit {
@@ -3440,6 +3630,8 @@
             }
         }
     </style>
+    <!-- External Shop Styles -->
+    <link rel="stylesheet" href="/css/shop.css">
 </head>
 
 <body oncontextmenu="return false;">
@@ -3448,7 +3640,7 @@
         <div class="logo">
             <img src="/assets/images/logo.png" class="img-logo" alt="SuitClash">
             <div style="display: flex; align-items: center; margin-top: -2px;">
-                <div style="display: flex;border: 1px solid rgba(212, 175, 55, 0.3);border-radius: 10px;">
+                <div id="timer-container" style="display: flex; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 10px; display: none;">
                     <div id="round-badge" style="display: none;">1/7</div>
                     <div id="match-timer">00:00</div>
                 </div>
@@ -3471,6 +3663,49 @@
         </div>
     </header>
 
+    <!-- Floating Shop Button -->
+    <div id="shop-btn-floating" class="btn-shop-floating" style="display: none;" onclick="loadShopItems(); document.getElementById('shop-panel').classList.add('show'); document.getElementById('shop-backdrop').classList.add('show');">
+        <i class="fas fa-shopping-cart"></i>
+    </div>
+
+    <!-- Shop Panel -->
+    <div id="shop-panel" class="shop-panel">
+        <div class="shop-header">
+            <h2>SUIT CLASH SHOP</h2>
+            <button class="shop-close-btn" onclick="closeShop()">✖</button>
+        </div>
+        <div class="shop-content" id="shop-items-container">
+            <!-- Items will be loaded here -->
+        </div>
+        <div id="shop-guest-shield" class="shop-guest-shield">
+            <div id="shop-guest-overlay" class="shop-guest-overlay">
+                <div style="font-size: 56px; margin-bottom: 25px;">🔒</div>
+                <h3 style="color:var(--gold); font-size: 26px; margin-bottom: 12px; font-weight: 800;">Akses Terbatas</h3>
+                <p style="color:rgba(255,255,255,0.7); margin-bottom: 35px; line-height: 1.6; font-size: 15px;">Silakan login terlebih dahulu untuk membeli Sticker & Emoticon eksklusif.</p>
+                <button class="btn-gold" onclick="closeShop(); openAuthModal('login')" style="padding: 14px 50px; font-size: 16px; font-weight: 800; border-radius: 14px; margin-bottom: 20px;">LOGIN SEKARANG</button>
+                <div style="cursor: pointer; color: rgba(255,255,255,0.4); font-size: 14px; text-decoration: underline; transition: color 0.3s;" 
+                     onmouseover="this.style.color='var(--gold)'" 
+                     onmouseout="this.style.color='rgba(255,255,255,0.4)'"
+                     onclick="closeShop()">
+                    Tidak, terima kasih
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="shop-backdrop" class="profile-panel-backdrop" onclick="closeShop()"></div>
+
+    <!-- Shop Confirmation Modal -->
+    <div id="shop-confirm-backdrop" class="shop-confirm-backdrop">
+        <div class="shop-confirm-modal">
+            <div class="shop-confirm-title">Konfirmasi Pembelian</div>
+            <div id="shop-confirm-msg" class="shop-confirm-msg">Apakah Anda yakin ingin membeli item ini?</div>
+            <div class="shop-confirm-actions">
+                <button class="shop-confirm-btn cancel" onclick="closeBuyConfirm()">Batal</button>
+                <button id="shop-confirm-btn-yes" class="shop-confirm-btn confirm">Beli & Pasang</button>
+            </div>
+        </div>
+    </div>
+
     <div id="mini-chat-history"></div>
 
     <div id="leaderboard-panel" class="leaderboard-panel">
@@ -3483,8 +3718,12 @@
             <!-- Items injected by JS -->
         </div>
 
-        <button id="lb-restart-btn" class="btn-gold" style="display:none; width:100%; margin-top:20px;"
-            onclick="restartGame()">Ulangi Game</button>
+        <div style="display: flex; gap: 12px; width: 100%; margin-top: 24px;">
+            <button id="lb-lobby-btn" class="btn-outline-gold" style="display:none; flex: 1; height: 50px; font-size: 13px;"
+                onclick="backToLobby()">KE LOBBY</button>
+            <button id="lb-restart-btn" class="btn-gold" style="display:none; flex: 1; height: 50px; font-size: 13px;"
+                onclick="restartGame()">MAIN LAGI</button>
+        </div>
     </div>
 
     <!-- PROFILE PANEL -->
@@ -3533,6 +3772,13 @@
                     <b id="profile-diamonds">0</b>
                     <button class="btn-add-currency" onclick="toast('Fitur Top Up segera hadir!')">+</button>
                 </div>
+            </div>
+        </div>
+
+        <div class="inventory-section" id="profile-inventory-section">
+            <div class="economy-section-label">Inventory (Emoticons)</div>
+            <div class="inventory-grid" id="inventory-container">
+                <!-- Inventory items will be loaded here -->
             </div>
         </div>
 
@@ -3615,16 +3861,28 @@
                         <span id="room-code-val" class="config-value highlight">----</span>
                     </div>
 
-                    <!-- PUTARAN -->
                     <div class="config-row">
                         <span class="config-label">PUTARAN</span>
-                        <div id="host-settings" style="display:none;">
+                        <div class="host-settings-area" style="display:none;">
                             <input type="number" id="max-rounds-input" value="7" min="1" max="20"
                                 style="width: 45px; text-align: center; border-radius: 6px; padding: 2px; border: 1px solid var(--gold); background: rgba(0,0,0,0.5); color: white; font-weight: bold;"
                                 onchange="updateMaxRounds(this.value)">
                         </div>
-                        <div id="guest-settings" style="display:none;">
+                        <div class="guest-settings-area" style="display:none;">
                             <span id="guest-rounds-display" class="config-value">7</span>
+                        </div>
+                    </div>
+
+                    <!-- KARTU AWAL -->
+                    <div class="config-row">
+                        <span class="config-label">KARTU AWAL</span>
+                        <div class="host-settings-area" style="display:none;">
+                            <input type="number" id="initial-cards-input" value="4" min="1" max="15"
+                                style="width: 45px; text-align: center; border-radius: 6px; padding: 2px; border: 1px solid var(--gold); background: rgba(0,0,0,0.5); color: white; font-weight: bold;"
+                                onchange="updateInitialCards(this.value)">
+                        </div>
+                        <div class="guest-settings-area" style="display:none;">
+                            <span id="guest-cards-display" class="config-value">4</span>
                         </div>
                     </div>
 
@@ -3712,16 +3970,7 @@
         <div id="emoji-fab">
             <i class="fa-solid fa-face-grin-tongue-squint"></i>
             <div id="emoji-menu">
-                <button onclick="pickEmoji('cat-laughing')" title="Cat Laughing">😂</button>
-                <button onclick="pickEmoji('cat-sleep')" title="Cat Sleep">💤</button>
-                <button onclick="pickEmoji('angry')" title="Angry">😡</button>
-                <button onclick="pickEmoji('cat')" title="Cat">🐱</button>
-                <button onclick="pickEmoji('amongus')" title="Among Us">ඞ</button>
-                <button onclick="pickEmoji('ok')" title="OK">👌</button>
-                <button onclick="pickEmoji('cool')" title="Cool">😎</button>
-                <button onclick="pickEmoji('👑')" title="King">👑</button>
-                <button onclick="pickEmoji('music')" title="Music">🎵</button>
-                <button onclick="pickRecall()" title="Recall!" style="font-size:18px;">⚡</button>
+                <!-- Emojis will be injected here -->
             </div>
         </div>
 
@@ -3939,6 +4188,329 @@
         let pendingOptimisticCardId = null;
         let lastKnownTableCardId = null; // For Ace detection
         const LOTTIE_EMOJIS = ['cat', 'panda', 'angry', 'amongus', 'cat-laughing', 'cat-sleep', 'ok', 'cool', 'music', '👑'];
+        let defaultEmojis = [];
+        let myInventory = [];
+        let activeEmojiIds = JSON.parse(localStorage.getItem('sc_active_emojis') || '[]');
+
+        // ── SHOP & INVENTORY LOGIC ───────────────────────────────────────────────────
+        function closeShop() {
+            const panel = document.getElementById('shop-panel');
+            const backdrop = document.getElementById('shop-backdrop');
+            panel.classList.remove('show');
+            backdrop.classList.remove('show');
+        }
+
+        async function loadShopItems() {
+            const container = document.getElementById('shop-items-container');
+            const guestShield = document.getElementById('shop-guest-shield');
+            const token = localStorage.getItem('sc_token');
+            const user = JSON.parse(localStorage.getItem('sc_user') || '{}');
+            
+            // Sync Header UI
+            const economyHtml = token ? `
+                <div class="shop-user-economy">
+                    <div class="economy-item"><i class="fas fa-coins gold-color"></i> <span>${user.gold || 0}</span></div>
+                    <div class="economy-item"><i class="fas fa-gem diamond-color"></i> <span>${user.diamonds || 0}</span></div>
+                </div>
+            ` : '';
+
+            document.querySelector('.shop-header').innerHTML = `
+                <h2 style="font-size:20px;">SUIT CLASH SHOP</h2>
+                ${economyHtml}
+                <button class="shop-close-btn" onclick="closeShop()">✖</button>
+            `;
+
+            // Reset States
+            container.classList.remove('blurred');
+            guestShield.style.display = 'none';
+            container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding:40px; color:rgba(212,175,55,0.5);">Memuat item...</div>';
+
+            if (!token) {
+                container.classList.add('blurred');
+                guestShield.style.display = 'flex';
+            }
+
+            container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding:40px; color:rgba(212,175,55,0.5);">Memuat item...</div>';
+
+            try {
+                const res = await fetch('/api/shop/items');
+                const data = await res.json();
+                if (!data.success) throw new Error(data.msg);
+
+                container.innerHTML = '';
+                data.items.forEach(item => {
+                    const isOwned = myInventory.some(inv => inv.item_id === item.id);
+                    const card = document.createElement('div');
+                    card.className = 'shop-item-card';
+                    card.innerHTML = `
+                        <div class="item-rarity rarity-${item.rarity}">${item.rarity}</div>
+                        ${item.sound_url ? `
+                            <div class="shop-sound-badge" onclick="previewShopSound('${item.sound_url}')" title="Play Preview">
+                                <i class="fas fa-music"></i>
+                            </div>` : ''}
+                        <div class="item-preview" id="shop-preview-${item.id}"></div>
+                        <div class="item-name">${item.name}</div>
+                        ${item.additional_text ? `<div style="font-size:9px; color:rgba(255,255,255,0.4); margin-bottom:4px; font-style:italic;">"${item.additional_text}"</div>` : ''}
+                        <div class="item-price">
+                            ${item.price_gold > 0 ? `
+                                <button class="btn-buy ${isOwned ? 'disabled' : ''}" onclick="${isOwned ? '' : `buyItem(${item.id}, 'gold')`}">
+                                    <i class="fas fa-coins gold-color"></i> ${item.price_gold}
+                                </button>` : ''}
+                            ${item.price_diamonds > 0 ? `
+                                <button class="btn-buy ${isOwned ? 'disabled' : ''}" onclick="${isOwned ? '' : `buyItem(${item.id}, 'diamonds')`}">
+                                    <i class="fas fa-gem diamond-color"></i> ${item.price_diamonds}
+                                </button>` : ''}
+                            ${isOwned ? '<div style="font-size:10px; color:var(--gold); font-weight:700; width:100%; text-align:center;">OWNED</div>' : ''}
+                        </div>
+                    `;
+                    container.appendChild(card);
+
+                    // Render Lottie Preview
+                    lottie.loadAnimation({
+                        container: document.getElementById(`shop-preview-${item.id}`),
+                        renderer: 'svg',
+                        loop: true,
+                        autoplay: true,
+                        path: item.lottie_url
+                    });
+                });
+            } catch (err) {
+                container.innerHTML = `<div style="grid-column: 1/-1; color:#ff4d4d; text-align:center; padding:20px;">Gagal memuat shop: ${err.message}</div>`;
+            }
+        }
+
+        function closeBuyConfirm() {
+            document.getElementById('shop-confirm-backdrop').classList.remove('show');
+        }
+
+        async function buyItem(itemId, currency) {
+            const token = localStorage.getItem('sc_token');
+            if (!token) return toast('Harap login untuk berbelanja!', '⚠️');
+
+            // Show confirmation modal
+            const backdrop = document.getElementById('shop-confirm-backdrop');
+            const confirmBtn = document.getElementById('shop-confirm-btn-yes');
+            const msg = document.getElementById('shop-confirm-msg');
+            
+            msg.innerText = `Apakah Anda yakin ingin membeli item ini seharga ${currency === 'gold' ? 'Gold' : 'Diamond'}?`;
+            backdrop.classList.add('show');
+
+            confirmBtn.onclick = async () => {
+                closeBuyConfirm();
+                try {
+                    const res = await fetch('/api/shop/buy', {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ itemId, currency })
+                    });
+                    const data = await res.json();
+                    if (!data.success) throw new Error(data.msg);
+
+                    toast('Berhasil membeli item!', '🎉');
+                    
+                    // Auto-equip item (add to active list if not already there)
+                    if (!activeEmojiIds.includes(itemId.toString())) {
+                        if (activeEmojiIds.length < 10) {
+                            activeEmojiIds.push(itemId.toString());
+                            localStorage.setItem('sc_active_emojis', JSON.stringify(activeEmojiIds));
+                        }
+                    }
+
+                    // Sync user stats & inventory
+                    const user = JSON.parse(localStorage.getItem('sc_user') || '{}');
+                    if (currency === 'gold') user.gold = (user.gold || 0) - data.price;
+                    if (currency === 'diamonds') user.diamonds = (user.diamonds || 0) - data.price;
+                    localStorage.setItem('sc_user', JSON.stringify(user));
+                    
+                    await loadInventory(); // Re-fetch inventory from server
+                    loadShopItems();      // Refresh shop UI
+                    renderInventoryUI();  // Update inventory modal if open
+                    renderEmojiFAB();     // Update the floating action button menu
+                } catch (err) {
+                    toast(err.message, '❌');
+                }
+            };
+        }
+
+
+        let shopPreviewAudio = null;
+        function previewShopSound(url) {
+            if (shopPreviewAudio) {
+                shopPreviewAudio.pause();
+                shopPreviewAudio.currentTime = 0;
+            }
+            shopPreviewAudio = new Audio(url);
+            shopPreviewAudio.volume = 0.6;
+            shopPreviewAudio.play().catch(() => toast("Gagal memutar suara", "❌"));
+            toast("Pratinjau suara...", "🎵");
+        }
+
+        async function loadInventory() {
+            const token = localStorage.getItem('sc_token');
+            const container = document.getElementById('inventory-container');
+            if (!container) return;
+
+            try {
+                // 1. Fetch Defaults
+                const defRes = await fetch('/api/shop/defaults');
+                const defData = await defRes.json();
+                defaultEmojis = defData.defaults || [];
+
+                // 2. Fetch Owned (if logged in)
+                if (token) {
+                    const invRes = await fetch('/api/user/inventory', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const invData = await invRes.json();
+                    if (invData.success) {
+                        myInventory = invData.inventory;
+                    }
+                }
+
+                // If no active emojis selected, use first 8 defaults
+                if (activeEmojiIds.length === 0) {
+                    activeEmojiIds = defaultEmojis.slice(0, 8).map(e => e.id);
+                    localStorage.setItem('sc_active_emojis', JSON.stringify(activeEmojiIds));
+                }
+
+                renderInventoryUI();
+                renderEmojiFAB();
+            } catch (err) {
+                console.error("Failed to load inventory:", err);
+            }
+        }
+
+        function renderInventoryUI() {
+            const container = document.getElementById('inventory-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            // Combine all available
+            const allAvailable = [
+                ...defaultEmojis.map(e => ({...e, is_default: true, id: e.id, item_id: e.id})),
+                ...myInventory.map(e => ({...e, is_default: false, id: e.item_id}))
+            ];
+
+            allAvailable.forEach(item => {
+                const isActive = activeEmojiIds.includes(item.id.toString());
+                const div = document.createElement('div');
+                div.className = `inventory-item ${isActive ? 'equipped' : ''}`;
+                div.title = item.name;
+                div.onclick = () => toggleEmojiActive(item.id.toString());
+                
+                const thumb = document.createElement('div');
+                thumb.className = 'item-thumb';
+                div.appendChild(thumb);
+                container.appendChild(div);
+
+                lottie.loadAnimation({
+                    container: thumb,
+                    renderer: 'svg',
+                    loop: true,
+                    autoplay: true,
+                    path: item.lottie_url
+                });
+            });
+        }
+
+        function toggleEmojiActive(id) {
+            const index = activeEmojiIds.indexOf(id);
+            if (index > -1) {
+                if (activeEmojiIds.length <= 1) return toast("Minimal harus ada 1 emoji!", "⚠️");
+                activeEmojiIds.splice(index, 1);
+            } else {
+                if (activeEmojiIds.length >= 10) return toast("Maksimal 10 emoji di menu!", "⚠️");
+                activeEmojiIds.push(id);
+            }
+            localStorage.setItem('sc_active_emojis', JSON.stringify(activeEmojiIds));
+            renderInventoryUI();
+            renderEmojiFAB();
+        }
+
+        function renderEmojiFAB() {
+            const menu = document.getElementById('emoji-menu');
+            if (!menu) return;
+            menu.innerHTML = '';
+
+            const allAvailable = [
+                ...defaultEmojis.map(e => ({...e, is_default: true, id: e.id})),
+                ...myInventory.map(e => ({...e, is_default: false, id: e.item_id}))
+            ];
+
+            // Render active emojis
+            activeEmojiIds.forEach(id => {
+                const item = allAvailable.find(e => e.id.toString() === id.toString());
+                if (!item) return;
+
+                const btn = document.createElement('button');
+                btn.title = item.name;
+                btn.onclick = () => pickDynamicEmoji(item);
+                
+                const preview = document.createElement('div');
+                preview.style.width = '100%';
+                preview.style.height = '100%';
+                btn.appendChild(preview);
+                menu.appendChild(btn);
+
+                lottie.loadAnimation({
+                    container: preview,
+                    renderer: 'svg',
+                    loop: true,
+                    autoplay: true,
+                    path: item.lottie_url
+                });
+            });
+
+        }
+
+        function pickDynamicEmoji(item) {
+            const now = Date.now();
+            if (now - lastEmojiTime < EMOJI_COOLDOWN) {
+                toast("Tunggu dulu...", "⏳");
+                return;
+            }
+            lastEmojiTime = now;
+
+            const payload = { 
+                emoji: 'dynamic', 
+                lottieUrl: item.lottie_url,
+                soundUrl: item.sound_url,
+                text: item.additional_text || "" 
+            };
+            socket.emit("sendEmoji", payload);
+
+            const fab = document.getElementById('emoji-fab');
+            fab.classList.remove('active');
+
+            showSelfEmoji(payload);
+        }
+
+        function syncProfileUI() {
+            const user = JSON.parse(localStorage.getItem('sc_user') || '{}');
+            if (user.username) {
+                document.getElementById('profile-name').innerText = user.username;
+                document.getElementById('profile-status').innerText = "Suit Clash Member";
+                document.getElementById('profile-gold').innerText = user.gold || 0;
+                document.getElementById('profile-diamonds').innerText = user.diamonds || 0;
+                document.getElementById('profile-wins').innerText = user.wins || 0;
+                document.getElementById('profile-matches').innerText = user.matches_played || 0;
+                
+                const avatarBox = document.getElementById('profile-avatar-box');
+                if (user.avatar_url) {
+                    avatarBox.innerHTML = `<img src="${user.avatar_url}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+                }
+                
+                const isInGame = document.getElementById('game').style.display === 'flex';
+                if (!isInGame) {
+                    document.getElementById('shop-btn-floating').style.display = 'flex';
+                }
+                document.getElementById('profile-logged-actions').style.display = 'block';
+                document.getElementById('profile-auth-actions').style.display = 'none';
+            }
+        }
 
         // ── VOICE CHAT STATE ──
         let isMicOn = false;
@@ -4022,6 +4594,7 @@
 
         function playSfx(sound) {
             if (!isSfxOn) return;
+            sound.volume = sfxVolume;
             sound.currentTime = 0;
             sound.play().catch(() => { });
         }
@@ -4189,6 +4762,7 @@
         function playClutchSound(type) {
             if (!isSfxOn) return;
             const s = type === 'win' ? clutchWinSound : clutchDangerSound;
+            s.volume = sfxVolume;
             s.currentTime = 0;
             s.play().catch(() => { });
         }
@@ -4847,12 +5421,34 @@
             playRecallLottie();
         }
 
+        function pickSpecialEmoji() {
+            if (!equippedEmoticon) return;
+            const now = Date.now();
+            if (now - lastEmojiTime < EMOJI_COOLDOWN) {
+                toast("Tunggu dulu...", "⏳");
+                return;
+            }
+            lastEmojiTime = now;
+
+            const payload = { 
+                emoji: 'special', 
+                lottieUrl: equippedEmoticon.lottie_url,
+                text: "" 
+            };
+            socket.emit("sendEmoji", payload);
+
+            const fab = document.getElementById('emoji-fab');
+            fab.classList.remove('active');
+
+            showSelfEmoji(payload);
+        }
+
         function showSelfEmoji(data) {
             const el = document.createElement('div');
             el.className = 'emoji-self';
 
             // Use the global constant
-            const isLottie = LOTTIE_EMOJIS.includes(data.emoji);
+            const isLottie = LOTTIE_EMOJIS.includes(data.emoji) || data.emoji === 'special' || data.emoji === 'dynamic';
             if (isLottie) {
                 const isAngry = data.emoji === 'angry';
                 const isSmall = ['angry', 'cat', 'ok', 'cool', '👑'].includes(data.emoji);
@@ -4865,29 +5461,35 @@
 
                 if (data.text) {
                     const textEl = document.createElement('div');
-                    textEl.className = 'taunt-text';
-                    textEl.style.fontSize = '18px';
+                    textEl.className = 'emoji-taunt-text';
                     textEl.textContent = data.text;
                     el.appendChild(textEl);
                 }
 
+                const isDynamic = data.emoji === 'special' || data.emoji === 'dynamic';
                 lottie.loadAnimation({
                     container: lottieContainer,
                     renderer: 'svg',
                     loop: true,
                     autoplay: true,
-                    animationData: lottieCache[data.emoji] ? JSON.parse(JSON.stringify(lottieCache[data.emoji])) : null,
-                    path: lottieCache[data.emoji] ? null : (data.emoji === '👑' ? '/assets/lottie/monkey.json' : `/assets/lottie/${data.emoji}.json`)
+                    animationData: (!isDynamic && lottieCache[data.emoji]) ? JSON.parse(JSON.stringify(lottieCache[data.emoji])) : null,
+                    path: isDynamic ? data.lottieUrl : (lottieCache[data.emoji] ? null : (data.emoji === '👑' ? '/assets/lottie/monkey.json' : `/assets/lottie/${data.emoji}.json`))
                 });
 
                 if (data.emoji === 'music') {
                     el.style.width = '180px';
                     el.style.height = '180px';
                 }
+
+                if (data.soundUrl) {
+                    const snd = new Audio(data.soundUrl);
+                    snd.volume = sfxVolume;
+                    snd.play().catch(() => {});
+                }
             } else {
                 el.innerHTML = `
                     <div style="font-size: 64px;">${data.emoji}</div>
-                    ${data.text ? `<div class="taunt-text" style="font-size:18px;">${data.text}</div>` : ''}
+                    ${data.text ? `<div class="emoji-taunt-text">${data.text}</div>` : ''}
                 `;
             }
 
@@ -4926,6 +5528,9 @@
         function updateMaxRounds(val) {
             socket.emit("setMaxRounds", val);
         }
+        function updateInitialCards(val) {
+            socket.emit("setInitialCards", val);
+        }
         function setTableColor(color) {
             socket.emit("setTableColor", color);
         }
@@ -4953,6 +5558,12 @@
             } else {
                 lobbyAuth.style.display = 'block';
                 authBtn.innerHTML = isLoggedIn ? '<i class="fa-solid fa-user"></i>' : 'Login / Register';
+            }
+
+            // Always show shop in lobby/intro, unless in active game
+            const isInGame = document.getElementById('game').style.display === 'flex';
+            if (!isInGame) {
+                document.getElementById('shop-btn-floating').style.display = 'flex';
             }
         }
 
@@ -5061,11 +5672,14 @@
             }
 
             const restartBtn = document.getElementById('lb-restart-btn');
+            const lobbyBtn = document.getElementById('lb-lobby-btn');
             if (restartBtn) {
                 if (window.isMatchEndFlag && myIndex === 0) {
                     restartBtn.style.display = 'block';
+                    if (lobbyBtn) lobbyBtn.style.display = 'block';
                 } else {
                     restartBtn.style.display = 'none';
+                    if (lobbyBtn) lobbyBtn.style.display = 'none';
                 }
             }
 
@@ -5340,8 +5954,9 @@
 
                 document.getElementById('lobby').style.display = 'flex';
                 document.getElementById('game').style.display = 'none';
-                document.getElementById('lobby').style.display = 'flex';
-                document.getElementById('game').style.display = 'none';
+                
+                // Show shop for everyone in lobby
+                document.getElementById('shop-btn-floating').style.display = 'flex';
                 document.getElementById('hud-top').style.display = 'none';
                 syncHeaderAuth();
                 document.getElementById('leaderboard-btn').style.display = 'none';
@@ -5404,20 +6019,23 @@
                     waitingText.style.color = 'var(--cream)';
                 }
 
-                const hostSettings = document.getElementById('host-settings');
-                const guestSettings = document.getElementById('guest-settings');
-                if (hostSettings && guestSettings) {
-                    if (isHost) {
-                        hostSettings.style.display = 'block';
-                        guestSettings.style.display = 'none';
-                        if (document.activeElement !== document.getElementById('max-rounds-input')) {
-                            document.getElementById('max-rounds-input').value = s.maxRounds;
-                        }
-                    } else {
-                        hostSettings.style.display = 'none';
-                        guestSettings.style.display = 'block';
-                        document.getElementById('guest-rounds-display').textContent = s.maxRounds;
+                const hostAreas = document.querySelectorAll('.host-settings-area');
+                const guestAreas = document.querySelectorAll('.guest-settings-area');
+                
+                if (isHost) {
+                    hostAreas.forEach(el => el.style.display = 'block');
+                    guestAreas.forEach(el => el.style.display = 'none');
+                    if (document.activeElement !== document.getElementById('max-rounds-input')) {
+                        document.getElementById('max-rounds-input').value = s.maxRounds;
                     }
+                    if (document.activeElement !== document.getElementById('initial-cards-input')) {
+                        document.getElementById('initial-cards-input').value = s.initialCards || 4;
+                    }
+                } else {
+                    hostAreas.forEach(el => el.style.display = 'none');
+                    guestAreas.forEach(el => el.style.display = 'block');
+                    document.getElementById('guest-rounds-display').textContent = s.maxRounds;
+                    document.getElementById('guest-cards-display').textContent = s.initialCards || 4;
                 }
 
                 // Update active dots in lobby
@@ -5426,6 +6044,15 @@
                 });
 
                 document.getElementById('round-badge').style.display = 'none';
+                document.getElementById('timer-container').style.display = 'none';
+                
+                // 🔥 Ensure all UI overlays are closed when returning to lobby
+                stopMatchTimer();
+                document.getElementById('match-timer').textContent = '00:00';
+                document.getElementById('leaderboard-panel').classList.remove('show');
+                document.getElementById('overlay').classList.remove('show');
+                document.getElementById('game').classList.remove('match-over-blur');
+                document.getElementById('lobby').classList.remove('match-over-blur');
 
                 // Jangan putar BGM di lobby/waiting
                 bgmSound.pause();
@@ -5445,9 +6072,11 @@
 
             document.getElementById('lobby').style.display = 'none';
             document.getElementById('game').style.display = 'flex';
+            document.getElementById('shop-btn-floating').style.display = 'none';
             document.getElementById('main-header').style.display = 'grid'; // Tampilkan header
             document.getElementById('hud-top').style.display = 'flex'; // Show HUD in game
             document.getElementById('round-badge').style.display = 'flex';
+            document.getElementById('timer-container').style.display = 'flex';
             document.getElementById('round-badge').textContent = (s.roundCount || 1) + '/' + s.maxRounds;
             document.getElementById('text-fab').style.display = 'flex'; // Show chat in-game
             document.getElementById('mini-chat-history').style.display = 'flex';
@@ -5946,11 +6575,9 @@
             localStorage.setItem('sc_user', JSON.stringify(user));
             const profilePanel = document.getElementById('profile-panel');
             if (profilePanel && profilePanel.classList.contains('show')) {
-                document.getElementById('profile-gold').innerText = stats.gold;
-                document.getElementById('profile-diamonds').innerText = stats.diamonds;
-                document.getElementById('profile-wins').innerText = stats.wins;
                 document.getElementById('profile-matches').innerText = stats.matches_played;
             }
+            syncProfileUI();
         });
 
         socket.on("gameOver", (data) => {
@@ -6040,8 +6667,18 @@
 
         socket.on("emoji", (data) => {
             if (data.name === myName) return;
+
+            // Handle special effects first
+            if (data.emoji === '⚡recall') {
+                if (typeof playRecallLottieOnSeat === 'function') {
+                    playRecallLottieOnSeat(data.name);
+                }
+                return;
+            }
+
             // Both show chat bubble and lottie effect
-            showChatOnPlayer(data.name, data.text || data.emoji);
+            const displayMsg = data.text || (['dynamic', 'special'].includes(data.emoji) ? '' : data.emoji);
+            if (displayMsg) showChatOnPlayer(data.name, displayMsg);
             if (typeof showLottieEmojiOnSeat === 'function') {
                 showLottieEmojiOnSeat(data.name, data);
             }
@@ -6099,15 +6736,25 @@
 
         function showLottieEmojiOnSeat(senderName, data) {
             let seatEl = null;
+            // Search in opponents
             document.querySelectorAll('.opponent-seat').forEach(seat => {
                 const nameEl = seat.querySelector('.name-text') || seat.querySelector('.opponent-name');
                 const fullName = nameEl?.innerText?.trim() || "";
-                // Match the name portion only (before any icons or spaces)
                 const baseNameInDOM = fullName.split('\n')[0].split(' ')[0].split('\t')[0];
                 const baseSenderName = senderName.split(' ')[0].split('\t')[0];
 
                 if (baseNameInDOM === baseSenderName) seatEl = seat;
             });
+
+            // Search in my seat if not found
+            if (!seatEl) {
+                const myBaseName = myName.split(' ')[0];
+                const senderBaseName = senderName.split(' ')[0];
+                if (myBaseName === senderBaseName) {
+                    seatEl = document.getElementById('your-area');
+                }
+            }
+
             if (!seatEl) return;
 
             const size = 150;
@@ -6141,21 +6788,21 @@
 
             if (data.text) {
                 const textEl = document.createElement('div');
-                textEl.className = 'taunt-text';
-                textEl.style.cssText = 'background:rgba(0,0,0,0.6); padding:2px 8px; border-radius:10px; margin-top:-10px; position:relative; z-index:1;';
+                textEl.className = 'emoji-taunt-text';
                 textEl.textContent = data.text;
                 wrapper.appendChild(textEl);
             }
 
             seatEl.appendChild(wrapper);
 
+            const isDynamic = data.emoji === 'special' || data.emoji === 'dynamic';
             const inst = lottie.loadAnimation({
                 container: lottieContainer,
                 renderer: 'svg',
                 loop: true,
                 autoplay: true,
-                animationData: lottieCache[data.emoji] ? JSON.parse(JSON.stringify(lottieCache[data.emoji])) : null,
-                path: lottieCache[data.emoji] ? null : (data.emoji === '👑' ? '/assets/lottie/monkey.json' : `/assets/lottie/${data.emoji}.json`)
+                animationData: (!isDynamic && lottieCache[data.emoji]) ? JSON.parse(JSON.stringify(lottieCache[data.emoji])) : null,
+                path: isDynamic ? data.lottieUrl : (lottieCache[data.emoji] ? null : (data.emoji === '👑' ? '/assets/lottie/monkey.json' : `/assets/lottie/${data.emoji}.json`))
             });
 
             if (isSfxOn) {
@@ -6167,6 +6814,12 @@
                     tauntSound.pause();
                     tauntSound.currentTime = 0;
                     tauntSound.play().catch(() => { });
+                }
+
+                if (data.soundUrl) {
+                    const snd = new Audio(data.soundUrl);
+                    snd.volume = sfxVolume;
+                    snd.play().catch(() => {});
                 }
             }
 
@@ -6293,7 +6946,7 @@
 
             wrapper.innerHTML = `
                 <div style="font-size: 42px;">${data.emoji}</div>
-                ${data.text ? `<div class="taunt-text" style="background:rgba(0,0,0,0.6); padding:2px 8px; border-radius:10px; margin-top:-5px;">${data.text}</div>` : ''}
+                ${data.text ? `<div class="emoji-taunt-text">${data.text}</div>` : ''}
             `;
 
             seatEl.appendChild(wrapper);
@@ -6904,7 +7557,7 @@
         function restartGame() {
             window.isMatchEndFlag = false;
 
-            // 🔥 AGGRESSIVE CLEANUP: Hapus semua sisa kartu dan efek secara instan
+            // 🔥 AGGRESSIVE CLEANUP
             document.querySelectorAll('.game-effect-wrapper').forEach(el => el.remove());
             document.querySelectorAll('.throwing-card').forEach(el => el.remove());
 
@@ -6913,10 +7566,7 @@
                 tableArea.innerHTML = '';
                 tableArea.dataset.stateHash = '';
             }
-            // Clear the pool so next renderTableSpread starts fresh
-            if (typeof tableCardPool !== 'undefined') {
-                tableCardPool.length = 0;
-            }
+            if (typeof tableCardPool !== 'undefined') tableCardPool.length = 0;
 
             const winnerLabel = document.getElementById('round-winner-label');
             if (winnerLabel) winnerLabel.classList.remove('visible');
@@ -6924,11 +7574,26 @@
             document.getElementById('leaderboard-panel').classList.remove('show');
             document.getElementById('overlay').classList.remove('show');
             
-            // 🔥 REMOVE BLUR on restart
             document.getElementById('game').classList.remove('match-over-blur');
             document.getElementById('lobby').classList.remove('match-over-blur');
 
             socket.emit('restartGame');
+        }
+
+        function backToLobby() {
+            window.isMatchEndFlag = false;
+            
+            // Clean UI
+            document.getElementById('leaderboard-panel').classList.remove('show');
+            document.getElementById('overlay').classList.remove('show');
+            document.getElementById('game').classList.remove('match-over-blur');
+            document.getElementById('lobby').classList.remove('match-over-blur');
+            
+            // Show lobby div
+            document.getElementById('game').style.display = 'none';
+            document.getElementById('lobby').style.display = 'flex';
+
+            socket.emit('backToLobby');
         }
 
 
@@ -6975,9 +7640,16 @@
                     document.getElementById('profile-auth-actions').style.display = 'flex';
                     document.getElementById('profile-logged-actions').style.display = 'none';
                     document.getElementById('profile-avatar-box').innerHTML = `<i class="fa-solid fa-user"></i>`;
-                    // 🔥 Hide stats & economy for guests
+                    // 🔥 Hide stats, economy & inventory for guests
                     if (statsSection)   statsSection.style.display = 'none';
                     if (economySection) economySection.style.display = 'none';
+                    const inventorySection = document.getElementById('profile-inventory-section');
+                    if (inventorySection) inventorySection.style.display = 'none';
+                }
+
+                if (isLoggedIn) {
+                    const inventorySection = document.getElementById('profile-inventory-section');
+                    if (inventorySection) inventorySection.style.display = 'flex';
                 }
 
                 panel.style.display = 'flex';
@@ -7080,6 +7752,8 @@
 
             closeAuthModal();
             toast(`Selamat datang kembali, ${data.user.username}!`, "🎉");
+            syncProfileUI();
+            loadInventory();
         }
 
         function logout() {
@@ -7262,6 +7936,12 @@
                 // If it was captured, the el handler will fire. 
                 // This is a safety net.
             }
+        });
+
+        // Initialize user data if logged in
+        window.addEventListener('load', () => {
+            syncProfileUI();
+            loadInventory();
         });
     </script>
 
