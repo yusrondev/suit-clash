@@ -4451,10 +4451,15 @@
             renderEmojiFAB();
         }
 
+        let menuLottieAnimations = [];
         function renderEmojiFAB() {
             const menu = document.getElementById('emoji-menu');
             if (!menu) return;
             menu.innerHTML = '';
+            
+            // Destroy existing to save memory
+            menuLottieAnimations.forEach(a => a.destroy());
+            menuLottieAnimations = [];
 
             const allAvailable = [
                 ...defaultEmojis.map(e => ({...e, is_default: true, id: e.id})),
@@ -4476,13 +4481,14 @@
                 btn.appendChild(preview);
                 menu.appendChild(btn);
 
-                lottie.loadAnimation({
+                const anim = lottie.loadAnimation({
                     container: preview,
                     renderer: 'svg',
                     loop: true,
-                    autoplay: true,
+                    autoplay: false, // PAUSE BY DEFAULT UNTIL OPENED
                     path: item.lottie_url
                 });
+                menuLottieAnimations.push(anim);
             });
 
         }
@@ -7917,16 +7923,22 @@
         let holdTimer = null;
         let isOpen = false;
 
-        fab.addEventListener('click', (e) => {
-            e.stopPropagation(); // biar nggak langsung ketutup
-
-            isOpen = !isOpen;
-
+        function toggleEmojiMenu(forceOpen = null) {
+            isOpen = (forceOpen !== null) ? forceOpen : !isOpen;
             if (isOpen) {
                 fab.classList.add('active');
+                // Play all to make it smooth when opening
+                menuLottieAnimations.forEach(a => a.play());
             } else {
                 fab.classList.remove('active');
+                // Pause all to save CPU/GPU lag
+                menuLottieAnimations.forEach(a => a.pause());
             }
+        }
+
+        fab.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleEmojiMenu();
         });
 
         document.addEventListener('click', (e) => {
@@ -7934,7 +7946,7 @@
             const isClickInput = chatInput.contains(e.target);
 
             if (!isClickInsideFab && !isClickInput) {
-                fab.classList.remove('active');
+                toggleEmojiMenu(false);
                 chatInput.blur();
             }
         });
