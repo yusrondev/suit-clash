@@ -3628,6 +3628,47 @@
                 height: 14px;
             }
         }
+        /* ── SHOP FILTERS ── */
+        .shop-filters {
+            display: flex;
+            gap: 12px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+        }
+
+        .filter-group {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 6px 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(212, 175, 55, 0.2);
+        }
+
+        .filter-group i {
+            font-size: 12px;
+            color: var(--gold);
+        }
+
+        .filter-group select {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            outline: none;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .filter-group select option {
+            background: #0b2116;
+            color: white;
+        }
+
     </style>
     <!-- External Shop Styles -->
     <link rel="stylesheet" href="/css/shop.css">
@@ -3663,15 +3704,36 @@
     </header>
 
     <!-- Floating Shop Button -->
-    <div id="shop-btn-floating" class="btn-shop-floating" style="display: none;" onclick="loadShopItems(); document.getElementById('shop-panel').classList.add('show'); document.getElementById('shop-backdrop').classList.add('show');">
+    <div id="shop-btn-floating" class="btn-shop-floating" style="display: none;" onclick="openShop()">
         <i class="fas fa-shopping-cart"></i>
     </div>
 
     <!-- Shop Panel -->
     <div id="shop-panel" class="shop-panel">
         <div class="shop-header">
-            <h2>SHOP</h2>
+            <h2 style="font-size:20px;">SHOP</h2>
             <button class="shop-close-btn" onclick="closeShop()">✖</button>
+        </div>
+        <div class="shop-filters">
+            <div class="filter-group">
+                <i class="fas fa-filter"></i>
+                <select id="shop-filter-rarity" onchange="loadShopItems()">
+                    <option value="all">Semua Rarity</option>
+                    <option value="common">Common</option>
+                    <option value="rare">Rare</option>
+                    <option value="epic">Epic</option>
+                    <option value="legendary">Legendary</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <i class="fas fa-sort-amount-down"></i>
+                <select id="shop-sort-mode" onchange="loadShopItems()">
+                    <option value="rarity-desc">Rarity Tertinggi</option>
+                    <option value="rarity-asc">Rarity Terendah</option>
+                    <option value="price-asc">Harga Termurah</option>
+                    <option value="price-desc">Harga Termahal</option>
+                </select>
+            </div>
         </div>
         <div class="shop-content" id="shop-items-container">
             <!-- Items will be loaded here -->
@@ -4190,13 +4252,25 @@
         let defaultEmojis = [];
         let myInventory = [];
         let activeEmojiIds = JSON.parse(localStorage.getItem('sc_active_emojis') || '[]');
+        let shopLottieAnimations = [];
+        let inventoryLottieAnimations = [];
 
         // ── SHOP & INVENTORY LOGIC ───────────────────────────────────────────────────
+        function openShop() {
+            loadShopItems();
+            document.getElementById('shop-panel').classList.add('show');
+            document.getElementById('shop-backdrop').classList.add('show');
+            // Play all shop animations when opened
+            shopLottieAnimations.forEach(a => a.play());
+        }
+
         function closeShop() {
             const panel = document.getElementById('shop-panel');
             const backdrop = document.getElementById('shop-backdrop');
             panel.classList.remove('show');
             backdrop.classList.remove('show');
+            // Pause all shop animations to save lag
+            shopLottieAnimations.forEach(a => a.pause());
         }
 
         async function loadShopItems() {
@@ -4260,12 +4334,48 @@
                 if (!data.success) throw new Error(data.msg);
 
                 container.innerHTML = '';
-                data.items.forEach(item => {
+                
+                // Clear and destroy previous shop animations
+                shopLottieAnimations.forEach(a => a.destroy());
+                shopLottieAnimations = [];
+
+                let items = data.items;
+
+                // 1. FILTERING
+                const filterRarity = document.getElementById('shop-filter-rarity').value;
+                if (filterRarity !== 'all') {
+                    items = items.filter(it => it.rarity === filterRarity);
+                }
+
+                // 2. SORTING
+                const sortMode = document.getElementById('shop-sort-mode').value;
+                const rarityOrder = { 'legendary': 4, 'epic': 3, 'rare': 2, 'common': 1 };
+
+                items.sort((a, b) => {
+                    if (sortMode === 'rarity-desc') return rarityOrder[b.rarity] - rarityOrder[a.rarity];
+                    if (sortMode === 'rarity-asc') return rarityOrder[a.rarity] - rarityOrder[b.rarity];
+                    
+                    // Price comparison (heuristic: 1 diamond = 100 gold for sorting weight)
+                    const valA = (a.price_gold || 0) + ((a.price_diamonds || 0) * 100);
+                    const valB = (b.price_gold || 0) + ((b.price_diamonds || 0) * 100);
+                    
+                    if (sortMode === 'price-asc') return valA - valB;
+                    if (sortMode === 'price-desc') return valB - valA;
+                    return 0;
+                });
+
+                if (items.length === 0) {
+                    container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding:40px; color:rgba(255,255,255,0.2);">Tidak ada item yang cocok dengan filter.</div>';
+                    return;
+                }
+
+                items.forEach(item => {
                     const isOwned = myInventory.some(inv => inv.item_id === item.id);
                     const card = document.createElement('div');
                     card.className = 'shop-item-card';
                     card.innerHTML = `
                         <div class="item-rarity rarity-${item.rarity}">${item.rarity}</div>
+                        <div class="item-type">${item.type}</div>
                         ${item.sound_url ? `
                             <div class="shop-sound-badge" onclick="previewShopSound('${item.sound_url}')" title="Play Preview">
                                 <i class="fas fa-music"></i>
@@ -4287,13 +4397,14 @@
                     container.appendChild(card);
 
                     // Render Lottie Preview
-                    lottie.loadAnimation({
+                    const anim = lottie.loadAnimation({
                         container: document.getElementById(`shop-preview-${item.id}`),
                         renderer: 'svg',
                         loop: true,
-                        autoplay: true,
+                        autoplay: true, // Will be paused by closeShop if closed
                         path: item.lottie_url
                     });
+                    shopLottieAnimations.push(anim);
                 });
             } catch (err) {
                 container.innerHTML = `<div style="grid-column: 1/-1; color:#ff4d4d; text-align:center; padding:20px;">Gagal memuat shop: ${err.message}</div>`;
@@ -4409,6 +4520,10 @@
             if (!container) return;
             container.innerHTML = '';
 
+            // Destroy existing inventory animations
+            inventoryLottieAnimations.forEach(a => a.destroy());
+            inventoryLottieAnimations = [];
+
             // Combine all available
             const allAvailable = [
                 ...defaultEmojis.map(e => ({...e, is_default: true, id: e.id, item_id: e.id})),
@@ -4427,13 +4542,14 @@
                 div.appendChild(thumb);
                 container.appendChild(div);
 
-                lottie.loadAnimation({
+                const anim = lottie.loadAnimation({
                     container: thumb,
                     renderer: 'svg',
                     loop: true,
-                    autoplay: true,
+                    autoplay: true, // Will be paused by toggleProfile if closed
                     path: item.lottie_url
                 });
+                inventoryLottieAnimations.push(anim);
             });
         }
 
@@ -5984,6 +6100,7 @@
                 
                 // Show shop for everyone in lobby
                 document.getElementById('shop-btn-floating').style.display = 'flex';
+                document.getElementById('main-header').style.display = 'grid'; // Tampilkan header
                 document.getElementById('hud-top').style.display = 'none';
                 syncHeaderAuth();
                 document.getElementById('leaderboard-btn').style.display = 'none';
@@ -7634,6 +7751,7 @@
 
         function toggleProfile() {
             const panel = document.getElementById('profile-panel');
+            const backdrop = document.getElementById('profile-backdrop');
             if (!panel) return;
             const isShowing = panel.classList.contains('show');
 
@@ -7676,13 +7794,24 @@
 
                 if (isLoggedIn) {
                     const inventorySection = document.getElementById('profile-inventory-section');
-                    if (inventorySection) inventorySection.style.display = 'flex';
+                    if (inventorySection) {
+                        inventorySection.style.display = 'flex';
+                        renderInventoryUI();
+                    }
                 }
 
                 panel.style.display = 'flex';
-                setTimeout(() => panel.classList.add('show'), 10);
+                if (backdrop) backdrop.classList.add('show');
+                setTimeout(() => {
+                    panel.classList.add('show');
+                    // Play all inventory animations
+                    inventoryLottieAnimations.forEach(a => a.play());
+                }, 10);
             } else {
                 panel.classList.remove('show');
+                if (backdrop) backdrop.classList.remove('show');
+                // Pause all inventory animations to save lag
+                inventoryLottieAnimations.forEach(a => a.pause());
                 setTimeout(() => {
                     if (!panel.classList.contains('show')) panel.style.display = 'none';
                 }, 300);
