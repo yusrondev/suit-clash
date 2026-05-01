@@ -225,6 +225,36 @@
     color: #1a1100;
 }
 
+.slashed-price-inner {
+    font-size: 8px;
+    text-decoration: line-through;
+    color: rgba(255, 255, 255, 0.25);
+    font-weight: 500;
+    margin-right: 8px;
+    opacity: 0.8;
+}
+
+.price-val {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.sale-badge {
+    position: absolute;
+    top: 6px;
+    right: 36px;
+    background: linear-gradient(135deg, #ff416c, #ff4b2b);
+    color: white;
+    font-size: 7px;
+    font-weight: 900;
+    padding: 2px 5px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    box-shadow: 0 2px 8px rgba(255, 65, 108, 0.3);
+    z-index: 10;
+}
+
 .btn-buy.disabled {
     opacity: 0.5;
     cursor: not-allowed;

@@ -24,6 +24,8 @@ CREATE TABLE shop_items (
     type VARCHAR(20) DEFAULT 'emoticon',
     price_gold INTEGER DEFAULT 0,
     price_diamonds INTEGER DEFAULT 0,
+    original_price_gold INTEGER,
+    original_price_diamonds INTEGER,
     lottie_url TEXT NOT NULL,
     sound_url TEXT,
     additional_text VARCHAR(100),

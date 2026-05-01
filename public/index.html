@@ -4378,6 +4378,7 @@
                     card.className = 'shop-item-card';
                     card.innerHTML = `
                         <div class="item-rarity rarity-${item.rarity}">${item.rarity}</div>
+                        ${(item.original_price_gold || item.original_price_diamonds) ? `<div class="sale-badge">SALE</div>` : ''}
                         <div class="item-type">${item.type}</div>
                         ${item.sound_url ? `
                             <div class="shop-sound-badge" onclick="previewShopSound('${item.sound_url}')" title="Play Preview">
@@ -4389,11 +4390,17 @@
                         <div class="item-price">
                             ${item.price_gold > 0 ? `
                                 <button class="btn-buy ${isOwned ? 'disabled' : ''}" onclick="${isOwned ? '' : `buyItem(${item.id}, 'gold')`}">
-                                    <i class="fas fa-coins gold-color"></i> ${item.price_gold}
+                                    ${item.original_price_gold ? `<span class="slashed-price-inner"><i class="fas fa-coins"></i> ${item.original_price_gold}</span>` : ''}
+                                    <div class="price-val">
+                                        <i class="fas fa-coins gold-color"></i> ${item.price_gold}
+                                    </div>
                                 </button>` : ''}
                             ${item.price_diamonds > 0 ? `
                                 <button class="btn-buy ${isOwned ? 'disabled' : ''}" onclick="${isOwned ? '' : `buyItem(${item.id}, 'diamonds')`}">
-                                    <i class="fas fa-gem diamond-color"></i> ${item.price_diamonds}
+                                    ${item.original_price_diamonds ? `<span class="slashed-price-inner"><i class="fas fa-gem"></i> ${item.original_price_diamonds}</span>` : ''}
+                                    <div class="price-val">
+                                        <i class="fas fa-gem diamond-color"></i> ${item.price_diamonds}
+                                    </div>
                                 </button>` : ''}
                         </div>
                     `;
