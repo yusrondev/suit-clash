@@ -4534,11 +4534,7 @@
                         closeBuyConfirm();
                         toast('Berhasil membeli item!', '🎉');
                         
-                        toast('Berhasil membeli item!', '🎉');
-                        
                         // Sync user stats & inventory (Equipment now handled by server auto-equip)
-
-                        // Sync user stats & inventory
                         const user = JSON.parse(localStorage.getItem('sc_user') || '{}');
                         const updatedUser = { ...user, ...data.user };
                         localStorage.setItem('sc_user', JSON.stringify(updatedUser));
