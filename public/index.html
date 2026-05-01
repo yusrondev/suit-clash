@@ -683,6 +683,14 @@
             transform: translateY(-1px);
         }
 
+        #google-login-btn {
+            display: flex !important;
+            justify-content: center !important;
+            width: 100%;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
         .btn-google img {
             width: 18px;
             height: 18px;
@@ -8046,7 +8054,7 @@
             });
             google.accounts.id.renderButton(
                 document.getElementById("google-login-btn"),
-                { theme: "outline", size: "large", width: 320 }
+                { theme: "outline", size: "large", width: 280 }
             );
 
             // Auto login if token exists
