@@ -119,7 +119,7 @@ const authenticateToken = (req, res, next) => {
 
 app.get("/api/shop/items", async (req, res) => {
   try {
-    const result = await db.query("SELECT * FROM shop_items ORDER BY rarity DESC, price_gold ASC");
+    const result = await db.query("SELECT * FROM shop_items ORDER BY created_at DESC, id DESC");
     res.json({ success: true, items: result.rows });
   } catch (err) {
     console.error(err);
