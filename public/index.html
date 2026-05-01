@@ -4578,6 +4578,9 @@
                 const defRes = await fetch('/api/shop/defaults');
                 const defData = await defRes.json();
                 defaultEmojis = defData.defaults || [];
+                
+                // Cleanup: Ensure all IDs are strings and unique
+                activeEmojiIds = [...new Set(activeEmojiIds.map(id => id.toString()))];
 
                 // 2. Fetch Owned (if logged in)
                 if (token) {
@@ -4592,7 +4595,7 @@
 
                 // If no active emojis selected, use first 8 defaults
                 if (activeEmojiIds.length === 0) {
-                    activeEmojiIds = defaultEmojis.slice(0, 8).map(e => e.id);
+                    activeEmojiIds = defaultEmojis.slice(0, 8).map(e => e.id.toString());
                     localStorage.setItem('sc_active_emojis', JSON.stringify(activeEmojiIds));
                 }
 
