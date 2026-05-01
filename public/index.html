@@ -4250,7 +4250,7 @@
         let selectedHandIndex = null;
         let pendingOptimisticCardId = null;
         let lastKnownTableCardId = null; // For Ace detection
-        const LOTTIE_EMOJIS = ['cat', 'panda', 'angry', 'amongus', 'cat-laughing', 'cat-sleep', 'ok', 'cool', 'music', '👑'];
+        const LOTTIE_EMOJIS = ['cat', 'monkey', 'angry', 'amongus', 'cat-laughing', 'cat-sleep', 'ok', 'cool', 'music', '👑'];
         let defaultEmojis = [];
         let myInventory = [];
         let activeEmojiIds = JSON.parse(localStorage.getItem('sc_active_emojis') || '[]');
@@ -4714,10 +4714,29 @@
         // ── LOTTIE CACHE & PRELOAD ──
         const lottieCache = {};
         function preloadLotties() {
+            const paths = {
+                'cat': '/assets/lottie/cat.json',
+                'monkey': '/assets/lottie/monkey.json',
+                'angry': '/assets/lottie/angry.json',
+                'ok': '/assets/lottie/ok.json',
+                'cat-laughing': '/assets/lottie/shop/common/cat-laughing.json',
+                'cat-sleep': '/assets/lottie/shop/common/cat-sleep.json',
+                'amongus': '/assets/lottie/shop/epic/amongus.json',
+                'music': '/assets/lottie/shop/epic/music.json',
+                'recall': '/assets/lottie/shop/legendary/recall.json',
+                'cool': '/assets/lottie/shop/rare/cool.json',
+                'win': '/assets/lottie/win.json',
+                'target': '/assets/lottie/target.json',
+                'lightning': '/assets/lottie/lightning.json',
+                'fall-smoke': '/assets/lottie/fall-smoke.json',
+                '👑': '/assets/lottie/shop/common/king.json'
+            };
+
             const list = [...LOTTIE_EMOJIS, 'recall', 'win', 'target', 'lightning', 'fall-smoke'];
             list.forEach(emoji => {
                 if (lottieCache[emoji]) return;
-                fetch(`/assets/lottie/${emoji}.json`)
+                const path = paths[emoji] || `/assets/lottie/${emoji}.json`;
+                fetch(path)
                     .then(r => {
                         if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
                         return r.json();
@@ -4726,7 +4745,7 @@
                         lottieCache[emoji] = data;
                         console.log(`[Lottie] Preloaded: ${emoji}`);
                     })
-                    .catch(err => console.warn(`[Lottie] Failed to preload: ${emoji}`, err));
+                    .catch(err => console.warn(`[Lottie] Failed to preload: ${emoji} at ${path}`, err));
             });
         }
         // Jalankan preload setelah halaman stabil
@@ -7975,7 +7994,7 @@
             });
             google.accounts.id.renderButton(
                 document.getElementById("google-login-btn"),
-                { theme: "outline", size: "large", width: "100%" }
+                { theme: "outline", size: "large", width: 320 }
             );
 
             // Auto login if token exists
