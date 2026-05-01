@@ -4378,7 +4378,7 @@
                     card.className = 'shop-item-card';
                     card.innerHTML = `
                         <div class="item-rarity rarity-${item.rarity}">${item.rarity}</div>
-                        ${(item.original_price_gold || item.original_price_diamonds) ? `<div class="sale-badge">SALE</div>` : ''}
+                        ${(item.original_price_gold || item.original_price_diamonds) ? `<div class="sale-badge">DISC</div>` : ''}
                         <div class="item-type">${item.type}</div>
                         ${item.sound_url ? `
                             <div class="shop-sound-badge" onclick="previewShopSound('${item.sound_url}')" title="Play Preview">
