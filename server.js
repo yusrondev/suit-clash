@@ -189,6 +189,16 @@ app.post("/api/shop/buy", authenticateToken, async (req, res) => {
     // 5. Add to inventory
     await client.query("INSERT INTO user_inventory (user_id, item_id) VALUES ($1, $2)", [userId, itemId]);
 
+    // 6. Auto-equip if it's an emoticon and there's space
+    if (item.type === 'emoticon') {
+        const userEquipRes = await client.query("SELECT equipped_emojis FROM users WHERE id = $1", [userId]);
+        let equipped = userEquipRes.rows[0].equipped_emojis || [];
+        if (equipped.length < 10 && !equipped.includes(itemId.toString())) {
+            equipped.push(itemId.toString());
+            await client.query("UPDATE users SET equipped_emojis = $1 WHERE id = $2", [equipped, userId]);
+        }
+    }
+
     await client.query('COMMIT');
 
     // Return updated stats
