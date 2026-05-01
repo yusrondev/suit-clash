@@ -6723,13 +6723,13 @@
         // setupTableDropZone(); // 🔥 DIMATIKAN (Ganti sistem Klik)
 
         function handlePointerDown(e, index, el) {
-            // 🔥 BROADCAST PEEK (Dengan Delay 0.5s)
+            // 🔥 BROADCAST PEEK (Dengan Delay 2s)
             if (peekTimeout) clearTimeout(peekTimeout);
             peekTimeout = setTimeout(() => {
                 socket.emit('peekCard', { index });
                 localPeekIndex = index;
                 el.classList.add('peeking'); // Tampilkan icon mata
-            }, 500);
+            }, 2000);
 
             el._lastPointerId = e.pointerId;
             el.setPointerCapture(e.pointerId);
