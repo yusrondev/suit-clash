@@ -2063,7 +2063,6 @@
             outline: 1px solid rgba(255, 255, 255, 0.03);
             border-radius: 32px;
             padding: 48px 32px;
-            display: flex;
             flex-direction: column;
             align-items: center;
             gap: 24px;
@@ -3671,7 +3670,7 @@
     <!-- Shop Panel -->
     <div id="shop-panel" class="shop-panel">
         <div class="shop-header">
-            <h2>SUIT CLASH SHOP</h2>
+            <h2>SHOP</h2>
             <button class="shop-close-btn" onclick="closeShop()">✖</button>
         </div>
         <div class="shop-content" id="shop-items-container">
@@ -3722,7 +3721,7 @@
             <button id="lb-lobby-btn" class="btn-outline-gold" style="display:none; flex: 1; height: 50px; font-size: 13px;"
                 onclick="backToLobby()">KE LOBBY</button>
             <button id="lb-restart-btn" class="btn-gold" style="display:none; flex: 1; height: 50px; font-size: 13px;"
-                onclick="restartGame()">MAIN LAGI</button>
+                onclick="restartGame()">ULANGI</button>
         </div>
     </div>
 
@@ -4204,21 +4203,44 @@
             const container = document.getElementById('shop-items-container');
             const guestShield = document.getElementById('shop-guest-shield');
             const token = localStorage.getItem('sc_token');
-            const user = JSON.parse(localStorage.getItem('sc_user') || '{}');
+            let user = JSON.parse(localStorage.getItem('sc_user') || '{}');
             
-            // Sync Header UI
-            const economyHtml = token ? `
-                <div class="shop-user-economy">
-                    <div class="economy-item"><i class="fas fa-coins gold-color"></i> <span>${user.gold || 0}</span></div>
-                    <div class="economy-item"><i class="fas fa-gem diamond-color"></i> <span>${user.diamonds || 0}</span></div>
-                </div>
-            ` : '';
+            // Helper function to update economy UI
+            const updateEconomyUI = (u) => {
+                const economyHtml = token ? `
+                    <div class="shop-user-economy">
+                        <div class="economy-item"><i class="fas fa-coins gold-color"></i> <span>${u.gold || 0}</span></div>
+                        <div class="economy-item"><i class="fas fa-gem diamond-color"></i> <span>${u.diamonds || 0}</span></div>
+                    </div>
+                ` : '';
+                document.querySelector('.shop-header').innerHTML = `
+                    <h2 style="font-size:20px;">SUIT CLASH SHOP</h2>
+                    ${economyHtml}
+                    <button class="shop-close-btn" onclick="closeShop()">✖</button>
+                `;
+            };
 
-            document.querySelector('.shop-header').innerHTML = `
-                <h2 style="font-size:20px;">SUIT CLASH SHOP</h2>
-                ${economyHtml}
-                <button class="shop-close-btn" onclick="closeShop()">✖</button>
-            `;
+            // 1. Initial UI update from localStorage (fast)
+            updateEconomyUI(user);
+
+            // 2. Proactive Balance Sync (ensures balance is not 0 if server has data)
+            if (token) {
+                fetch('/api/user/stats', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        // Merge and update storage
+                        const updatedUser = { ...user, ...data.stats };
+                        localStorage.setItem('sc_user', JSON.stringify(updatedUser));
+                        // Update UI with fresh data
+                        updateEconomyUI(updatedUser);
+                        syncProfileUI(); 
+                    }
+                })
+                .catch(err => console.error("Balance sync error:", err));
+            }
 
             // Reset States
             container.classList.remove('blurred');
@@ -4260,7 +4282,6 @@
                                 <button class="btn-buy ${isOwned ? 'disabled' : ''}" onclick="${isOwned ? '' : `buyItem(${item.id}, 'diamonds')`}">
                                     <i class="fas fa-gem diamond-color"></i> ${item.price_diamonds}
                                 </button>` : ''}
-                            ${isOwned ? '<div style="font-size:10px; color:var(--gold); font-weight:700; width:100%; text-align:center;">OWNED</div>' : ''}
                         </div>
                     `;
                     container.appendChild(card);

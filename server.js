@@ -194,6 +194,17 @@ app.post("/api/shop/buy", authenticateToken, async (req, res) => {
   }
 });
 
+app.get("/api/user/stats", authenticateToken, async (req, res) => {
+  try {
+    const result = await db.query("SELECT gold, diamonds, wins, matches_played FROM users WHERE id = $1", [req.user.id]);
+    if (result.rows.length === 0) return res.status(404).json({ success: false, msg: "User not found." });
+    res.json({ success: true, stats: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, msg: "Server error." });
+  }
+});
+
 app.get("/api/user/inventory", authenticateToken, async (req, res) => {
   try {
     const result = await db.query(`
@@ -698,7 +709,7 @@ function nextTurn(game, roomId) {
     game.playersPlayed.add(next);
     
     // Kirim notifikasi ke UI
-    io.to(roomId).emit("toast", { msg: `${game.players[next].name} dilewati karena kartu habis.` });
+    io.to(roomId).emit("toast", { msg: `${game.players[next].name} dilewati karena kartu habis / tidak cocok.` });
     
     // Lanjut cari pemain berikutnya secara rekursif
     nextTurn(game, roomId);
