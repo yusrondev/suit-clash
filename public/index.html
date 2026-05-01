@@ -3759,6 +3759,8 @@
     <div id="shop-confirm-backdrop" class="shop-confirm-backdrop">
         <div class="shop-confirm-modal">
             <div class="shop-confirm-title">Konfirmasi Pembelian</div>
+            <div id="shop-confirm-preview" style="width: 120px; height: 120px; margin: 0 auto 15px;"></div>
+            <div id="shop-confirm-item-name" style="font-size: 16px; font-weight: 800; color: var(--gold-light); margin-bottom: 5px; text-transform: uppercase;">ITEM NAME</div>
             <div id="shop-confirm-msg" class="shop-confirm-msg">Apakah Anda yakin ingin membeli item ini?</div>
             <div class="shop-confirm-actions">
                 <button class="shop-confirm-btn cancel" onclick="closeBuyConfirm()">Batal</button>
@@ -4338,6 +4340,7 @@
                 // Clear and destroy previous shop animations
                 shopLottieAnimations.forEach(a => a.destroy());
                 shopLottieAnimations = [];
+                window.allShopItems = data.items;
 
                 let items = data.items;
 
@@ -4411,20 +4414,43 @@
             }
         }
 
+        let confirmLottieAnim = null;
         function closeBuyConfirm() {
             document.getElementById('shop-confirm-backdrop').classList.remove('show');
+            if (confirmLottieAnim) {
+                confirmLottieAnim.destroy();
+                confirmLottieAnim = null;
+            }
         }
 
         async function buyItem(itemId, currency) {
             const token = localStorage.getItem('sc_token');
             if (!token) return toast('Harap login untuk berbelanja!', '⚠️');
 
+            const item = (window.allShopItems || []).find(it => it.id === itemId);
+            if (!item) return;
+
             // Show confirmation modal
             const backdrop = document.getElementById('shop-confirm-backdrop');
             const confirmBtn = document.getElementById('shop-confirm-btn-yes');
             const msg = document.getElementById('shop-confirm-msg');
+            const previewContainer = document.getElementById('shop-confirm-preview');
+            const nameLabel = document.getElementById('shop-confirm-item-name');
+
+            // Render Preview
+            previewContainer.innerHTML = '';
+            if (confirmLottieAnim) confirmLottieAnim.destroy();
+            confirmLottieAnim = lottie.loadAnimation({
+                container: previewContainer,
+                renderer: 'svg',
+                loop: true,
+                autoplay: true,
+                path: item.lottie_url
+            });
+
+            nameLabel.innerText = item.name;
+            msg.innerHTML = `Beli seharga <b style="color:var(--gold-light)">${currency === 'gold' ? `<i class="fas fa-coins"></i> ${item.price_gold}` : `<i class="fas fa-gem"></i> ${item.price_diamonds}`}</b>?`;
             
-            msg.innerText = `Apakah Anda yakin ingin membeli item ini seharga ${currency === 'gold' ? 'Gold' : 'Diamond'}?`;
             backdrop.classList.add('show');
 
             confirmBtn.onclick = async () => {

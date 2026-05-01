@@ -154,43 +154,52 @@ app.post("/api/shop/buy", authenticateToken, async (req, res) => {
   const { itemId, currency } = req.body; // currency: 'gold' or 'diamonds'
   const userId = req.user.id;
 
+  const client = await db.connect();
   try {
+    await client.query('BEGIN');
+
     // 1. Get item details
-    const itemRes = await db.query("SELECT * FROM shop_items WHERE id = $1", [itemId]);
-    if (itemRes.rows.length === 0) return res.status(404).json({ success: false, msg: "Item not found." });
+    const itemRes = await client.query("SELECT * FROM shop_items WHERE id = $1", [itemId]);
+    if (itemRes.rows.length === 0) throw new Error("Item not found.");
     const item = itemRes.rows[0];
 
-    // 2. Get user details
-    const userRes = await db.query("SELECT gold, diamonds FROM users WHERE id = $1", [userId]);
+    // 2. Get user details (FOR UPDATE to lock the row and prevent race conditions)
+    const userRes = await client.query("SELECT gold, diamonds FROM users WHERE id = $1 FOR UPDATE", [userId]);
+    if (userRes.rows.length === 0) throw new Error("User not found.");
     const user = userRes.rows[0];
 
     // 3. Check if user already has it
-    const ownRes = await db.query("SELECT id FROM user_inventory WHERE user_id = $1 AND item_id = $2", [userId, itemId]);
-    if (ownRes.rows.length > 0) return res.status(400).json({ success: false, msg: "You already own this item." });
+    const ownRes = await client.query("SELECT id FROM user_inventory WHERE user_id = $1 AND item_id = $2", [userId, itemId]);
+    if (ownRes.rows.length > 0) throw new Error("Anda sudah memiliki item ini.");
 
     // 4. Check balance and deduct
     let price = 0;
     if (currency === 'gold') {
       price = item.price_gold;
-      if (user.gold < price) return res.status(400).json({ success: false, msg: "Not enough gold." });
-      await db.query("UPDATE users SET gold = gold - $1 WHERE id = $2", [price, userId]);
+      if (user.gold < price) throw new Error("Gold tidak cukup.");
+      await client.query("UPDATE users SET gold = gold - $1 WHERE id = $2", [price, userId]);
     } else if (currency === 'diamonds') {
       price = item.price_diamonds;
-      if (user.diamonds < price) return res.status(400).json({ success: false, msg: "Not enough diamonds." });
-      await db.query("UPDATE users SET diamonds = diamonds - $1 WHERE id = $2", [price, userId]);
+      if (user.diamonds < price) throw new Error("Diamond tidak cukup.");
+      await client.query("UPDATE users SET diamonds = diamonds - $1 WHERE id = $2", [price, userId]);
     } else {
-      return res.status(400).json({ success: false, msg: "Invalid currency." });
+      throw new Error("Mata uang tidak valid.");
     }
 
     // 5. Add to inventory
-    await db.query("INSERT INTO user_inventory (user_id, item_id) VALUES ($1, $2)", [userId, itemId]);
+    await client.query("INSERT INTO user_inventory (user_id, item_id) VALUES ($1, $2)", [userId, itemId]);
 
-    // 6. Return updated stats
+    await client.query('COMMIT');
+
+    // Return updated stats
     const updatedUserRes = await db.query("SELECT gold, diamonds, wins, matches_played, avatar_url FROM users WHERE id = $1", [userId]);
-    res.json({ success: true, msg: "Purchase successful!", user: updatedUserRes.rows[0] });
+    res.json({ success: true, msg: "Pembelian berhasil!", user: updatedUserRes.rows[0], price: price });
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error(err);
-    res.status(500).json({ success: false, msg: "Purchase failed." });
+    res.status(400).json({ success: false, msg: err.message || "Pembelian gagal." });
+  } finally {
+    client.release();
   }
 });
 
