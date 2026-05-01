@@ -4323,27 +4323,31 @@
             shopLottieAnimations.forEach(a => a.pause());
         }
 
+        // Helper function to update economy UI
+        const updateEconomyUI = (u) => {
+            const token = localStorage.getItem('sc_token');
+            const economyHtml = token ? `
+                <div class="shop-user-economy">
+                    <div class="economy-item"><i class="fas fa-coins gold-color"></i> <span>${u.gold || 0}</span></div>
+                    <div class="economy-item"><i class="fas fa-gem diamond-color"></i> <span>${u.diamonds || 0}</span></div>
+                </div>
+            ` : '';
+            const header = document.querySelector('.shop-header');
+            if (header) {
+                header.innerHTML = `
+                    <h2 style="font-size:20px;">SHOP</h2>
+                    ${economyHtml}
+                    <button class="shop-close-btn" onclick="closeShop()">✖</button>
+                `;
+            }
+        };
+
         async function loadShopItems() {
             const container = document.getElementById('shop-items-container');
             const guestShield = document.getElementById('shop-guest-shield');
             const token = localStorage.getItem('sc_token');
             let user = JSON.parse(localStorage.getItem('sc_user') || '{}');
             
-            // Helper function to update economy UI
-            const updateEconomyUI = (u) => {
-                const economyHtml = token ? `
-                    <div class="shop-user-economy">
-                        <div class="economy-item"><i class="fas fa-coins gold-color"></i> <span>${u.gold || 0}</span></div>
-                        <div class="economy-item"><i class="fas fa-gem diamond-color"></i> <span>${u.diamonds || 0}</span></div>
-                    </div>
-                ` : '';
-                document.querySelector('.shop-header').innerHTML = `
-                    <h2 style="font-size:20px;">SHOP</h2>
-                    ${economyHtml}
-                    <button class="shop-close-btn" onclick="closeShop()">✖</button>
-                `;
-            };
-
             // 1. Initial UI update from localStorage (fast)
             updateEconomyUI(user);
 

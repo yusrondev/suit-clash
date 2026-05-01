@@ -28,8 +28,8 @@ app.post("/api/auth/register", async (req, res) => {
   try {
     const passwordHash = await bcrypt.hash(password, 10);
     const result = await db.query(
-      "INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING id, username, email, gold, diamonds, wins, matches_played",
-      [username, email, passwordHash]
+      "INSERT INTO users (username, email, password_hash, equipped_emojis) VALUES ($1, $2, $3, $4) RETURNING id, username, email, gold, diamonds, wins, matches_played",
+      [username, email, passwordHash, ['angry', 'cat', 'monkey', 'ok']]
     );
     res.json({ success: true, user: result.rows[0] });
   } catch (err) {
@@ -88,10 +88,10 @@ app.post("/api/auth/google", async (req, res) => {
       }
 
       const insertRes = await db.query(
-        `INSERT INTO users (username, email, google_id, avatar_url) 
-         VALUES ($1, $2, $3, $4) 
+        `INSERT INTO users (username, email, google_id, avatar_url, equipped_emojis) 
+         VALUES ($1, $2, $3, $4, $5) 
          RETURNING id, username, email, gold, diamonds, wins, matches_played, avatar_url`,
-        [finalUsername, email, googleId, avatar]
+        [finalUsername, email, googleId, avatar, ['angry', 'cat', 'monkey', 'ok']]
       );
       user = insertRes.rows[0];
     }
