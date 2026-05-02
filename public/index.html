@@ -5395,16 +5395,39 @@
         }
 
         let hasShownVoicePrompt = false;
-        function activateVoiceFromOverlay() {
-            initAudioContext();
+        async function activateVoiceFromOverlay() {
+            // 1. Force resume AudioContext
+            if (!audioContext) initAudioContext();
+            if (audioContext && audioContext.state === 'suspended') {
+                await audioContext.resume();
+            }
+
+            // 2. iOS/Safari Hack: Play a tiny silent buffer to "unlock" the audio system
+            try {
+                if (audioContext) {
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    gainNode.gain.value = 0; // Silent
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    oscillator.start(0);
+                    oscillator.stop(0.1);
+                }
+            } catch (e) { console.warn("Audio unlock hack failed:", e); }
+
             document.getElementById('voice-activation-overlay').style.display = 'none';
-            // Resume all existing remote audio streams
+            
+            // 3. Force play and unmute all hidden audio elements
             document.querySelectorAll('audio').forEach(a => {
-                if (a.paused && a.srcObject) a.play().catch(() => {});
+                a.muted = false;
+                if (a.srcObject) {
+                    a.play().catch(e => console.warn("Failed to play audio element:", e));
+                }
             });
-            // 🔥 TUNTUTAN USER: Auto-aktifkan mic juga
+
+            // 4. 🔥 TUNTUTAN USER: Auto-aktifkan mic juga
             if (!localStream) {
-                startVoice();
+                await startVoice();
             }
             toast("Suara & Mic diaktifkan!", "🎙️");
         }
