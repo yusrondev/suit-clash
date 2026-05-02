@@ -4913,6 +4913,12 @@
             } catch (err) {
                 console.error("Failed to toggle equipment:", err);
             }
+            
+            // 🔥 Refresh lobby selector if it's open
+            const selector = document.getElementById('lobby-bg-selector');
+            if (selector && selector.style.display !== 'none') {
+                renderLobbyBgSelector();
+            }
         }
 
         function applyEquippedAssets() {
@@ -4959,39 +4965,65 @@
             if (!container) return;
             container.innerHTML = '';
 
-            const backgrounds = myInventory.filter(it => it.type === 'background');
+            // Combine all available backgrounds (defaults + owned)
+            const allAvailable = [
+                ...defaultEmojis.map(e => ({...e, is_default: true, id: e.id, item_id: e.id})),
+                ...myInventory.map(e => ({...e, is_default: false, id: e.item_id}))
+            ];
+            const backgrounds = allAvailable.filter(it => it.type === 'background');
             
-            // Add a "None" option
+            // Option: NONE
             const noneDiv = document.createElement('div');
-            noneDiv.className = 'lobby-bg-option ' + (!activeBackgroundId ? 'active' : '');
-            noneDiv.style.width = '40px';
-            noneDiv.style.height = '30px';
-            noneDiv.style.borderRadius = '4px';
-            noneDiv.style.border = '1px solid rgba(255,255,255,0.2)';
-            noneDiv.style.display = 'flex';
-            noneDiv.style.alignItems = 'center';
-            noneDiv.style.justifyContent = 'center';
-            noneDiv.style.fontSize = '8px';
-            noneDiv.style.color = '#fff';
-            noneDiv.style.background = '#333';
-            noneDiv.textContent = 'NONE';
+            const isNoneActive = !activeBackgroundId;
+            noneDiv.className = `inventory-item ${isNoneActive ? 'equipped' : ''} type-background`;
+            noneDiv.style.minWidth = '70px';
+            noneDiv.style.height = '42px';
+            noneDiv.style.flexShrink = '0';
+            noneDiv.title = 'Tanpa Asset (Default)';
             noneDiv.onclick = () => selectLobbyBg(null);
+            
+            const noneThumb = document.createElement('div');
+            noneThumb.className = 'item-thumb';
+            noneThumb.style.background = 'rgba(0,0,0,0.4)';
+            noneThumb.style.display = 'flex';
+            noneThumb.style.alignItems = 'center';
+            noneThumb.style.justifyContent = 'center';
+            noneThumb.style.fontSize = '9px';
+            noneThumb.style.fontWeight = '800';
+            noneThumb.style.color = 'rgba(255,255,255,0.3)';
+            noneThumb.textContent = 'NONE';
+            noneDiv.appendChild(noneThumb);
             container.appendChild(noneDiv);
 
             backgrounds.forEach(it => {
+                const isActive = (activeBackgroundId === it.id);
                 const div = document.createElement('div');
-                div.className = 'lobby-bg-option ' + (activeBackgroundId === it.item_id ? 'active' : '');
-                div.style.width = '40px';
-                div.style.height = '30px';
-                div.style.borderRadius = '4px';
-                div.style.border = '1px solid rgba(255,255,255,0.2)';
-                div.style.backgroundImage = `url("${it.lottie_url}")`;
-                div.style.backgroundSize = '70% auto';
-                div.style.backgroundPosition = 'center';
-                div.style.backgroundRepeat = 'no-repeat';
-                div.style.backgroundBlendMode = 'multiply';
-                div.style.backgroundColor = '#23613d'; // Default preview base
-                div.onclick = () => selectLobbyBg(it.item_id);
+                div.className = `inventory-item ${isActive ? 'equipped' : ''} type-background`;
+                div.style.minWidth = '70px';
+                div.style.height = '42px';
+                div.style.flexShrink = '0';
+                div.title = it.name;
+                div.onclick = () => selectLobbyBg(it.id);
+
+                const thumb = document.createElement('div');
+                thumb.className = 'item-thumb';
+                thumb.style.backgroundImage = `url("${it.lottie_url}")`;
+                thumb.style.backgroundSize = '70% auto';
+                thumb.style.backgroundPosition = 'center';
+                thumb.style.backgroundRepeat = 'no-repeat';
+                thumb.style.backgroundBlendMode = 'multiply';
+                
+                // Color sync for preview
+                const currentColor = localStorage.getItem('sc_table_color') || 'green';
+                const tableColorMap = {
+                    'green': '#23613d',
+                    'blue': '#1a3c5a',
+                    'red': '#7e1e1e',
+                    'dark': '#1a1a1a'
+                };
+                thumb.style.backgroundColor = tableColorMap[currentColor] || '#23613d';
+
+                div.appendChild(thumb);
                 container.appendChild(div);
             });
         }
