@@ -4436,6 +4436,7 @@
 
         // ── SHOP & INVENTORY LOGIC ───────────────────────────────────────────────────
         function openShop() {
+            toggleFullscreen(true);
             loadShopItems();
             document.getElementById('shop-panel').classList.add('show');
             document.getElementById('shop-backdrop').classList.add('show');
@@ -8170,6 +8171,7 @@
             const isShowing = panel.classList.contains('show');
 
             if (!isShowing) {
+                toggleFullscreen(true);
                 // Populate data
                 const user = JSON.parse(localStorage.getItem('sc_user') || '{}');
                 const isLoggedIn = !!(user.id);
