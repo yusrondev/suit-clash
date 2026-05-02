@@ -783,6 +783,7 @@ function sendState(game) {
       tableColor: game.tableColor || 'green',
       equippedBackgroundUrl: game.equippedBackgroundUrl,
       equippedCardbackUrl: game.equippedCardbackUrl,
+      playersCardbackUrls: game.players.map(pl => pl.equippedCardbackUrl),
       attackCharges: game.players.map(pl => pl.attackCharges),
       playersMicStatus: game.players.map(pl => !!pl.micStatus),
       playerIds: game.players.map(pl => pl.id),
@@ -1320,7 +1321,8 @@ io.on("connection", (socket) => {
       isOut: false,
       dbId: userId, // Store DB ID for stats tracking
       attackCharges: {}, // { targetIndex: charges }
-      micStatus: false
+      micStatus: false,
+      equippedCardbackUrl: null
     });
 
     console.log(
@@ -1425,8 +1427,23 @@ io.on("connection", (socket) => {
     const game = rooms.get(currentRoom);
     if (game && game.players[0].id === socket.id) { 
       game.equippedBackgroundUrl = backgroundUrl;
-      game.equippedCardbackUrl = cardbackUrl;
+      game.equippedCardbackUrl = cardbackUrl; // Host's cardback can still be room default if we want
+      
+      // Also update host's individual cardback
+      game.players[0].equippedCardbackUrl = cardbackUrl;
+      
       sendState(game);
+    }
+  });
+
+  socket.on("syncMyCardback", (cardbackUrl) => {
+    const game = rooms.get(currentRoom);
+    if (game) {
+      const p = game.players.find(pl => pl.id === socket.id);
+      if (p) {
+        p.equippedCardbackUrl = cardbackUrl;
+        sendState(game);
+      }
     }
   });
 

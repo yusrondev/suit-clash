@@ -1099,7 +1099,7 @@
            .opp-card-back {
             width: 32px;
             height: 48px;
-            background: var(--custom-card-back);
+            background: var(--player-card-back, linear-gradient(135deg, #1e3a8a, #3b6fd4));
             background-size: cover;
             background-position: center;
             border: 1px solid rgba(255,255,255,0.1);
@@ -1636,7 +1636,7 @@
             width: 28px;
             height: 40px;
             border-radius: 4px;
-            background: var(--custom-card-back);
+            background: linear-gradient(135deg, #1e3a8a, #3b6fd4);
             background-size: cover;
             border: 1px solid rgba(255, 255, 255, 0.15);
             box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
@@ -4784,8 +4784,10 @@
 
             if (cbItem) {
                 document.documentElement.style.setProperty('--custom-card-back', `url("${cbItem.lottie_url}")`);
+                socket.emit("syncMyCardback", cbItem.lottie_url);
             } else {
                 document.documentElement.style.setProperty('--custom-card-back', 'linear-gradient(135deg, #1e3a8a, #3b6fd4)');
+                socket.emit("syncMyCardback", null);
             }
         }
 
@@ -7518,12 +7520,15 @@
                 // Fan of card backs
                 let cardsHtml = '';
                 const maxDisplay = Math.min(cnt, 8);
-                const peek = peekStates[i];
+                const peek = (s.peekStates && s.peekStates[i]) || null;
+
+                const playerCbUrl = s.playersCardbackUrls && s.playersCardbackUrls[i];
+                const cbStyle = playerCbUrl ? `--player-card-back: url('${playerCbUrl}')` : '';
 
                 for (let j = 0; j < maxDisplay; j++) {
                     const angle = (j - (maxDisplay - 1) / 2) * 7;
                     const shift = (j - (maxDisplay - 1) / 2) * 10;
-                    cardsHtml += `<div class="opp-card-back" style="transform: rotate(${angle}deg) translateX(${shift}px); z-index:${j}"></div>`;
+                    cardsHtml += `<div class="opp-card-back" style="${cbStyle}; transform: rotate(${angle}deg) translateX(${shift}px); z-index:${j}"></div>`;
                 }
 
                 // 🔥 TUNTUTAN USER: Pastikan kartu yang dibuka ada di paling depan (last child)
