@@ -5021,7 +5021,17 @@
         }
 
         function selectLobbyBg(itemId) {
-            toggleEmojiActive(itemId ? itemId.toString() : "null");
+            if (itemId === null) {
+                // If selecting NONE, and we have an active background, toggle it off
+                if (activeBackgroundId) {
+                    toggleEmojiActive(activeBackgroundId.toString());
+                }
+            } else {
+                // If selecting a specific item, and it's not already active, equip it
+                if (activeBackgroundId !== itemId) {
+                    toggleEmojiActive(itemId.toString());
+                }
+            }
         }
 
         let menuLottieAnimations = [];
@@ -6616,6 +6626,7 @@
             const wasDraw = (lastAction === "draw");
             lastAction = ""; // reset
             const currentColor = s.tableColor || 'green';
+            localStorage.setItem('sc_table_color', currentColor);
 
             // 🔥 SYNC ASSETS (Lobby & Game)
             const boardEl = document.getElementById('center-table');
