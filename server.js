@@ -4,6 +4,34 @@ const http = require("http");
 const { Server } = require("socket.io");
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+
+// Helper to grant free items to new users
+async function grantFreeItems(userId) {
+  try {
+    // Cari semua item yang harganya 0 (free items)
+    const freeItems = await db.query("SELECT id, lottie_url FROM shop_items WHERE price_gold = 0 AND price_diamonds = 0");
+    const idsToEquip = [];
+    
+    for (const item of freeItems.rows) {
+      // Masukkan ke inventory dan tandai sebagai is_equipped
+      await db.query(
+        "INSERT INTO user_inventory (user_id, item_id, is_equipped) VALUES ($1, $2, TRUE) ON CONFLICT (user_id, item_id) DO UPDATE SET is_equipped = TRUE", 
+        [userId, item.id]
+      );
+      idsToEquip.push(item.id.toString()); // Simpan ID sebagai string
+    }
+    
+    // Update array equipped_emojis di tabel users agar sinkron dengan game
+    if (idsToEquip.length > 0) {
+      await db.query("UPDATE users SET equipped_emojis = $1 WHERE id = $2", [idsToEquip, userId]);
+    }
+    
+    console.log(`[Auth] Granted and equipped ${freeItems.rows.length} free items (IDs: ${idsToEquip.join(',')}) to user ${userId}`);
+  } catch (err) {
+    console.error("[Auth] Error granting free items:", err);
+  }
+}
+
 const db = require('./db');
 
 const app = express();
@@ -31,9 +59,13 @@ app.post("/api/auth/register", async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 10);
     const result = await db.query(
       "INSERT INTO users (username, email, password_hash, equipped_emojis) VALUES ($1, $2, $3, $4) RETURNING id, username, email, gold, diamonds, wins, matches_played",
-      [username, email, passwordHash, ['angry', 'cat', 'monkey', 'ok']]
+      [username, email, passwordHash, []]
     );
-    res.json({ success: true, user: result.rows[0] });
+    const newUser = result.rows[0];
+    await grantFreeItems(newUser.id);
+    // Re-fetch to get updated equipped_emojis
+    const finalUser = await db.query("SELECT id, username, email, gold, diamonds, wins, matches_played, avatar_url, is_admin, equipped_emojis FROM users WHERE id = $1", [newUser.id]);
+    res.json({ success: true, user: finalUser.rows[0] });
   } catch (err) {
     console.error(err);
     res.status(400).json({ success: false, msg: "Username atau Email sudah terdaftar." });
@@ -94,9 +126,13 @@ app.post("/api/auth/google", async (req, res) => {
         `INSERT INTO users (username, email, google_id, avatar_url, equipped_emojis) 
          VALUES ($1, $2, $3, $4, $5) 
          RETURNING id, username, email, gold, diamonds, wins, matches_played, avatar_url, is_admin`,
-        [finalUsername, email, googleId, avatar, ['angry', 'cat', 'monkey', 'ok']]
+        [finalUsername, email, googleId, avatar, []]
       );
       user = insertRes.rows[0];
+      await grantFreeItems(user.id);
+      // Re-fetch to get updated equipped_emojis
+      const finalUser = await db.query("SELECT id, username, email, gold, diamonds, wins, matches_played, avatar_url, is_admin, equipped_emojis FROM users WHERE id = $1", [user.id]);
+      user = finalUser.rows[0];
     }
 
     const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET);
@@ -139,6 +175,7 @@ app.get("/api/shop/items", async (req, res) => {
 app.get("/api/shop/defaults", async (req, res) => {
   const fs = require('fs');
   const path = require('path');
+
   const lottieDir = path.join(__dirname, 'public', 'assets', 'lottie');
   
   try {
@@ -198,14 +235,31 @@ app.post("/api/shop/buy", authenticateToken, async (req, res) => {
     // 5. Add to inventory
     await client.query("INSERT INTO user_inventory (user_id, item_id) VALUES ($1, $2)", [userId, itemId]);
 
-    // 6. Auto-equip if it's an emoticon and there's space
+    // 6. Auto-equip
     if (item.type === 'emoticon') {
         const userEquipRes = await client.query("SELECT equipped_emojis FROM users WHERE id = $1", [userId]);
         let equipped = userEquipRes.rows[0].equipped_emojis || [];
         if (equipped.length < 10 && !equipped.includes(itemId.toString())) {
             equipped.push(itemId.toString());
             await client.query("UPDATE users SET equipped_emojis = $1 WHERE id = $2", [equipped, userId]);
+            await client.query("UPDATE user_inventory SET is_equipped = TRUE WHERE user_id = $1 AND item_id = $2", [userId, itemId]);
         }
+    } else if (item.type === 'background') {
+        await client.query("UPDATE users SET equipped_background_id = $1 WHERE id = $2", [itemId, userId]);
+        // Reset other backgrounds for this user
+        await client.query(`
+            UPDATE user_inventory SET is_equipped = FALSE 
+            WHERE user_id = $1 AND item_id IN (SELECT id FROM shop_items WHERE type = 'background')
+        `, [userId]);
+        await client.query("UPDATE user_inventory SET is_equipped = TRUE WHERE user_id = $1 AND item_id = $2", [userId, itemId]);
+    } else if (item.type === 'cardback') {
+        await client.query("UPDATE users SET equipped_cardback_id = $1 WHERE id = $2", [itemId, userId]);
+        // Reset other cardbacks for this user
+        await client.query(`
+            UPDATE user_inventory SET is_equipped = FALSE 
+            WHERE user_id = $1 AND item_id IN (SELECT id FROM shop_items WHERE type = 'cardback')
+        `, [userId]);
+        await client.query("UPDATE user_inventory SET is_equipped = TRUE WHERE user_id = $1 AND item_id = $2", [userId, itemId]);
     }
 
     await client.query('COMMIT');
