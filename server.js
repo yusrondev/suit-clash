@@ -365,14 +365,25 @@ const fs = require('fs');
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     let dest = 'public/uploads/';
-    if (file.fieldname === 'lottie') dest = 'public/assets/lottie/shop/';
-    else if (file.fieldname === 'sound') dest = 'public/assets/sounds/';
+    const type = req.body.type || 'emoticon';
+    const rarity = req.body.rarity || 'common';
+
+    if (file.fieldname === 'lottie' || file.fieldname === 'lottie_file') {
+        const isJson = file.originalname.toLowerCase().endsWith('.json');
+        if (isJson) {
+            dest = `public/assets/lottie/shop/${rarity}/`;
+        } else {
+            dest = `public/assets/images/shop/${rarity}/`;
+        }
+    } else if (file.fieldname === 'sound' || file.fieldname === 'sound_file') {
+        dest = 'public/assets/sounds/';
+    }
     
     if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
     cb(null, dest);
   },
   filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + file.originalname);
+    cb(null, Date.now() + '-' + file.originalname.replace(/\s+/g, '_'));
   }
 });
 const upload = multer({ storage: storage });
@@ -433,8 +444,13 @@ app.post("/api/admin/items", authenticateAdmin, upload.fields([{ name: 'lottie_f
 
   if (req.files['lottie_file']) {
     const file = req.files['lottie_file'][0];
-    finalLottie = (type === 'emoticon') ? `/assets/lottie/shop/${file.filename}` : `/assets/lottie/shop/${file.filename}`; 
-    // Note: multer storage already puts them in correct place, we just need the URL
+    const isJson = file.originalname.toLowerCase().endsWith('.json');
+    const r = rarity || 'common';
+    if (isJson) {
+        finalLottie = `/assets/lottie/shop/${r}/${file.filename}`;
+    } else {
+        finalLottie = `/assets/images/shop/${r}/${file.filename}`;
+    }
   }
   if (req.files['sound_file']) {
     finalSound = `/assets/sounds/${req.files['sound_file'][0].filename}`;
@@ -460,7 +476,16 @@ app.put("/api/admin/items/:id", authenticateAdmin, upload.fields([{ name: 'lotti
   let finalLottie = lottie_url;
   let finalSound = sound_url;
 
-  if (req.files['lottie_file']) finalLottie = `/assets/lottie/shop/${req.files['lottie_file'][0].filename}`;
+  if (req.files['lottie_file']) {
+    const file = req.files['lottie_file'][0];
+    const isJson = file.originalname.toLowerCase().endsWith('.json');
+    const r = rarity || 'common';
+    if (isJson) {
+        finalLottie = `/assets/lottie/shop/${r}/${file.filename}`;
+    } else {
+        finalLottie = `/assets/images/shop/${r}/${file.filename}`;
+    }
+  }
   if (req.files['sound_file']) finalSound = `/assets/sounds/${req.files['sound_file'][0].filename}`;
 
   try {
