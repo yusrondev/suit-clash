@@ -812,22 +812,44 @@
         }
 
         function openItemModal() {
-            document.getElementById('modal-title').textContent = 'Add New Shop Item';
+            const form = document.getElementById('item-form');
+            form.reset();
+
+            // 🔥 EXPLICIT RESET for all fields
             document.getElementById('item-id').value = '';
-            document.getElementById('item-form').reset();
+            document.getElementById('item-name').value = '';
+            document.getElementById('item-lottie-url').value = '';
+            document.getElementById('item-sound-url').value = '';
+            document.getElementById('item-text').value = '';
+            document.getElementById('item-price-gold').value = '1000';
+            document.getElementById('item-price-dia').value = '10';
+            document.getElementById('item-orig-gold').value = '';
+            document.getElementById('item-orig-dia').value = '';
+            document.getElementById('item-active').checked = true;
+            
+            // Clear File Inputs
+            document.getElementById('file-lottie').value = '';
+            document.getElementById('file-sound').value = '';
             document.getElementById('file-lottie-name').textContent = '';
             document.getElementById('file-sound-name').textContent = '';
             
-            handleTypeChange(); // Reset dynamic fields
+            document.getElementById('modal-title').textContent = 'Add New Shop Item';
+            
+            handleTypeChange(); // Reset dynamic fields based on default type
             
             // Clear Previews
-            if (modalLottieAnim) modalLottieAnim.destroy();
+            if (modalLottieAnim) {
+                modalLottieAnim.destroy();
+                modalLottieAnim = null;
+            }
             document.getElementById('modal-lottie-preview').innerHTML = '';
+            
             if (tempSoundObj) {
                 tempSoundObj.pause();
                 URL.revokeObjectURL(tempSoundObj.src);
                 tempSoundObj = null;
             }
+            
             document.getElementById('item-modal').style.display = 'flex';
         }
 
@@ -1069,6 +1091,11 @@
 
         function closeModal(id) {
             document.getElementById(id).style.display = 'none';
+            if (id === 'item-modal') {
+                document.getElementById('item-form').reset();
+                document.getElementById('file-lottie').value = '';
+                document.getElementById('file-sound').value = '';
+            }
             if (tempSoundObj) {
                 tempSoundObj.pause();
                 URL.revokeObjectURL(tempSoundObj.src);
