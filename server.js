@@ -164,7 +164,7 @@ const authenticateToken = (req, res, next) => {
 
 app.get("/api/shop/items", async (req, res) => {
   try {
-    const result = await db.query("SELECT * FROM shop_items ORDER BY created_at DESC, id DESC");
+    const result = await db.query("SELECT * FROM shop_items WHERE is_active = TRUE ORDER BY created_at DESC, id DESC");
     res.json({ success: true, items: result.rows });
   } catch (err) {
     console.error(err);
@@ -410,29 +410,64 @@ app.post("/api/admin/users/:id/update", authenticateAdmin, async (req, res) => {
   }
 });
 
-// Admin: Shop Management
-app.post("/api/admin/items", authenticateAdmin, async (req, res) => {
-  const { id, name, type, price_gold, price_diamonds, original_price_gold, original_price_diamonds, lottie_url, sound_url, additional_text, rarity } = req.body;
+// Admin: Shop Management (Fetch All)
+app.get("/api/admin/items", authenticateAdmin, async (req, res) => {
   try {
-    if (id) {
-      // Update
-      await db.query(
-        `UPDATE shop_items SET name=$1, type=$2, price_gold=$3, price_diamonds=$4, original_price_gold=$5, original_price_diamonds=$6, lottie_url=$7, sound_url=$8, additional_text=$9, rarity=$10 
-         WHERE id=$11`,
-        [name, type, price_gold, price_diamonds, original_price_gold, original_price_diamonds, lottie_url, sound_url, additional_text, rarity, id]
-      );
-    } else {
-      // Create
-      await db.query(
-        `INSERT INTO shop_items (name, type, price_gold, price_diamonds, original_price_gold, original_price_diamonds, lottie_url, sound_url, additional_text, rarity) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-        [name, type, price_gold, price_diamonds, original_price_gold, original_price_diamonds, lottie_url, sound_url, additional_text, rarity]
-      );
-    }
-    res.json({ success: true, msg: "Item saved successfully." });
+    const result = await db.query("SELECT * FROM shop_items ORDER BY created_at DESC, id DESC");
+    res.json({ success: true, items: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, msg: "Failed to fetch items." });
+  }
+});
+
+app.post("/api/admin/items", authenticateAdmin, upload.fields([{ name: 'lottie_file', maxCount: 1 }, { name: 'sound_file', maxCount: 1 }]), async (req, res) => {
+  const { name, type, price_gold, price_diamonds, original_price_gold, original_price_diamonds, lottie_url, sound_url, additional_text, rarity, is_active } = req.body;
+  
+  let finalLottie = lottie_url;
+  let finalSound = sound_url;
+
+  if (req.files['lottie_file']) {
+    const file = req.files['lottie_file'][0];
+    finalLottie = (type === 'emoticon') ? `/assets/lottie/shop/${file.filename}` : `/assets/lottie/shop/${file.filename}`; 
+    // Note: multer storage already puts them in correct place, we just need the URL
+  }
+  if (req.files['sound_file']) {
+    finalSound = `/assets/sounds/${req.files['sound_file'][0].filename}`;
+  }
+
+  try {
+    await db.query(
+      `INSERT INTO shop_items (name, type, price_gold, price_diamonds, original_price_gold, original_price_diamonds, lottie_url, sound_url, additional_text, rarity, is_active) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+      [name, type, price_gold || 0, price_diamonds || 0, original_price_gold || null, original_price_diamonds || null, finalLottie, finalSound, additional_text, rarity, is_active === 'true' || is_active === true]
+    );
+    res.json({ success: true, msg: "Item created successfully." });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, msg: "Failed to save item." });
+    res.status(500).json({ success: false, msg: "Failed to create item." });
+  }
+});
+
+app.put("/api/admin/items/:id", authenticateAdmin, upload.fields([{ name: 'lottie_file', maxCount: 1 }, { name: 'sound_file', maxCount: 1 }]), async (req, res) => {
+  const { name, type, price_gold, price_diamonds, original_price_gold, original_price_diamonds, lottie_url, sound_url, additional_text, rarity, is_active } = req.body;
+  const id = req.params.id;
+
+  let finalLottie = lottie_url;
+  let finalSound = sound_url;
+
+  if (req.files['lottie_file']) finalLottie = `/assets/lottie/shop/${req.files['lottie_file'][0].filename}`;
+  if (req.files['sound_file']) finalSound = `/assets/sounds/${req.files['sound_file'][0].filename}`;
+
+  try {
+    await db.query(
+      `UPDATE shop_items SET name=$1, type=$2, price_gold=$3, price_diamonds=$4, original_price_gold=$5, original_price_diamonds=$6, lottie_url=$7, sound_url=$8, additional_text=$9, rarity=$10, is_active=$11 
+       WHERE id=$12`,
+      [name, type, price_gold || 0, price_diamonds || 0, original_price_gold || null, original_price_diamonds || null, finalLottie, finalSound, additional_text, rarity, is_active === 'true' || is_active === true, id]
+    );
+    res.json({ success: true, msg: "Item updated successfully." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, msg: "Failed to update item." });
   }
 });
 

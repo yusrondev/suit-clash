@@ -29,7 +29,7 @@
             background-color: var(--bg);
             color: #f5f0e0;
             display: flex;
-            min-height: 100vh;
+            height: 100vh;
             overflow: hidden;
         }
 
@@ -43,6 +43,7 @@
             flex-direction: column;
             padding: 30px 20px;
             z-index: 100;
+            overflow-y: auto;
         }
 
         .logo {
@@ -177,6 +178,28 @@
             letter-spacing: 1.5px;
             color: var(--gold);
             border-bottom: 1px solid rgba(201, 168, 76, 0.2);
+            position: sticky;
+            top: 0;
+            background: #0a0a0a; /* Match body background for sticky effect */
+            z-index: 10;
+        }
+
+        .table-wrapper {
+            max-height: 500px;
+            overflow-y: auto;
+            margin-top: 10px;
+            padding-right: 5px;
+        }
+
+        .table-wrapper::-webkit-scrollbar {
+            width: 6px;
+        }
+        .table-wrapper::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .table-wrapper::-webkit-scrollbar-thumb {
+            background: rgba(212, 175, 55, 0.3);
+            border-radius: 10px;
         }
 
         td {
@@ -261,9 +284,10 @@
             backdrop-filter: blur(10px);
             z-index: 1000;
             display: none;
-            align-items: center;
+            align-items: flex-start; /* Change from center to allow scrolling from top */
             justify-content: center;
-            padding: 20px;
+            padding: 40px 20px;
+            overflow-y: auto;
         }
 
         .modal-content {
@@ -408,30 +432,54 @@
                     <div id="stat-total-items" class="stat-value">0</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">Lottie Assets</div>
-                    <div id="stat-lottie-count" class="stat-value">0</div>
+                    <div class="stat-label">Total Emoji</div>
+                    <div id="stat-emoji-count" class="stat-value">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Background</div>
+                    <div id="stat-bg-count" class="stat-value">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Card Back</div>
+                    <div id="stat-cb-count" class="stat-value">0</div>
                 </div>
             </div>
 
             <div class="card-container">
                 <div class="table-header">
                     <h2>Available Items</h2>
+                    <div style="display:flex; gap:12px; align-items:center;">
+                        <div class="form-group" style="margin:0;">
+                            <input type="text" id="search-item" placeholder="Search name..." onkeyup="loadItems()" style="padding: 8px 12px; font-size: 12px; width: 180px;">
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <select id="filter-type" onchange="loadItems()" style="padding: 8px 12px; font-size: 12px; min-width: 130px;">
+                                <option value="all">All Types</option>
+                                <option value="emoticon">Emoji</option>
+                                <option value="background">Background</option>
+                                <option value="cardback">Card Back</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
-                <table id="items-table">
-                    <thead>
-                        <tr>
-                            <th>Preview</th>
-                            <th>Item Name</th>
-                            <th>Type</th>
-                            <th>Rarity</th>
-                            <th>Price (Gold/Dia)</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Data will be loaded here -->
-                    </tbody>
-                </table>
+                <div class="table-wrapper">
+                    <table id="items-table">
+                        <thead>
+                            <tr>
+                                <th>Preview</th>
+                                <th>Item Name</th>
+                                <th>Type</th>
+                                <th>Rarity</th>
+                                <th>Price (Gold/Dia)</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Data will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </section>
 
@@ -445,21 +493,23 @@
                 <div class="table-header">
                     <h2>Registered Players</h2>
                 </div>
-                <table id="users-table">
-                    <thead>
-                        <tr>
-                            <th>User</th>
-                            <th>Email</th>
-                            <th>Balance</th>
-                            <th>Stats (W/M)</th>
-                            <th>Role</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Data will be loaded here -->
-                    </tbody>
-                </table>
+                <div class="table-wrapper">
+                    <table id="users-table">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Email</th>
+                                <th>Balance</th>
+                                <th>Stats (W/M)</th>
+                                <th>Role</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Data will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </section>
     </main>
@@ -546,6 +596,11 @@
                         <label>Additional Text (Bubble)</label>
                         <input type="text" id="item-text" placeholder="e.g. HELLO!">
                     </div>
+
+                    <div class="form-group full-width" style="display:flex; align-items:center; gap:10px;">
+                        <input type="checkbox" id="item-active" checked style="width:20px; height:20px; cursor:pointer;">
+                        <label for="item-active" style="margin:0; cursor:pointer;">Show in Shop (Active)</label>
+                    </div>
                 </div>
                 <div style="margin-top: 30px; display:flex; justify-content: flex-end; gap: 15px;">
                     <button type="button" class="btn btn-outline" onclick="closeModal('item-modal')">Cancel</button>
@@ -631,16 +686,32 @@
         }
 
         async function loadItems() {
-            const data = await apiFetch('/api/shop/items');
+            const data = await apiFetch('/api/admin/items');
             if (data.success) {
                 allItems = data.items;
+                const filterType = document.getElementById('filter-type')?.value || 'all';
+                const searchQuery = document.getElementById('search-item')?.value.toLowerCase() || '';
+
+                // Update stats (global)
+                document.getElementById('stat-total-items').textContent = allItems.length;
+                document.getElementById('stat-emoji-count').textContent = allItems.filter(i => i.type === 'emoticon').length;
+                document.getElementById('stat-bg-count').textContent = allItems.filter(i => i.type === 'background').length;
+                document.getElementById('stat-cb-count').textContent = allItems.filter(i => i.type === 'cardback').length;
+
+                // Filter for display
+                const filteredItems = allItems.filter(item => {
+                    const matchesType = filterType === 'all' || item.type === filterType;
+                    const matchesSearch = item.name.toLowerCase().includes(searchQuery);
+                    return matchesType && matchesSearch;
+                });
+
                 const tbody = document.querySelector('#items-table tbody');
                 tbody.innerHTML = '';
-                document.getElementById('stat-total-items').textContent = allItems.length;
-                document.getElementById('stat-lottie-count').textContent = allItems.filter(i => i.lottie_url).length;
 
-                allItems.forEach(item => {
+                filteredItems.forEach(item => {
                     const tr = document.createElement('tr');
+                    if (!item.is_active) tr.style.opacity = '0.6';
+
                     const goldPrice = item.original_price_gold 
                         ? `<span style="text-decoration:line-through; color:rgba(255,255,255,0.3); font-size:11px;">${item.original_price_gold}</span> ${item.price_gold}` 
                         : item.price_gold;
@@ -654,6 +725,11 @@
                         <td>${item.type}</td>
                         <td><span class="rarity-badge rarity-${item.rarity}">${item.rarity}</span></td>
                         <td>G: ${goldPrice} / D: ${diaPrice}</td>
+                        <td>
+                            <span style="color: ${item.is_active ? '#4ade80' : '#f87171'}; font-size: 11px; font-weight: 800;">
+                                ${item.is_active ? '<i class="fas fa-check-circle"></i> ACTIVE' : '<i class="fas fa-times-circle"></i> INACTIVE'}
+                            </span>
+                        </td>
                         <td>
                             <div class="action-btns">
                                 <button class="action-btn" onclick="editItem(${item.id})"><i class="fas fa-edit"></i></button>
@@ -727,7 +803,6 @@
                 URL.revokeObjectURL(tempSoundObj.src);
                 tempSoundObj = null;
             }
-
             document.getElementById('item-modal').style.display = 'flex';
         }
 
@@ -746,18 +821,15 @@
             document.getElementById('item-lottie-url').value = item.lottie_url;
             document.getElementById('item-sound-url').value = item.sound_url || '';
             document.getElementById('item-text').value = item.additional_text || '';
+            document.getElementById('item-active').checked = item.is_active;
             document.getElementById('file-lottie-name').textContent = '';
             document.getElementById('file-sound-name').textContent = '';
-            
-            handleTypeChange(); // Set dynamic fields based on loaded type
-            
-            // Preview existing Lottie
+            handleTypeChange();
             if (item.lottie_url) {
                 updateModalLottiePreview(item.lottie_url);
             } else {
                 document.getElementById('modal-lottie-preview').innerHTML = '';
             }
-
             document.getElementById('item-modal').style.display = 'flex';
         }
 
@@ -774,52 +846,41 @@
             e.preventDefault();
             const btn = e.target.querySelector('button[type="submit"]');
             const originalText = btn.innerHTML;
+            const id = document.getElementById('item-id').value;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
             btn.disabled = true;
 
             try {
-                // 1. Upload files if selected
-                let lottieUrl = document.getElementById('item-lottie-url').value;
-                let soundUrl = document.getElementById('item-sound-url').value;
-
-                // Clear placeholders if they exist
-                if (lottieUrl.startsWith('[Akan diupload:')) lottieUrl = '';
-                if (soundUrl && soundUrl.startsWith('[Akan diupload:')) soundUrl = '';
+                const formData = new FormData();
+                formData.append('name', document.getElementById('item-name').value);
+                formData.append('type', document.getElementById('item-type').value);
+                formData.append('rarity', document.getElementById('item-rarity').value);
+                formData.append('price_gold', document.getElementById('item-price-gold').value);
+                formData.append('price_diamonds', document.getElementById('item-price-dia').value);
+                formData.append('original_price_gold', document.getElementById('item-orig-gold').value);
+                formData.append('original_price_diamonds', document.getElementById('item-orig-dia').value);
+                formData.append('lottie_url', document.getElementById('item-lottie-url').value);
+                formData.append('sound_url', document.getElementById('item-sound-url').value);
+                formData.append('additional_text', document.getElementById('item-text').value);
+                formData.append('is_active', document.getElementById('item-active').checked);
 
                 const lottieFile = document.getElementById('file-lottie').files[0];
-                if (lottieFile) {
-                    const res = await uploadFileDirectly('lottie', lottieFile);
-                    if (res.success) lottieUrl = res.lottie_url;
-                }
-
+                if (lottieFile) formData.append('lottie_file', lottieFile);
                 const soundFile = document.getElementById('file-sound').files[0];
-                if (soundFile) {
-                    const res = await uploadFileDirectly('sound', soundFile);
-                    if (res.success) soundUrl = res.sound_url;
-                }
+                if (soundFile) formData.append('sound_file', soundFile);
 
-                // 2. Save item
-                const payload = {
-                    id: document.getElementById('item-id').value || null,
-                    name: document.getElementById('item-name').value,
-                    type: document.getElementById('item-type').value,
-                    rarity: document.getElementById('item-rarity').value,
-                    price_gold: parseInt(document.getElementById('item-price-gold').value),
-                    price_diamonds: parseInt(document.getElementById('item-price-dia').value),
-                    original_price_gold: parseInt(document.getElementById('item-orig-gold').value) || null,
-                    original_price_diamonds: parseInt(document.getElementById('item-orig-dia').value) || null,
-                    lottie_url: lottieUrl,
-                    sound_url: soundUrl,
-                    additional_text: document.getElementById('item-text').value
-                };
+                const url = id ? `/api/admin/items/${id}` : '/api/admin/items';
+                const method = id ? 'PUT' : 'POST';
 
-                const res = await apiFetch('/api/admin/items', {
-                    method: 'POST',
-                    body: JSON.stringify(payload)
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
                 });
+                const data = await res.json();
 
-                if (res.success) {
-                    showToast(payload.id ? "Item updated!" : "Item created!");
+                if (data.success) {
+                    showToast(id ? "Item updated!" : "Item created!");
                     closeModal('item-modal');
                     loadItems();
                 }
@@ -832,19 +893,6 @@
             }
         };
 
-        async function uploadFileDirectly(type, file) {
-            const rarity = document.getElementById('item-rarity').value;
-            const formData = new FormData();
-            formData.append(type, file);
-            formData.append('rarity', rarity);
-
-            const res = await fetch('/api/admin/upload', {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` },
-                body: formData
-            });
-            return await res.json();
-        }
 
         // Show selected file names and fill placeholders
         let modalLottieAnim = null;

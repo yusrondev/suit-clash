@@ -162,6 +162,43 @@
                         transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             opacity: 0;
             pointer-events: none;
+            max-height: 90vh;
+            /* overflow-y: auto; REMOVED */
+            /* Custom Scrollbar */
+            scrollbar-width: thin;
+            scrollbar-color: rgba(212, 175, 55, 0.3) transparent;
+        }
+
+        .profile-body {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            padding-right: 5px; /* space for scrollbar */
+        }
+
+        .profile-footer {
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(212, 175, 55, 0.15);
+        }
+
+        .profile-panel::-webkit-scrollbar,
+        .profile-body::-webkit-scrollbar {
+            width: 6px;
+        }
+        .profile-panel::-webkit-scrollbar-track,
+        .profile-body::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .profile-panel::-webkit-scrollbar-thumb,
+        .profile-body::-webkit-scrollbar-thumb {
+            background: rgba(212, 175, 55, 0.3);
+            border-radius: 10px;
         }
 
         .profile-panel.show {
@@ -393,6 +430,18 @@
             scrollbar-color: rgba(212, 175, 55, 0.3) transparent;
         }
 
+        @media (max-width: 480px) {
+            .inventory-grid {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 8px;
+                max-height: 300px;
+            }
+            .profile-panel {
+                padding: 20px;
+                width: 98%;
+            }
+        }
+
         .inventory-grid::-webkit-scrollbar {
             width: 6px;
         }
@@ -406,6 +455,11 @@
         }
         .inventory-grid::-webkit-scrollbar-thumb:hover {
             background: rgba(212, 175, 55, 0.5);
+        }
+
+        .profile-panel::-webkit-scrollbar-thumb {
+            background: rgba(212, 175, 55, 0.3);
+            border-radius: 10px;
         }
 
         .inventory-item {
@@ -448,6 +502,11 @@
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+
+        .inventory-item .item-thumb {
+            width: 80%;
+            height: 80%;
         }
 
         .btn-buy:hover {
@@ -3887,37 +3946,43 @@
             </div>
         </div>
 
-        <div class="inventory-section" id="profile-inventory-section">
-            <div id="inventory-emoticons-group">
-                <div class="economy-section-label">Inventory (Emoticons)</div>
-                <div class="inventory-grid" id="inventory-container">
-                    <!-- Emoticons here -->
+        <div class="profile-body">
+            <div class="inventory-section" id="profile-inventory-section">
+                <div id="inventory-emoticons-group">
+                    <div class="economy-section-label">Inventory (Emoticons)</div>
+                    <div class="inventory-grid" id="inventory-container">
+                        <!-- Emoticons here -->
+                    </div>
                 </div>
-            </div>
-            <div id="inventory-backgrounds-group" style="display:none; margin-top:15px;">
-                <div class="economy-section-label">Inventory (Table Backgrounds)</div>
-                <div class="inventory-grid" id="inventory-backgrounds-container">
-                    <!-- Backgrounds here -->
+                <div id="inventory-backgrounds-group" style="display:none; margin-top:15px;">
+                    <div class="economy-section-label">Inventory (Table Backgrounds)</div>
+                    <div class="inventory-grid" id="inventory-backgrounds-container">
+                        <!-- Backgrounds here -->
+                    </div>
                 </div>
-            </div>
-            <div id="inventory-cardbacks-group" style="display:none; margin-top:15px;">
-                <div class="economy-section-label">Inventory (Card Backs)</div>
-                <div class="inventory-grid" id="inventory-cardbacks-container">
-                    <!-- Card backs here -->
+                <div id="inventory-cardbacks-group" style="display:none; margin-top:15px;">
+                    <div class="economy-section-label">Inventory (Card Backs)</div>
+                    <div class="inventory-grid" id="inventory-cardbacks-container">
+                        <!-- Card backs here -->
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div id="admin-link-section" style="display:none; margin-top:10px; border-top:1px solid rgba(212,175,55,0.1); padding-top:10px;">
-            <a href="/admin" class="btn-gold" style="display:block; text-align:center; text-decoration:none; padding:10px; border-radius:10px; font-size:12px;"><i class="fa-solid fa-gauge-high"></i> Admin Dashboard</a>
+        <div id="admin-link-section" style="display:none;">
+            <div class="profile-footer" style="border-top:none; padding-top:0;">
+                <a href="/admin" class="btn-gold" style="display:block; text-align:center; text-decoration:none; padding:10px; border-radius:10px; font-size:12px;"><i class="fa-solid fa-gauge-high"></i> Admin Dashboard</a>
+            </div>
         </div>
 
-        <div class="auth-actions" id="profile-auth-actions">
-            <button class="btn-gold" onclick="openAuthModal('login')">Login / Register</button>
-        </div>
-        <div class="auth-actions" id="profile-logged-actions" style="display:none;">
-            <button class="btn-outline-gold" style="border-color: #ff4b2b; color: #ff4b2b;"
-                onclick="logout()">Logout</button>
+        <div class="profile-footer">
+            <div class="auth-actions" id="profile-auth-actions">
+                <button class="btn-gold" onclick="openAuthModal('login')">Login / Register</button>
+            </div>
+            <div class="auth-actions" id="profile-logged-actions" style="display:none;">
+                <button class="btn-outline-gold" style="border-color: #ff4b2b; color: #ff4b2b; width: 100%;"
+                    onclick="logout()">Logout</button>
+            </div>
         </div>
     </div>
 
