@@ -6828,8 +6828,34 @@
                 }
 
                 // Lobby Asset Preview Sync
-                        assetPreview.style.backgroundBlendMode = 'multiply';
-                        assetPreview.style.backgroundSize = '70% auto';
+                const assetRow = document.getElementById('lobby-asset-preview-row');
+                if (assetRow) {
+                    const hasBackgrounds = myInventory.some(it => it.type === 'background');
+                    if (isHost && hasBackgrounds) {
+                        assetRow.style.display = 'flex';
+                        renderLobbyBgSelector();
+                    } else if (!isHost && s.equippedBackgroundUrl) {
+                        assetRow.style.display = 'flex';
+                        const container = document.getElementById('lobby-bg-selector');
+                        if (container) {
+                            container.innerHTML = '';
+                            const div = document.createElement('div');
+                            div.className = 'inventory-item equipped type-background';
+                            div.style.minWidth = '80px';
+                            div.style.height = '48px';
+                            const thumb = document.createElement('div');
+                            thumb.className = 'item-thumb';
+                            thumb.style.backgroundImage = `url("${s.equippedBackgroundUrl}")`;
+                            thumb.style.backgroundSize = '70% auto';
+                            thumb.style.backgroundPosition = 'center';
+                            thumb.style.backgroundRepeat = 'no-repeat';
+                            thumb.style.backgroundBlendMode = 'multiply';
+                            const currentColor = localStorage.getItem('sc_table_color') || 'green';
+                            const tableColorMap = { 'green': '#23613d', 'blue': '#1a3c5a', 'red': '#7e1e1e', 'dark': '#1a1a1a' };
+                            thumb.style.backgroundColor = tableColorMap[currentColor] || '#23613d';
+                            div.appendChild(thumb);
+                            container.appendChild(div);
+                        }
                     } else {
                         assetRow.style.display = 'none';
                     }
@@ -6839,17 +6865,6 @@
                 document.querySelectorAll('.color-dot').forEach(dot => {
                     dot.classList.toggle('active', dot.classList.contains(currentColor));
                 });
-
-                // 🔥 UPDATE: Background preview color follow table color
-                if (assetPreview) {
-                    const tableColorMap = {
-                        'green': '#23613d',
-                        'blue': '#1a3c5a',
-                        'red': '#7e1e1e',
-                        'dark': '#1a1a1a'
-                    };
-                    assetPreview.style.backgroundColor = tableColorMap[currentColor] || '#393939';
-                }
 
                 document.getElementById('round-badge').style.display = 'none';
                 document.getElementById('timer-container').style.display = 'none';
