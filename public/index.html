@@ -1101,14 +1101,14 @@
         .opponent-seat[data-pos="left"] {
             left: 10px;
             top: 40%;
-            transform: translateY(-50%);
+            transform: translateY(-90%);
         }
 
         /* Right opponent */
         .opponent-seat[data-pos="right"] {
             right: 10px;
             top: 40%;
-            transform: translateY(-50%);
+            transform: translateY(-90%);
         }
 
         .opponent-seat.active-turn .opponent-name {
@@ -7099,11 +7099,10 @@
             if (area.dataset.stateHash === stateHash) return;
             area.dataset.stateHash = stateHash;
 
-            // Hitung lebar total spread — kartu pertama di kiri, terakhir di kanan
+            // Hitung lebar total spread — jarak antar pusat kartu pertama dan terakhir
             const isMobileSpread = window.innerWidth < 600;
-            const cardW = isMobileSpread ? 60 : 72;
             const peekW = isMobileSpread ? 20 : 26;
-            const totalSpreadW = peekW * (total - 1) + cardW;
+            const totalSpreadW = peekW * (total - 1);
             const startX = -totalSpreadW / 2;
 
             // Sembunyikan slot yang tidak terpakai dengan efek fade out
