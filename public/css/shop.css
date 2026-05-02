@@ -64,23 +64,29 @@
 .shop-user-economy .gold-color { color: #ffd700; }
 .shop-user-economy .diamond-color { color: #00d2ff; }
 
-.shop-close-btn {
-    background: transparent;
-    border: none;
-    color: rgba(245, 240, 224, 0.5);
-    font-size: 24px;
+.close-btn {
+    background: rgba(212, 175, 55, 0.1);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    color: var(--gold-light);
+    font-size: 18px;
     cursor: pointer;
-    transition: all 0.2s;
-    padding: 10px;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-left: 20px;
+    border-radius: 50%;
+    backdrop-filter: blur(5px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
-.shop-close-btn:hover {
-    color: white;
-    transform: scale(1.1);
+.close-btn:hover {
+    background: var(--gold);
+    color: #1a1100;
+    border-color: var(--gold-light);
+    transform: scale(1.1) rotate(90deg);
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
 }
 
 .shop-content {
