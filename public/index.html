@@ -4169,17 +4169,14 @@
                         </div>
                     </div>
 
-                    <!-- ASSET BACKGROUND PREVIEW -->
-                    <div class="config-row" id="lobby-asset-preview-row" style="display:none; margin-top: 10px; border-top: 1px solid rgba(212,175,55,0.05); padding-top: 10px;">
-                        <span class="config-label">ASSET MEJA</span>
-                        <div style="display: flex; flex-direction: column; gap: 8px; flex: 1;">
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <div id="lobby-bg-preview" style="width: 60px; height: 40px; border-radius: 6px; border: 1px solid var(--gold-dark); background-size: 70% auto; background-position: center; background-repeat: no-repeat; background-color: rgb(57 57 57 / 53%); background-blend-mode: multiply;"></div>
-                                <button id="lobby-bg-change-btn" class="btn-mini" style="display:none;" onclick="toggleLobbyBgSelector()">Ubah</button>
-                            </div>
-                            <div id="lobby-bg-selector" style="display: none; gap: 8px; overflow-x: auto; padding: 4px 0; scrollbar-width: none; border-top: 1px dashed rgba(212,175,55,0.1); padding-top: 8px;">
-                                <!-- Background items will be injected here -->
-                            </div>
+                    <!-- ASSET BACKGROUND SELECTOR (NEW GRID STYLE) -->
+                    <div class="config-row" id="lobby-asset-preview-row" style="display:none; flex-direction: column; align-items: stretch; margin-top: 15px; border-top: 1px solid rgba(212,175,55,0.1); padding-top: 12px; gap: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                            <span class="config-label" style="margin:0; font-size: 11px; letter-spacing: 1px;">ASSET MEJA</span>
+                            <span id="lobby-bg-count-label" style="font-size: 10px; color: var(--gold); opacity: 0.5; font-weight: 800;"></span>
+                        </div>
+                        <div id="lobby-bg-selector" style="display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 12px; scrollbar-width: none; -ms-overflow-style: none;">
+                            <!-- Background items will be injected here -->
                         </div>
                     </div>
                 </div>
@@ -4914,11 +4911,8 @@
                 console.error("Failed to toggle equipment:", err);
             }
             
-            // 🔥 Refresh lobby selector if it's open
-            const selector = document.getElementById('lobby-bg-selector');
-            if (selector && selector.style.display !== 'none') {
-                renderLobbyBgSelector();
-            }
+            // 🔥 Auto-refresh lobby selector
+            renderLobbyBgSelector();
         }
 
         function applyEquippedAssets() {
@@ -4962,48 +4956,50 @@
 
         function renderLobbyBgSelector() {
             const container = document.getElementById('lobby-bg-selector');
+            const countLabel = document.getElementById('lobby-bg-count-label');
             if (!container) return;
             container.innerHTML = '';
 
-            // Combine all available backgrounds (defaults + owned)
-            const allAvailable = [
-                ...defaultEmojis.map(e => ({...e, is_default: true, id: e.id, item_id: e.id})),
-                ...myInventory.map(e => ({...e, is_default: false, id: e.item_id}))
-            ];
-            const backgrounds = allAvailable.filter(it => it.type === 'background');
+            // Filter backgrounds from inventory
+            const backgrounds = myInventory.filter(it => it.type === 'background');
+            if (countLabel) countLabel.textContent = `${backgrounds.length} DIMILIKI`;
             
+            // If no backgrounds and not host, maybe hide?
+            // But we already handle visibility in socket state.
+
             // Option: NONE
             const noneDiv = document.createElement('div');
             const isNoneActive = !activeBackgroundId;
             noneDiv.className = `inventory-item ${isNoneActive ? 'equipped' : ''} type-background`;
-            noneDiv.style.minWidth = '70px';
-            noneDiv.style.height = '42px';
+            noneDiv.style.minWidth = '80px';
+            noneDiv.style.height = '48px';
             noneDiv.style.flexShrink = '0';
             noneDiv.title = 'Tanpa Asset (Default)';
             noneDiv.onclick = () => selectLobbyBg(null);
             
             const noneThumb = document.createElement('div');
             noneThumb.className = 'item-thumb';
-            noneThumb.style.background = 'rgba(0,0,0,0.4)';
+            noneThumb.style.background = 'rgba(0,0,0,0.6)';
             noneThumb.style.display = 'flex';
             noneThumb.style.alignItems = 'center';
             noneThumb.style.justifyContent = 'center';
-            noneThumb.style.fontSize = '9px';
-            noneThumb.style.fontWeight = '800';
-            noneThumb.style.color = 'rgba(255,255,255,0.3)';
+            noneThumb.style.fontSize = '10px';
+            noneThumb.style.fontWeight = '900';
+            noneThumb.style.color = 'rgba(255,255,255,0.2)';
+            noneThumb.style.border = '1px dashed rgba(255,255,255,0.1)';
             noneThumb.textContent = 'NONE';
             noneDiv.appendChild(noneThumb);
             container.appendChild(noneDiv);
 
             backgrounds.forEach(it => {
-                const isActive = (activeBackgroundId === it.id);
+                const isActive = (activeBackgroundId === it.item_id);
                 const div = document.createElement('div');
                 div.className = `inventory-item ${isActive ? 'equipped' : ''} type-background`;
-                div.style.minWidth = '70px';
-                div.style.height = '42px';
+                div.style.minWidth = '80px';
+                div.style.height = '48px';
                 div.style.flexShrink = '0';
                 div.title = it.name;
-                div.onclick = () => selectLobbyBg(it.id);
+                div.onclick = () => selectLobbyBg(it.item_id);
 
                 const thumb = document.createElement('div');
                 thumb.className = 'item-thumb';
@@ -5013,13 +5009,9 @@
                 thumb.style.backgroundRepeat = 'no-repeat';
                 thumb.style.backgroundBlendMode = 'multiply';
                 
-                // Color sync for preview
                 const currentColor = localStorage.getItem('sc_table_color') || 'green';
                 const tableColorMap = {
-                    'green': '#23613d',
-                    'blue': '#1a3c5a',
-                    'red': '#7e1e1e',
-                    'dark': '#1a1a1a'
+                    'green': '#23613d', 'blue': '#1a3c5a', 'red': '#7e1e1e', 'dark': '#1a1a1a'
                 };
                 thumb.style.backgroundColor = tableColorMap[currentColor] || '#23613d';
 
@@ -6836,12 +6828,6 @@
                 }
 
                 // Lobby Asset Preview Sync
-                const assetRow = document.getElementById('lobby-asset-preview-row');
-                const assetPreview = document.getElementById('lobby-bg-preview');
-                if (assetRow && assetPreview) {
-                    if (s.equippedBackgroundUrl) {
-                        assetRow.style.display = 'flex';
-                        assetPreview.style.backgroundImage = `url("${s.equippedBackgroundUrl}")`;
                         assetPreview.style.backgroundBlendMode = 'multiply';
                         assetPreview.style.backgroundSize = '70% auto';
                     } else {
