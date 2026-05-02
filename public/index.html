@@ -503,6 +503,15 @@
             position: relative;
         }
 
+        .inventory-item.type-cardback {
+            aspect-ratio: 2 / 3;
+        }
+
+        .inventory-item.type-background {
+            aspect-ratio: 16 / 9;
+            grid-column: span 2;
+        }
+
         .inventory-item:hover {
             background: rgba(255, 255, 255, 0.1);
             border-color: var(--gold);
@@ -533,8 +542,25 @@
         }
 
         .inventory-item .item-thumb {
-            width: 80%;
-            height: 80%;
+            width: 85%;
+            height: 85%;
+            transition: transform 0.2s ease;
+        }
+
+        .inventory-item:hover .item-thumb {
+            transform: scale(1.1);
+        }
+
+        .inventory-item.type-cardback .item-thumb {
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+        }
+        
+        .inventory-item.type-background .item-thumb {
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
         }
 
         .btn-buy:hover {
@@ -584,53 +610,6 @@
         }
 
 
-
-        .inventory-item {
-            aspect-ratio: 1;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(212, 175, 55, 0.1);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            position: relative;
-        }
-
-        .inventory-item:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: var(--gold);
-        }
-
-        .inventory-item.equipped {
-            border-color: var(--gold);
-            background: rgba(212, 175, 55, 0.15);
-            box-shadow: 0 0 10px rgba(212, 175, 55, 0.2);
-        }
-
-        .inventory-item.equipped::after {
-            content: '\f00c';
-            font-family: 'Font Awesome 6 Free';
-            font-weight: 900;
-            position: absolute;
-            top: -4px;
-            right: -4px;
-            background: var(--gold);
-            color: #1a1100;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            font-size: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .inventory-item .item-thumb {
-            width: 80%;
-            height: 80%;
-        }
 
         /* ── AUTH MODAL ── */
         .auth-panel {
@@ -1471,6 +1450,11 @@
             --table-bg-active: radial-gradient(ellipse at 50% 40%, #2a7248 0%, #154228 50%, #0d2818 100%);
         }
 
+        .table-dark {
+            --table-bg: radial-gradient(ellipse at 50% 40%, #2c2c2c 0%, #1a1a1a 50%, #0a0a0a 100%);
+            --table-bg-active: radial-gradient(ellipse at 50% 40%, #3a3a3a 0%, #1a1a1a 50%, #0a0a0a 100%);
+        }
+
         .color-palette {
             display: flex;
             gap: 10px;
@@ -1518,6 +1502,10 @@
 
         .color-dot.red {
             background: #7e1e1e;
+        }
+
+        .color-dot.dark {
+            background: #1a1a1a;
         }
 
         /* #center-table::before {
@@ -4138,6 +4126,7 @@
                             <div class="color-dot green" onclick="setTableColor('green')" title="Hijau"></div>
                             <div class="color-dot blue" onclick="setTableColor('blue')" title="Biru"></div>
                             <div class="color-dot red" onclick="setTableColor('red')" title="Merah"></div>
+                            <div class="color-dot dark" onclick="setTableColor('dark')" title="Gelap"></div>
                         </div>
                     </div>
 
@@ -4572,7 +4561,7 @@
                 items.forEach(item => {
                     const isOwned = myInventory.some(inv => inv.item_id === item.id);
                     const card = document.createElement('div');
-                    card.className = 'shop-item-card';
+                    card.className = `shop-item-card type-${item.type}`;
                     card.innerHTML = `
                         <div class="item-rarity rarity-${item.rarity}">${item.rarity}</div>
                         ${(item.original_price_gold || item.original_price_diamonds) ? `<div class="sale-badge">DISC</div>` : ''}
@@ -4583,7 +4572,7 @@
                             </div>` : ''}
                         <div class="item-preview" id="shop-preview-${item.id}"></div>
                         <div class="item-name">${item.name}</div>
-                        ${item.additional_text ? `<div style="font-size:9px; color:rgba(255,255,255,0.4); margin-bottom:4px; font-style:italic;">"${item.additional_text}"</div>` : ''}
+                        ${item.additional_text ? `<div style="font-size:9px; color:rgba(255,255,255,0.4); margin-bottom:4px; font-style:italic; text-align:center;">"${item.additional_text}"</div>` : ''}
                         <div class="item-price">
                             ${item.price_gold > 0 ? `
                                 <button class="btn-buy ${isOwned ? 'disabled' : ''}" onclick="${isOwned ? '' : `buyItem(${item.id}, 'gold')`}">
@@ -4615,7 +4604,7 @@
                         });
                         shopLottieAnimations.push(anim);
                     } else {
-                        previewEl.innerHTML = `<img src="${item.lottie_url}" style="width:100%; height:100%; object-fit:contain; border-radius:8px;">`;
+                        previewEl.innerHTML = `<img src="${item.lottie_url}">`;
                     }
                 });
             } catch (err) {
@@ -6369,7 +6358,7 @@
             // 🔥 SYNC ASSETS (Lobby & Game)
             const boardEl = document.getElementById('center-table');
             if (boardEl) {
-                boardEl.classList.remove('table-green', 'table-blue', 'table-red');
+                boardEl.classList.remove('table-green', 'table-blue', 'table-red', 'table-dark');
                 boardEl.classList.add('table-' + currentColor);
                 
                 // Apply Sync Assets from Room State
@@ -6592,6 +6581,17 @@
                 document.querySelectorAll('.color-dot').forEach(dot => {
                     dot.classList.toggle('active', dot.classList.contains(currentColor));
                 });
+
+                // 🔥 UPDATE: Background preview color follow table color
+                if (assetPreview) {
+                    const tableColorMap = {
+                        'green': '#23613d',
+                        'blue': '#1a3c5a',
+                        'red': '#7e1e1e',
+                        'dark': '#1a1a1a'
+                    };
+                    assetPreview.style.backgroundColor = tableColorMap[currentColor] || '#393939';
+                }
 
                 document.getElementById('round-badge').style.display = 'none';
                 document.getElementById('timer-container').style.display = 'none';
