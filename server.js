@@ -1267,6 +1267,7 @@ io.on("connection", (socket) => {
         // Match in progress: DO NOT splice (it breaks all indices). 
         // Just mark offline and decouple socket.
         p.isOffline = true;
+        p.isMicOn = false;
         p.id = null;
         console.log(`[${roomId}] ${name} left during active game. Keeping ghost seat.`);
       } else {
@@ -1285,6 +1286,7 @@ io.on("connection", (socket) => {
       }
     } else {
       p.isOffline = true;
+      p.isMicOn = false;
       io.to(roomId).emit("playerStatus", { index: pIndex, status: 'offline' });
       sendState(game); 
       console.log(`[${roomId}] ${name} disconnected. Starting 20s grace period...`);
@@ -1393,6 +1395,7 @@ io.on("connection", (socket) => {
       console.log(`[${roomId}] ${cleanName} re-joining (Socket: ${socket.id.slice(0,5)}). Resuming seat ${game.players.indexOf(existingPlayer)}...`);
       existingPlayer.id = socket.id;
       existingPlayer.isOffline = false;
+      existingPlayer.isMicOn = false; // Reset mic state on refresh/rejoin
       playerIndex = game.players.indexOf(existingPlayer);
       
       const timer = disconnectTimers.get(timerKey);

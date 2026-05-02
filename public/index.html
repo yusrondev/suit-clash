@@ -13,6 +13,7 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+    <script src="https://unpkg.com/simple-peer@9.11.1/simplepeer.min.js"></script>
 
     <style>
         /* ── TOKENS ── */
@@ -3634,6 +3635,11 @@
             text-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
         }
 
+        .mic-indicator.off {
+            color: rgba(255, 255, 255, 0.2);
+            opacity: 0.6;
+        }
+
         /* Pulse removed per user request */
         .player-name.speaking {
             color: #3b82f6;
@@ -4340,9 +4346,6 @@
         </div>
     </div>
 
-    </div>
-    </div>
-
     <!-- JOIN CONFIRMATION MODAL -->
     <div id="join-confirm-modal"
         style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 99999; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
@@ -4399,7 +4402,6 @@
         </div>
     </div>
 
-    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 
     <script>
 
@@ -4988,7 +4990,9 @@
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' }
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun3.l.google.com:19302' },
+                { urls: 'stun:stun4.l.google.com:19302' }
             ]
         };
 
@@ -5227,10 +5231,17 @@
             localStorage.setItem('remi_voice_vol', voiceVolume);
             document.getElementById('voice-vol-val').textContent = Math.round(voiceVolume * 100) + '%';
 
-            // Apply to all current remote audio elements
-            const container = document.getElementById('remote-audio-container');
-            const audios = container.querySelectorAll('audio');
-            audios.forEach(a => { a.volume = voiceVolume; });
+            // Apply to all current remote audio elements and GainNodes
+            for (let id in voicePeers) {
+                const pObj = voicePeers[id];
+                if (pObj.gainNode && audioContext && audioContext.state === 'running') {
+                    pObj.gainNode.gain.setTargetAtTime(voiceVolume, audioContext.currentTime, 0.01);
+                }
+                const audio = document.getElementById('audio-' + id);
+                if (audio) {
+                    audio.volume = voiceVolume;
+                }
+            }
         }
 
         function openLeaderboard() {
@@ -5348,15 +5359,19 @@
             setTimeout(() => el.remove(), 150000);
         }
 
-        let isMicMuted = false;
+        let isMicMuted = true;
         function updateMicUI() {
             const fab = document.getElementById('voice-fab');
+            // Hard rule: If no localStream, it's NEVER active
+            const isActive = localStream && isMicOn && !isMicMuted;
+            
             if (fab) {
-                fab.classList.toggle('active', !isMicMuted);
-                fab.querySelector('i').className = isMicMuted ? 'fa-solid fa-microphone-slash' : 'fa-solid fa-microphone';
+                fab.classList.toggle('active', !!isActive);
+                fab.querySelector('i').className = isActive ? 'fa-solid fa-microphone' : 'fa-solid fa-microphone-slash';
+                fab.title = isActive ? 'Bungkam (Mute)' : 'Mulai Voice Chat';
             }
-            playerMicStatuses[myIndex] = !isMicMuted;
-            updateMicIcon(myIndex, !isMicMuted);
+            playerMicStatuses[myIndex] = !!isActive;
+            updateMicIcon(myIndex, !!isActive);
 
             if (isMicMuted) {
                 toast('Microphone dibungkam (Mute)', '🔇');
@@ -5379,20 +5394,22 @@
             }
         }
 
+        function initAudioContext() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+        }
+
         async function startVoice() {
             try {
+                initAudioContext();
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 isMicOn = true;
                 isMicMuted = false;
 
-                // Initialize Audio Context for speaking indicator
-                if (!audioContext) {
-                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                }
-                // Resume if suspended by browser policy (critical for audio to work)
-                if (audioContext.state === 'suspended') {
-                    await audioContext.resume();
-                }
                 const source = audioContext.createMediaStreamSource(localStream);
                 localAnalyser = audioContext.createAnalyser();
                 localAnalyser.fftSize = 256;
@@ -5400,9 +5417,11 @@
 
                 updateMicUI();
 
-                // Broadcast that I joined voice
-                socket.emit('voice-signal', { signal: { type: 'join' } });
+                // Update mic status on server
                 socket.emit('update-mic-status', true);
+                
+                // 🔥 User gesture: Ensure AudioContext is resumed
+                initAudioContext();
 
                 // Kembalikan ke fullscreen jika keluar gara-gara prompt mic
                 // Beri delay sedikit agar browser "tenang" setelah dialog ijin mic hilang
@@ -5410,11 +5429,13 @@
 
                 monitorVolume();
 
-                // Re-add tracks to any existing peers that don't have them yet
+                // Add stream to existing peers
                 for (let id in voicePeers) {
-                    const pc = voicePeers[id].pc;
-                    if (pc.getSenders().filter(s => s.track).length === 0) {
-                        localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+                    const pObj = voicePeers[id];
+                    if (pObj.peer && localStream) {
+                        try {
+                            pObj.peer.addStream(localStream);
+                        } catch (e) { console.warn("Failed to add stream to existing peer:", e); }
                     }
                 }
             } catch (err) {
@@ -5439,16 +5460,26 @@
             }
 
             for (let id in voicePeers) {
-                if (voicePeers[id].pc) voicePeers[id].pc.close();
+                if (voicePeers[id].peer) voicePeers[id].peer.destroy();
             }
             voicePeers = {};
             document.getElementById('remote-audio-container').innerHTML = '';
         }
 
+        let isMonitorRunning = false;
         function monitorVolume() {
+            if (isMonitorRunning) return;
+            isMonitorRunning = true;
+            _monitorVolumeLoop();
+        }
+
+        function _monitorVolumeLoop() {
             // Keep running if: mic is on, OR we have remote peers
             const hasPeers = Object.keys(voicePeers).length > 0;
-            if (!isMicOn && !hasPeers) return;
+            if (!isMicOn && !hasPeers) {
+                isMonitorRunning = false;
+                return;
+            }
 
             const bufferLength = localAnalyser ? localAnalyser.frequencyBinCount : 0;
             const dataArray = new Uint8Array(bufferLength);
@@ -5483,7 +5514,9 @@
             }
 
             if (isMicOn || Object.keys(voicePeers).length > 0) {
-                requestAnimationFrame(monitorVolume);
+                requestAnimationFrame(_monitorVolumeLoop);
+            } else {
+                isMonitorRunning = false;
             }
         }
 
@@ -5540,7 +5573,7 @@
                     container.appendChild(icon);
                 }
 
-                icon.className = isOn ? 'fa-solid fa-microphone mic-indicator on' : 'fa-solid fa-microphone-slash mic-indicator';
+                icon.className = isOn ? 'fa-solid fa-microphone mic-indicator on' : 'fa-solid fa-microphone-slash mic-indicator off';
             }
 
             // Update in Lobby View (Always append for lobby table)
@@ -5554,146 +5587,178 @@
                     lobbyIcon.style.fontSize = '10px';
                     lobbyNameEl.appendChild(lobbyIcon);
                 }
-                lobbyIcon.className = isOn ? 'fa-solid fa-microphone mic-indicator on' : 'fa-solid fa-microphone-slash mic-indicator';
+                lobbyIcon.className = isOn ? 'fa-solid fa-microphone mic-indicator on' : 'fa-solid fa-microphone-slash mic-indicator off';
             }
+        }
+
+        async function handleRemoteStream(peerId, stream) {
+            console.log("Handling remote stream from:", peerId);
+            const pObj = voicePeers[peerId];
+            if (!pObj) return;
+
+            // 1. Cleanup old audio nodes if they exist
+            if (pObj.gainNode) {
+                try { pObj.gainNode.disconnect(); } catch(e) {}
+            }
+            if (pObj.analyser) {
+                try { pObj.analyser.disconnect(); } catch(e) {}
+            }
+
+            initAudioContext();
+            
+            // 2. Connect to Analyser for UI
+            const source = audioContext.createMediaStreamSource(stream);
+            const analyser = audioContext.createAnalyser();
+            analyser.fftSize = 256;
+            source.connect(analyser);
+            pObj.analyser = analyser;
+            pObj.stream = stream;
+
+            // 3. Connect to Gain for Volume Control & Playback
+            const gainNode = audioContext.createGain();
+            gainNode.gain.value = voiceVolume;
+            source.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            pObj.gainNode = gainNode;
+
+            // 4. Also attach to <audio> tag for stream stability
+            let audio = document.getElementById('audio-' + peerId);
+            if (!audio) {
+                audio = document.createElement('audio');
+                audio.id = 'audio-' + peerId;
+                audio.autoplay = true;
+                audio.playsinline = true;
+                document.getElementById('remote-audio-container').appendChild(audio);
+            }
+            audio.srcObject = stream;
+            
+            // Fallback: If AudioContext is suspended, use the <audio> tag volume
+            // Normally it's muted because we use AudioContext, but if context is stuck...
+            if (audioContext.state === 'suspended') {
+                audio.muted = false;
+                audio.volume = voiceVolume;
+            } else {
+                audio.muted = true;
+            }
+
+            // Ensure monitor loop is running
+            monitorVolume();
         }
 
         async function initPeer(peerId, incomingSignal = null) {
+            // Deterministic: lower socket ID always initiates
+            const isInitiator = socket.id < peerId;
+
             if (voicePeers[peerId]) {
                 const pObj = voicePeers[peerId];
-                // 🔥 Fix: Ensure tracks are added if missing
-                if (localStream && pObj.pc.getSenders().length === 0) {
-                    localStream.getTracks().forEach(track => pObj.pc.addTrack(track, localStream));
-                }
                 if (incomingSignal) {
-                    await handleSignal(peerId, incomingSignal);
+                    try {
+                        pObj.peer.signal(incomingSignal);
+                    } catch (e) {
+                        console.warn("Signal error on existing peer:", e);
+                    }
                 }
-                return pObj.pc;
+                return;
             }
 
-            console.log("Initializing Perfect Negotiation for:", peerId);
-            const pc = new RTCPeerConnection(rtcConfig);
+            // If we are not the initiator and we don't have a signal yet,
+            // we'll wait until the initiator sends us something.
+            // This avoids "zombie" peers sitting in stable state forever.
+            if (!isInitiator && !incomingSignal) {
+                console.log("Waiting for initiator peer:", peerId);
+                return;
+            }
+
+            console.log("Initializing Simple-Peer for:", peerId, "as initiator:", isInitiator);
+            
+            const PeerConstructor = window.SimplePeer || (typeof SimplePeer !== 'undefined' ? SimplePeer : null);
+
+            if (!PeerConstructor) {
+                console.error("SimplePeer library not found!");
+                return;
+            }
+            
             const pObj = {
-                pc: pc,
-                makingOffer: false,
-                ignoreOffer: false,
-                isPolite: socket.id < peerId // Deterministic politeness
+                peer: null,
+                analyser: null,
+                gainNode: null,
+                stream: null
             };
             voicePeers[peerId] = pObj;
 
-            pc.onicecandidate = ({ candidate }) => {
-                socket.emit('voice-signal', { to: peerId, signal: { candidate } });
-            };
-
-            pc.onnegotiationneeded = async () => {
-                try {
-                    pObj.makingOffer = true;
-                    await pc.setLocalDescription();
-                    socket.emit('voice-signal', { to: peerId, signal: pc.localDescription });
-                } catch (err) {
-                    console.error("Negotiation error:", err);
-                } finally {
-                    pObj.makingOffer = false;
-                }
-            };
-
-            pc.oniceconnectionstatechange = () => {
-                if (pc.iceConnectionState === "failed") {
-                    pc.restartIce();
-                }
-            };
-
-            pc.ontrack = ({ streams: [stream] }) => {
-                console.log("Received remote track from:", peerId);
-
-                // Add analyser for speaking indicator
-                if (!audioContext) {
-                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                }
-                // Resume suspended AudioContext (browser policy)
-                if (audioContext.state === 'suspended') {
-                    audioContext.resume();
-                }
-                const source = audioContext.createMediaStreamSource(stream);
-                const analyser = audioContext.createAnalyser();
-                analyser.fftSize = 256;
-                source.connect(analyser);
-                pObj.analyser = analyser;
-                pObj.stream = stream;
-
-                let audio = document.getElementById('audio-' + peerId);
-                if (!audio) {
-                    audio = document.createElement('audio');
-                    audio.id = 'audio-' + peerId;
-                    audio.autoplay = true;
-                    audio.playsinline = true;
-                    audio.volume = voiceVolume; // 🔥 Apply current voice volume
-                    document.getElementById('remote-audio-container').appendChild(audio);
-                }
-                audio.srcObject = stream;
-                const playAudio = () => {
-                    audio.play().catch(e => {
-                        console.warn("Audio play blocked, retrying on next click:", e);
-                        document.addEventListener('click', () => audio.play().catch(() => {}), { once: true });
-                    });
-                };
-                playAudio();
-
-                // Start monitor loop for this remote peer
-                monitorVolume();
-            };
-
-            if (localStream) {
-                localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-            }
-
-            if (incomingSignal) {
-                await handleSignal(peerId, incomingSignal);
-            }
-
-            return pc;
-        }
-
-        async function handleSignal(peerId, signal) {
-            const pObj = voicePeers[peerId];
-            if (!pObj) return;
-            const pc = pObj.pc;
-
             try {
-                if (signal.type) {
-                    const offerCollision = (signal.type === "offer") && (pObj.makingOffer || pc.signalingState !== "stable");
-                    pObj.ignoreOffer = !pObj.isPolite && offerCollision;
+                const peer = new PeerConstructor({
+                    initiator: isInitiator,
+                    stream: localStream || undefined,
+                    config: rtcConfig,
+                    trickle: true
+                });
 
-                    if (pObj.ignoreOffer) {
-                        console.log("Ignoring offer due to collision (Impolite peer)");
-                        return;
-                    }
+                pObj.peer = peer;
 
-                    await pc.setRemoteDescription(new RTCSessionDescription(signal));
-                    if (signal.type === "offer") {
-                        await pc.setLocalDescription();
-                        socket.emit('voice-signal', { to: peerId, signal: pc.localDescription });
+                peer.on('signal', data => {
+                    socket.emit('voice-signal', { to: peerId, signal: data });
+                });
+
+                peer.on('stream', stream => {
+                    handleRemoteStream(peerId, stream);
+                });
+
+                peer.on('error', err => {
+                    console.error("Simple-Peer error:", err);
+                    // If it's a fatal state error, cleanup so we can try again
+                    if (err.name === 'InvalidStateError' || err.message.includes('wrong state')) {
+                        if (voicePeers[peerId]) {
+                            voicePeers[peerId].peer.destroy();
+                            delete voicePeers[peerId];
+                        }
                     }
-                } else if (signal.candidate) {
-                    try {
-                        await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
-                    } catch (err) {
-                        if (!pObj.ignoreOffer) throw err;
-                    }
+                });
+
+                peer.on('connect', () => {
+                    console.log("Peer connected:", peerId);
+                });
+
+                peer.on('close', () => {
+                    console.log("Peer closed:", peerId);
+                    const audio = document.getElementById('audio-' + peerId);
+                    if (audio) audio.remove();
+                    if (voicePeers[peerId]) delete voicePeers[peerId];
+                });
+
+                if (incomingSignal) {
+                    peer.signal(incomingSignal);
                 }
             } catch (err) {
-                console.error("Signal handling error:", err);
+                console.error("Simple-Peer init error:", err);
+                delete voicePeers[peerId];
+            }
+        }
+
+        function cleanupPeers(activePlayerIds) {
+            if (!activePlayerIds) return;
+            for (let id in voicePeers) {
+                if (!activePlayerIds.includes(id)) {
+                    console.log("Cleaning up stale peer:", id);
+                    if (voicePeers[id].peer) {
+                        try { voicePeers[id].peer.destroy(); } catch (e) { }
+                    }
+                    const audio = document.getElementById('audio-' + id);
+                    if (audio) audio.remove();
+                    delete voicePeers[id];
+                }
             }
         }
 
         socket.on('voice-signal', async (data) => {
-            // Only process voice signals when our mic is active
-            if (!isMicOn) return;
             const { from, signal } = data;
 
             if (signal.type === 'join') {
-                // Someone with mic enabled joined — initiate peer connection
-                initPeer(from);
+                console.log("Peer announced join:", from);
+                // Deterministic: Only one side initiates based on ID comparison
+                if (socket.id < from) {
+                    initPeer(from);
+                }
             } else {
                 initPeer(from, signal);
             }
@@ -5817,7 +5882,10 @@
             // 🔥 Sync UI immediately
             syncHeaderAuth();
 
-            // 🔥 Notify others to start voice negotiation even if we don't have mic yet
+            // 🔥 Initialize AudioContext on user gesture (Join Button)
+            initAudioContext();
+
+            // 🔥 Notify others to start voice negotiation
             socket.emit('voice-signal', { signal: { type: 'join' } });
 
             tryAutoFullscreen();
@@ -6352,6 +6420,26 @@
         socket.on('state', (s) => {
             myIndex = s.yourIndex; // 🔥 UPDATE SECEPAT MUNGKIN
             lastState = s; // 🔥 Simpan state ke variabel global
+            
+            // Clean up disconnected voice peers
+            cleanupPeers(s.playerIds);
+
+            // 🔥 DISCOVERY: Initiate connections with players we should be initiating with
+            if (s.playerIds) {
+                s.playerIds.forEach(pid => {
+                    if (pid && pid !== socket.id && socket.id < pid) {
+                        // We are the initiator for this peer relationship
+                        initPeer(pid);
+                    }
+                });
+            }
+
+            // 🔥 RECONNECT FIX: If we just refreshed/rejoined, announce ourselves once
+            if (myIndex !== -1 && !window.hasAnnouncedVoice) {
+                console.log("Announcing voice join after refresh/rejoin");
+                socket.emit('voice-signal', { signal: { type: 'join' } });
+                window.hasAnnouncedVoice = true;
+            }
             const wasDraw = (lastAction === "draw");
             lastAction = ""; // reset
             const currentColor = s.tableColor || 'green';
@@ -6796,7 +6884,9 @@
             // Sync Mic Status Icons
             const micStatuses = s.playersMicStatus || [];
             micStatuses.forEach((isOn, idx) => {
-                const finalStatus = playerMicStatuses[idx] !== undefined ? playerMicStatuses[idx] : isOn;
+                // Hard rule: Local status is only active if we have a real stream
+                const isSelfActive = !!(localStream && isMicOn && !isMicMuted);
+                const finalStatus = (idx === myIndex) ? isSelfActive : isOn;
                 updateMicIcon(idx, finalStatus);
             });
 
@@ -7178,6 +7268,10 @@
             if (seat) {
                 seat.classList.toggle('is-offline', data.status === 'offline');
             }
+            // 🔥 TUNTUTAN USER: Jika offline (refresh), pastikan mic icon jadi slashed
+            if (data.status === 'offline') {
+                updateMicIcon(data.index, false);
+            }
         });
 
         socket.on("mic-status-updated", (data) => {
@@ -7243,6 +7337,8 @@
         socket.on('playerJoined', d => toast(d.name + ' bergabung ke meja', '♠'));
 
         socket.on('disconnect', () => {
+            console.log("Socket disconnected");
+            window.hasAnnouncedVoice = false; // Reset for next connection
             const overlay = document.getElementById('reconnecting-overlay');
             if (overlay) overlay.classList.add('show');
         });
@@ -8531,7 +8627,43 @@
         window.addEventListener('load', () => {
             syncProfileUI();
             loadInventory();
+            
+            // 🔥 Force Reset Voice UI on Load
+            isMicOn = false;
+            isMicMuted = true;
+            if (localStream) {
+                localStream.getTracks().forEach(t => t.stop());
+                localStream = null;
+            }
+            updateMicUI();
         });
+
+        // 🔥 Global Audio Fix: Resume context on any click
+        document.addEventListener('click', () => {
+            if (typeof initAudioContext === 'function') {
+                initAudioContext();
+            }
+            // Resume all existing remote audio streams
+            document.querySelectorAll('audio').forEach(a => {
+                if (a.paused && a.srcObject) a.play().catch(() => {});
+            });
+        }, { once: false });
+
+        // Periodically check for suspended context if we have peers
+        setInterval(() => {
+            if (typeof voicePeers !== 'undefined' && Object.keys(voicePeers).length > 0 && typeof audioContext !== 'undefined' && audioContext && audioContext.state === 'suspended') {
+                toast("Klik layar untuk mengaktifkan suara pemain lain", "🔊");
+                
+                // Fallback: enable hidden audio tags if context is stuck
+                document.querySelectorAll('audio').forEach(a => {
+                    if (a.srcObject) {
+                        a.muted = false;
+                        a.volume = voiceVolume;
+                        a.play().catch(() => {});
+                    }
+                });
+            }
+        }, 5000);
     </script>
 
 </body>
