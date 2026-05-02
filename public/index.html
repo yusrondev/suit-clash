@@ -5402,7 +5402,11 @@
             document.querySelectorAll('audio').forEach(a => {
                 if (a.paused && a.srcObject) a.play().catch(() => {});
             });
-            toast("Suara pemain lain diaktifkan!", "🔊");
+            // 🔥 TUNTUTAN USER: Auto-aktifkan mic juga
+            if (!localStream) {
+                startVoice();
+            }
+            toast("Suara & Mic diaktifkan!", "🎙️");
         }
 
         async function toggleMic() {
