@@ -6819,7 +6819,6 @@
         });
 
         socket.on("playerOut", (data) => {
-            toast(`${data.name} berhasil menghabiskan kartu!`, '🏆');
             if (data.name === myName) {
                 toast('Kamu menang di ronde ini!', '🎉');
             }
