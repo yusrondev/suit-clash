@@ -844,6 +844,7 @@ function sendState(game) {
       matchStartTime: game.matchStartTime,
       initialCards: game.initialCards || DEFAULT_INITIAL_CARDS,
       serverTime: Date.now(),
+      peekStates: game.players.map(pl => pl.peekState || null),
     });
   });
 }
@@ -1629,11 +1630,15 @@ io.on("connection", (socket) => {
     const pIdx = game.players.findIndex(p => p.id === socket.id);
     if (pIdx === -1) return;
     const card = (data.index !== null && game.players[pIdx].cards[data.index]) ? game.players[pIdx].cards[data.index] : null;
-    socket.to(currentRoom).emit("peekState", { 
+    const peekObj = { 
       playerIndex: pIdx, 
       cardIndex: data.index, 
       card: card 
-    });
+    };
+    game.players[pIdx].peekState = data.index !== null ? peekObj : null;
+    
+    socket.to(currentRoom).emit("peekState", peekObj);
+    sendState(game); // Force update
   });
 
   // ── START GAME (Manual) ──

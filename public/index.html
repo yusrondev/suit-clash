@@ -6277,6 +6277,14 @@
                     document.documentElement.style.setProperty('--custom-card-back', 'linear-gradient(135deg, #1e3a8a, #3b6fd4)');
                 }
 
+                // 🔥 TUNTUTAN USER: Pastikan asset pribadi tersinkron saat masuk room
+                if (myIndex !== -1) {
+                    if (!window.initialAssetSynced) {
+                        applyEquippedAssets();
+                        window.initialAssetSynced = true;
+                    }
+                }
+
                 // Auto-Sync for Host
                 if (myIndex === 0) {
                     const bgItem = myInventory.find(i => i.item_id === activeBackgroundId);
