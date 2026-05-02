@@ -1,4 +1,4 @@
-const { query, pool } = require('./db');
+const { query, pool } = require('../db');
 
 const createTableQuery = `
 CREATE TABLE IF NOT EXISTS users (

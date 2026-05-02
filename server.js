@@ -11,7 +11,9 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 const path = require("path");
+const cookieParser = require('cookie-parser');
 app.use(express.json());
+app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
 // ── SECURITY HEADERS FOR GOOGLE AUTH ─────────────────────────────────────────
@@ -49,10 +51,11 @@ app.post("/api/auth/login", async (req, res) => {
     if (!valid) return res.status(401).json({ success: false, msg: "Password salah." });
 
     const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET);
+    res.cookie('sc_token', token, { httpOnly: true, maxAge: 3600000 * 24 * 7 }); // 7 days
     res.json({ 
       success: true, 
       token, 
-      user: { id: user.id, username: user.username, gold: user.gold, diamonds: user.diamonds, wins: user.wins, matches_played: user.matches_played, avatar_url: user.avatar_url } 
+      user: { id: user.id, username: user.username, gold: user.gold, diamonds: user.diamonds, wins: user.wins, matches_played: user.matches_played, avatar_url: user.avatar_url, is_admin: user.is_admin } 
     });
   } catch (err) {
     console.error(err);
@@ -73,7 +76,7 @@ app.post("/api/auth/google", async (req, res) => {
       // 2. Jika sudah ada, update google_id dan avatar
       user = result.rows[0];
       const updateRes = await db.query(
-        "UPDATE users SET google_id = $1, avatar_url = $2 WHERE id = $3 RETURNING id, username, email, gold, diamonds, wins, matches_played, avatar_url",
+        "UPDATE users SET google_id = $1, avatar_url = $2 WHERE id = $3 RETURNING id, username, email, gold, diamonds, wins, matches_played, avatar_url, is_admin",
         [googleId, avatar, user.id]
       );
       user = updateRes.rows[0];
@@ -90,18 +93,24 @@ app.post("/api/auth/google", async (req, res) => {
       const insertRes = await db.query(
         `INSERT INTO users (username, email, google_id, avatar_url, equipped_emojis) 
          VALUES ($1, $2, $3, $4, $5) 
-         RETURNING id, username, email, gold, diamonds, wins, matches_played, avatar_url`,
+         RETURNING id, username, email, gold, diamonds, wins, matches_played, avatar_url, is_admin`,
         [finalUsername, email, googleId, avatar, ['angry', 'cat', 'monkey', 'ok']]
       );
       user = insertRes.rows[0];
     }
 
     const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET);
+    res.cookie('sc_token', token, { httpOnly: true, maxAge: 3600000 * 24 * 7 });
     res.json({ success: true, token, user });
   } catch (err) {
     console.error("GOOGLE AUTH ERROR:", err);
     res.status(500).json({ success: false, msg: "Google login failed: " + err.message });
   }
+});
+
+app.post("/api/auth/logout", (req, res) => {
+  res.clearCookie('sc_token');
+  res.json({ success: true });
 });
 
 // ── SHOP & INVENTORY ENDPOINTS ────────────────────────────────────────────────
@@ -233,13 +242,15 @@ app.get("/api/user/inventory", authenticateToken, async (req, res) => {
       WHERE i.user_id = $1
     `, [req.user.id]);
 
-    const userRes = await db.query("SELECT equipped_emojis FROM users WHERE id = $1", [req.user.id]);
-    const equipped = userRes.rows[0].equipped_emojis || [];
+    const userRes = await db.query("SELECT equipped_emojis, equipped_background_id, equipped_cardback_id FROM users WHERE id = $1", [req.user.id]);
+    const userData = userRes.rows[0];
 
     res.json({ 
       success: true, 
       inventory: result.rows,
-      equipped_emojis: equipped
+      equipped_emojis: userData.equipped_emojis || [],
+      equipped_background_id: userData.equipped_background_id,
+      equipped_cardback_id: userData.equipped_cardback_id
     });
   } catch (err) {
     console.error(err);
@@ -253,31 +264,186 @@ app.post("/api/user/inventory/toggle-equip", authenticateToken, async (req, res)
   const itemIdStr = itemId.toString();
 
   try {
-    // Get current equipped list
-    const userRes = await db.query("SELECT equipped_emojis FROM users WHERE id = $1", [userId]);
-    let equipped = userRes.rows[0].equipped_emojis || [];
+    const itemCheck = await db.query("SELECT type FROM shop_items WHERE id = $1", [itemId]);
+    if (itemCheck.rows.length === 0) return res.status(404).json({ success: false, msg: "Item not found." });
+    const itemType = itemCheck.rows[0].type;
 
-    const index = equipped.indexOf(itemIdStr);
-    if (index > -1) {
-      // Unequip
-      if (equipped.length <= 1) {
-        return res.json({ success: false, msg: "Minimal harus ada 1 emoji!" });
+    if (itemType === 'emoticon') {
+      const userRes = await db.query("SELECT equipped_emojis FROM users WHERE id = $1", [userId]);
+      let equipped = userRes.rows[0].equipped_emojis || [];
+      const index = equipped.indexOf(itemIdStr);
+      if (index > -1) {
+        if (equipped.length <= 1) return res.json({ success: false, msg: "Minimal harus ada 1 emoji!" });
+        equipped.splice(index, 1);
+      } else {
+        if (equipped.length >= 10) return res.json({ success: false, msg: "Maksimal 10 emoji di menu!" });
+        equipped.push(itemIdStr);
       }
-      equipped.splice(index, 1);
-    } else {
-      // Equip
-      if (equipped.length >= 10) {
-        return res.json({ success: false, msg: "Maksimal 10 emoji di menu!" });
-      }
-      equipped.push(itemIdStr);
+      await db.query("UPDATE users SET equipped_emojis = $1 WHERE id = $2", [equipped, userId]);
+      res.json({ success: true, equipped_emojis: equipped, type: 'emoticon' });
+    } else if (itemType === 'background') {
+      const userRes = await db.query("SELECT equipped_background_id FROM users WHERE id = $1", [userId]);
+      const current = userRes.rows[0].equipped_background_id;
+      const next = (current === parseInt(itemId)) ? null : parseInt(itemId);
+      await db.query("UPDATE users SET equipped_background_id = $1 WHERE id = $2", [next, userId]);
+      res.json({ success: true, equipped_background_id: next, type: 'background' });
+    } else if (itemType === 'cardback') {
+      const userRes = await db.query("SELECT equipped_cardback_id FROM users WHERE id = $1", [userId]);
+      const current = userRes.rows[0].equipped_cardback_id;
+      const next = (current === parseInt(itemId)) ? null : parseInt(itemId);
+      await db.query("UPDATE users SET equipped_cardback_id = $1 WHERE id = $2", [next, userId]);
+      res.json({ success: true, equipped_cardback_id: next, type: 'cardback' });
     }
-
-    await db.query("UPDATE users SET equipped_emojis = $1 WHERE id = $2", [equipped, userId]);
-    res.json({ success: true, equipped_emojis: equipped });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, msg: "Gagal mengubah status equipment." });
   }
+});
+
+// ── ADMIN API ──────────────────────────────────────────────────────────────────
+const multer = require('multer');
+const fs = require('fs');
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    let dest = 'public/uploads/';
+    if (file.fieldname === 'lottie') dest = 'public/assets/lottie/shop/';
+    else if (file.fieldname === 'sound') dest = 'public/assets/sounds/';
+    
+    if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
+    cb(null, dest);
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname);
+  }
+});
+const upload = multer({ storage: storage });
+
+const authenticateAdmin = async (req, res, next) => {
+  authenticateToken(req, res, async () => {
+    try {
+      const result = await db.query("SELECT is_admin FROM users WHERE id = $1", [req.user.id]);
+      if (result.rows.length > 0 && result.rows[0].is_admin) {
+        next();
+      } else {
+        res.status(403).json({ success: false, msg: "Admin access denied." });
+      }
+    } catch (err) {
+      res.status(500).json({ success: false, msg: "Server error." });
+    }
+  });
+};
+
+// Admin: User Management
+app.get("/api/admin/users", authenticateAdmin, async (req, res) => {
+  try {
+    const result = await db.query("SELECT id, username, email, gold, diamonds, wins, matches_played, is_admin, avatar_url FROM users ORDER BY id DESC");
+    res.json({ success: true, users: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, msg: "Failed to fetch users." });
+  }
+});
+
+app.post("/api/admin/users/:id/update", authenticateAdmin, async (req, res) => {
+  const { gold, diamonds, is_admin } = req.body;
+  try {
+    await db.query(
+      "UPDATE users SET gold = $1, diamonds = $2, is_admin = $3 WHERE id = $4",
+      [gold, diamonds, is_admin, req.params.id]
+    );
+    res.json({ success: true, msg: "User updated successfully." });
+  } catch (err) {
+    res.status(500).json({ success: false, msg: "Failed to update user." });
+  }
+});
+
+// Admin: Shop Management
+app.post("/api/admin/items", authenticateAdmin, async (req, res) => {
+  const { id, name, type, price_gold, price_diamonds, original_price_gold, original_price_diamonds, lottie_url, sound_url, additional_text, rarity } = req.body;
+  try {
+    if (id) {
+      // Update
+      await db.query(
+        `UPDATE shop_items SET name=$1, type=$2, price_gold=$3, price_diamonds=$4, original_price_gold=$5, original_price_diamonds=$6, lottie_url=$7, sound_url=$8, additional_text=$9, rarity=$10 
+         WHERE id=$11`,
+        [name, type, price_gold, price_diamonds, original_price_gold, original_price_diamonds, lottie_url, sound_url, additional_text, rarity, id]
+      );
+    } else {
+      // Create
+      await db.query(
+        `INSERT INTO shop_items (name, type, price_gold, price_diamonds, original_price_gold, original_price_diamonds, lottie_url, sound_url, additional_text, rarity) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+        [name, type, price_gold, price_diamonds, original_price_gold, original_price_diamonds, lottie_url, sound_url, additional_text, rarity]
+      );
+    }
+    res.json({ success: true, msg: "Item saved successfully." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, msg: "Failed to save item." });
+  }
+});
+
+app.delete("/api/admin/items/:id", authenticateAdmin, async (req, res) => {
+  try {
+    // 1. Get file paths before deleting
+    const itemRes = await db.query("SELECT lottie_url, sound_url FROM shop_items WHERE id = $1", [req.params.id]);
+    const item = itemRes.rows[0];
+
+    // 2. Delete from DB
+    await db.query("DELETE FROM shop_items WHERE id = $1", [req.params.id]);
+
+    // 3. Delete files from disk
+    if (item) {
+      if (item.lottie_url && item.lottie_url.startsWith('/assets/')) {
+        const filePath = path.join(__dirname, 'public', item.lottie_url);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      }
+      if (item.sound_url && item.sound_url.startsWith('/assets/')) {
+        const filePath = path.join(__dirname, 'public', item.sound_url);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      }
+    }
+
+    res.json({ success: true, msg: "Item and files deleted." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, msg: "Failed to delete item." });
+  }
+});
+
+// Admin: Upload
+app.post("/api/admin/upload", authenticateAdmin, upload.fields([{ name: 'lottie', maxCount: 1 }, { name: 'sound', maxCount: 1 }]), (req, res) => {
+  const files = req.files;
+  const rarity = req.body.rarity || '';
+  const result = {};
+
+  const moveFile = (file, baseDir) => {
+    if (!rarity) return baseDir + file.filename;
+    
+    const rarityDir = path.join(baseDir, rarity);
+    if (!fs.existsSync(path.join('public', rarityDir))) {
+      fs.mkdirSync(path.join('public', rarityDir), { recursive: true });
+    }
+    
+    const oldPath = path.join('public', baseDir, file.filename);
+    const newPath = path.join('public', rarityDir, file.filename);
+    
+    try {
+      fs.renameSync(oldPath, newPath);
+      return path.join(rarityDir, file.filename).replace(/\\/g, '/');
+    } catch (err) {
+      console.error("Failed to move file:", err);
+      return baseDir + file.filename;
+    }
+  };
+
+  if (files['lottie']) {
+    result.lottie_url = moveFile(files['lottie'][0], '/assets/lottie/shop/');
+  }
+  if (files['sound']) {
+    result.sound_url = moveFile(files['sound'][0], '/assets/sounds/');
+  }
+  
+  res.json({ success: true, ...result });
 });
 
 app.post("/api/user/equip", authenticateToken, async (req, res) => {
@@ -305,8 +471,6 @@ app.post("/api/user/equip", authenticateToken, async (req, res) => {
     res.status(500).json({ success: false, msg: "Failed to equip item." });
   }
 });
-
-// ── DECK ──────────────────────────────────────────────────────────────────────
 const suits = ["♠", "♥", "♦", "♣"];
 const values = [
   "A",
@@ -369,9 +533,11 @@ function makeGame() {
     roundCount: 0,
     maxRounds: 7, // 🔥 NEW: Dinamis dari Host
     initialCards: DEFAULT_INITIAL_CARDS, // 🔥 NEW: Dinamis dari Host
-    tableColor: 'green', // 🔥 NEW: Warna meja pilihan Host
+    tableColor: 'green',
+    equippedBackgroundUrl: null,
+    equippedCardbackUrl: null,
     nextStarter: null,
-    lastTakerProvider: null, // Tracks who played the card that was just taken
+    lastTakerProvider: null,
   };
 }
 
@@ -615,6 +781,8 @@ function sendState(game) {
       roundCount: game.roundCount,
       maxRounds: game.maxRounds,
       tableColor: game.tableColor || 'green',
+      equippedBackgroundUrl: game.equippedBackgroundUrl,
+      equippedCardbackUrl: game.equippedCardbackUrl,
       attackCharges: game.players.map(pl => pl.attackCharges),
       playersMicStatus: game.players.map(pl => !!pl.micStatus),
       playerIds: game.players.map(pl => pl.id),
@@ -910,7 +1078,25 @@ function startGame(game) {
   game.started = true;
 }
 
-// ── SOCKET ────────────────────────────────────────────────────────────────────
+// Admin Page Route with Server-Side Auth Check
+app.get('/admin', async (req, res) => {
+  const token = req.cookies.sc_token;
+  if (!token) return res.redirect('/');
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const result = await db.query("SELECT is_admin FROM users WHERE id = $1", [decoded.id]);
+    if (result.rows.length > 0 && result.rows[0].is_admin) {
+      res.sendFile(path.join(__dirname, 'views', 'admin.html'));
+    } else {
+      res.redirect('/');
+    }
+  } catch (err) {
+    res.redirect('/');
+  }
+});
+
+// ── DECK ──────────────────────────────────────────────────────────────────────
 io.on("connection", (socket) => {
   socket.on('ping_lat', (callback) => {
     if (typeof callback === 'function') callback();
@@ -1231,6 +1417,15 @@ io.on("connection", (socket) => {
     const r = parseInt(rounds);
     if (r >= 1 && r <= 20) {
       game.maxRounds = r;
+      sendState(game);
+    }
+  });
+
+  socket.on("syncEquippedAssets", ({ backgroundUrl, cardbackUrl }) => {
+    const game = rooms.get(currentRoom);
+    if (game && game.players[0].id === socket.id) { 
+      game.equippedBackgroundUrl = backgroundUrl;
+      game.equippedCardbackUrl = cardbackUrl;
       sendState(game);
     }
   });

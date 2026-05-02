@@ -1,4 +1,4 @@
-const { query, pool } = require('./db');
+const { query, pool } = require('../db');
 
 async function migrate() {
     try {

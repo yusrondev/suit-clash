@@ -17,20 +17,22 @@
     <style>
         /* ── TOKENS ── */
         :root {
+            --gold: #d4af37;
+            --gold-dark: #a68a2d;
+            --gold-light: #f1d592;
+            --card-bg: #fdfcf8;
+            --bg-dark: #06090b;
+            --shadow-card: 0 10px 20px rgba(0, 0, 0, 0.4);
+            --custom-card-back: linear-gradient(135deg, #1e3a8a, #3b6fd4);
             --felt: #1a4731;
             --felt-light: #2d7a54;
             --felt-dark: #0b2116;
-            --gold: #d4af37;
-            --gold-light: #f1d592;
-            --gold-dark: #aa8a2e;
-            --card-bg: #ffffff;
             --red: #d32f2f;
             --black: #121212;
             --cream: #f8f4e9;
             --glass: rgba(0, 0, 0, 0.4);
             --glass-border: rgba(212, 175, 55, 0.3);
             --radius: 16px;
-            --shadow-card: 0 6px 16px rgba(0, 0, 0, 0.5);
             --shadow-deep: 0 30px 80px rgba(0, 0, 0, 0.8);
             --header-h: 60px;
         }
@@ -1075,33 +1077,37 @@
 
         .opp-card-count {
             font-size: 9px;
-            color: rgba(201, 168, 76, 0.7);
-            font-weight: 600;
-            margin-top: 8%;
+            color: var(--gold-light);
+            font-weight: 800;
+            z-index: 100;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+            opacity: 0.8;
+            pointer-events: none;
         }
 
         .opp-cards {
             display: flex;
             position: relative;
-            height: 32px;
-            width: 70px;
+            height: 48px;
+            width: 80px;
             justify-content: center;
             perspective: 800px;
             transform-style: preserve-3d;
+            margin-bottom: 5px;
         }
 
-        .opp-card-back {
+           .opp-card-back {
+            width: 32px;
+            height: 48px;
+            background: var(--custom-card-back);
+            background-size: cover;
+            background-position: center;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 4px;
             position: absolute;
-            width: 22px;
-            height: 32px;
-            border-radius: 3px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.5);
-            background-color: #3463c3;
-            background-image:
-                repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.05) 0px, rgba(255, 255, 255, 0.05) 2px, transparent 2px, transparent 6px),
-                repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.05) 0px, rgba(255, 255, 255, 0.05) 2px, transparent 2px, transparent 6px);
-            transition: transform 0.2s;
+            top: 0;
+            left: calc(50% - 16px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
         }
 
         /* 🔥 EFFECT: REVEAL CARD 🔥 */
@@ -1354,7 +1360,10 @@
             padding: 16px 16px;
             position: relative;
             overflow: visible;
-            background: var(--table-bg, radial-gradient(ellipse at 50% 40%, #23613d 0%, #154228 50%, #0d2818 100%));
+            background: var(--table-custom-bg, none), var(--table-bg, radial-gradient(ellipse at 50% 40%, #23613d 0%, #154228 50%, #0d2818 100%));
+            background-size: 70% auto, auto;
+            background-position: center, center;
+            background-repeat: no-repeat, no-repeat;
             border: 2px solid var(--gold-dark);
             overflow: visible;
             transition: background 0.5s ease;
@@ -1627,7 +1636,8 @@
             width: 28px;
             height: 40px;
             border-radius: 4px;
-            background: linear-gradient(135deg, #1e3a8a, #3b6fd4);
+            background: var(--custom-card-back);
+            background-size: cover;
             border: 1px solid rgba(255, 255, 255, 0.15);
             box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
         }
@@ -1998,7 +2008,10 @@
         #center-table.drop-active {
             border-color: var(--gold-light);
             box-shadow: inset 0 4px 20px rgba(212, 175, 55, 0.2), 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 30px rgba(212, 175, 55, 0.3);
-            background: var(--table-bg-active, var(--table-bg));
+            background: var(--table-custom-bg, none), var(--table-bg-active, var(--table-bg));
+            background-size: 70% auto, auto;
+            background-position: center, center;
+            background-repeat: no-repeat, no-repeat;
         }
 
         /* ── ACTION BUTTONS ── */
@@ -3875,10 +3888,28 @@
         </div>
 
         <div class="inventory-section" id="profile-inventory-section">
-            <div class="economy-section-label">Inventory (Emoticons)</div>
-            <div class="inventory-grid" id="inventory-container">
-                <!-- Inventory items will be loaded here -->
+            <div id="inventory-emoticons-group">
+                <div class="economy-section-label">Inventory (Emoticons)</div>
+                <div class="inventory-grid" id="inventory-container">
+                    <!-- Emoticons here -->
+                </div>
             </div>
+            <div id="inventory-backgrounds-group" style="display:none; margin-top:15px;">
+                <div class="economy-section-label">Inventory (Table Backgrounds)</div>
+                <div class="inventory-grid" id="inventory-backgrounds-container">
+                    <!-- Backgrounds here -->
+                </div>
+            </div>
+            <div id="inventory-cardbacks-group" style="display:none; margin-top:15px;">
+                <div class="economy-section-label">Inventory (Card Backs)</div>
+                <div class="inventory-grid" id="inventory-cardbacks-container">
+                    <!-- Card backs here -->
+                </div>
+            </div>
+        </div>
+
+        <div id="admin-link-section" style="display:none; margin-top:10px; border-top:1px solid rgba(212,175,55,0.1); padding-top:10px;">
+            <a href="/admin" class="btn-gold" style="display:block; text-align:center; text-decoration:none; padding:10px; border-radius:10px; font-size:12px;"><i class="fa-solid fa-gauge-high"></i> Admin Dashboard</a>
         </div>
 
         <div class="auth-actions" id="profile-auth-actions">
@@ -4005,6 +4036,12 @@
                             <div class="color-dot blue" onclick="setTableColor('blue')" title="Biru"></div>
                             <div class="color-dot red" onclick="setTableColor('red')" title="Merah"></div>
                         </div>
+                    </div>
+
+                    <!-- ASSET BACKGROUND PREVIEW -->
+                    <div class="config-row" id="lobby-asset-preview-row" style="display:none; margin-top: 10px; border-top: 1px solid rgba(212,175,55,0.05); padding-top: 10px;">
+                        <span class="config-label">ASSET MEJA</span>
+                        <div id="lobby-bg-preview" style="width: 60px; height: 40px; border-radius: 6px; border: 1px solid var(--gold-dark); background-size: contain; background-position: center; background-repeat: no-repeat; background-color: rgb(57 57 57 / 53%);"></div>
                     </div>
                 </div>
 
@@ -4458,15 +4495,20 @@
                     `;
                     container.appendChild(card);
 
-                    // Render Lottie Preview
-                    const anim = lottie.loadAnimation({
-                        container: document.getElementById(`shop-preview-${item.id}`),
-                        renderer: 'svg',
-                        loop: true,
-                        autoplay: true, // Will be paused by closeShop if closed
-                        path: item.lottie_url
-                    });
-                    shopLottieAnimations.push(anim);
+                    // Render Preview (Lottie or Image)
+                    const previewEl = document.getElementById(`shop-preview-${item.id}`);
+                    if (item.type === 'emoticon') {
+                        const anim = lottie.loadAnimation({
+                            container: previewEl,
+                            renderer: 'svg',
+                            loop: true,
+                            autoplay: true,
+                            path: item.lottie_url
+                        });
+                        shopLottieAnimations.push(anim);
+                    } else {
+                        previewEl.innerHTML = `<img src="${item.lottie_url}" style="width:100%; height:100%; object-fit:contain; border-radius:8px;">`;
+                    }
                 });
             } catch (err) {
                 container.innerHTML = `<div style="grid-column: 1/-1; color:#ff4d4d; text-align:center; padding:20px;">Gagal memuat shop: ${err.message}</div>`;
@@ -4499,13 +4541,18 @@
             // Render Preview
             previewContainer.innerHTML = '';
             if (confirmLottieAnim) confirmLottieAnim.destroy();
-            confirmLottieAnim = lottie.loadAnimation({
-                container: previewContainer,
-                renderer: 'svg',
-                loop: true,
-                autoplay: true,
-                path: item.lottie_url
-            });
+            
+            if (item.type === 'emoticon') {
+                confirmLottieAnim = lottie.loadAnimation({
+                    container: previewContainer,
+                    renderer: 'svg',
+                    loop: true,
+                    autoplay: true,
+                    path: item.lottie_url
+                });
+            } else {
+                previewContainer.innerHTML = `<img src="${item.lottie_url}" style="width:100%; height:100%; object-fit:contain; border-radius:12px;">`;
+            }
 
             nameLabel.innerText = item.name;
             msg.innerHTML = `Beli seharga <b style="color:var(--gold-light)">${currency === 'gold' ? `<i class="fas fa-coins"></i> ${item.price_gold}` : `<i class="fas fa-gem"></i> ${item.price_diamonds}`}</b>?`;
@@ -4572,6 +4619,9 @@
             toast("Pratinjau suara...", "🎵");
         }
 
+        let activeBackgroundId = null;
+        let activeCardbackId = null;
+
         async function loadInventory() {
             const token = localStorage.getItem('sc_token');
             const container = document.getElementById('inventory-container');
@@ -4591,16 +4641,20 @@
                     const invData = await invRes.json();
                     if (invData.success) {
                         myInventory = invData.inventory;
-                        // Sync active emojis from server (new array-based system)
                         activeEmojiIds = invData.equipped_emojis || [];
+                        activeBackgroundId = invData.equipped_background_id;
+                        activeCardbackId = invData.equipped_cardback_id;
                     }
                 } else {
                     // Guest Defaults
                     activeEmojiIds = ['angry', 'monkey', 'ok'];
+                    activeBackgroundId = null;
+                    activeCardbackId = null;
                 }
 
                 renderInventoryUI();
                 renderEmojiFAB();
+                applyEquippedAssets(); // Apply Visuals
             } catch (err) {
                 console.error("Failed to load inventory:", err);
             }
@@ -4608,8 +4662,15 @@
 
         function renderInventoryUI() {
             const container = document.getElementById('inventory-container');
+            const bgContainer = document.getElementById('inventory-backgrounds-container');
+            const cbContainer = document.getElementById('inventory-cardbacks-container');
+            
             if (!container) return;
+            
+            // Reset all
             container.innerHTML = '';
+            if (bgContainer) bgContainer.innerHTML = '';
+            if (cbContainer) cbContainer.innerHTML = '';
 
             // Destroy existing inventory animations
             inventoryLottieAnimations.forEach(a => a.destroy());
@@ -4621,49 +4682,110 @@
                 ...myInventory.map(e => ({...e, is_default: false, id: e.item_id}))
             ];
 
-            allAvailable.forEach(item => {
-                const isActive = activeEmojiIds.includes(item.id.toString());
+            const emoticons = allAvailable.filter(it => it.type === 'emoticon');
+            const backgrounds = allAvailable.filter(it => it.type === 'background');
+            const cardbacks = allAvailable.filter(it => it.type === 'cardback');
+
+            // Show/Hide groups
+            document.getElementById('inventory-backgrounds-group').style.display = backgrounds.length > 0 ? 'block' : 'none';
+            document.getElementById('inventory-cardbacks-group').style.display = cardbacks.length > 0 ? 'block' : 'none';
+
+            const renderItem = (item, target) => {
+                let isActive = false;
+                if (item.type === 'emoticon') isActive = activeEmojiIds.includes(item.id.toString());
+                else if (item.type === 'background') isActive = (activeBackgroundId === item.id);
+                else if (item.type === 'cardback') isActive = (activeCardbackId === item.id);
+
                 const div = document.createElement('div');
-                div.className = `inventory-item ${isActive ? 'equipped' : ''}`;
+                div.className = `inventory-item ${isActive ? 'equipped' : ''} type-${item.type}`;
                 div.title = item.name;
                 div.onclick = () => toggleEmojiActive(item.id.toString());
                 
                 const thumb = document.createElement('div');
                 thumb.className = 'item-thumb';
-                div.appendChild(thumb);
-                container.appendChild(div);
+                
+                if (item.type === 'emoticon') {
+                    const anim = lottie.loadAnimation({
+                        container: thumb,
+                        renderer: 'svg',
+                        loop: true,
+                        autoplay: true,
+                        path: item.lottie_url
+                    });
+                    inventoryLottieAnimations.push(anim);
+                } else {
+                    // Static Preview for background/cardback
+                    thumb.style.backgroundImage = `url("${item.lottie_url}")`;
+                    thumb.style.backgroundSize = 'cover';
+                    thumb.style.backgroundPosition = 'center';
+                    thumb.style.width = '100%';
+                    thumb.style.height = '100%';
+                    thumb.style.borderRadius = '10px';
+                }
 
-                const anim = lottie.loadAnimation({
-                    container: thumb,
-                    renderer: 'svg',
-                    loop: true,
-                    autoplay: true, // Will be paused by toggleProfile if closed
-                    path: item.lottie_url
-                });
-                inventoryLottieAnimations.push(anim);
-            });
+                div.appendChild(thumb);
+                target.appendChild(div);
+            };
+
+            emoticons.forEach(it => renderItem(it, container));
+            backgrounds.forEach(it => renderItem(it, bgContainer));
+            cardbacks.forEach(it => renderItem(it, cbContainer));
         }
 
-        async function toggleEmojiActive(id) {
+        async function toggleEmojiActive(itemId) {
             const token = localStorage.getItem('sc_token');
-            if (!token) return toast("Harap login untuk mengatur emoji!", "⚠️");
+            if (!token) return;
 
             try {
                 const res = await fetch('/api/user/inventory/toggle-equip', {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ itemId: id })
+                    body: JSON.stringify({ itemId })
                 });
                 const data = await res.json();
-                if (!data.success) throw new Error(data.msg);
+                if (data.success) {
+                    if (data.type === 'emoticon') activeEmojiIds = data.equipped_emojis;
+                    else if (data.type === 'background') activeBackgroundId = data.equipped_background_id;
+                    else if (data.type === 'cardback') activeCardbackId = data.equipped_cardback_id;
 
-                // Reload inventory to sync state
-                await loadInventory();
+                    renderInventoryUI();
+                    renderEmojiFAB();
+                    applyEquippedAssets();
+                } else {
+                    toast(data.msg, "⚠️");
+                }
             } catch (err) {
-                toast(err.message, "⚠️");
+                console.error("Failed to toggle equipment:", err);
+            }
+        }
+
+        function applyEquippedAssets() {
+            // 1. Table Background Overlay
+            const bgItem = myInventory.find(i => i.item_id === activeBackgroundId);
+            const cbItem = myInventory.find(i => i.item_id === activeCardbackId);
+
+            // Host sync to room
+            if (myIndex === 0) {
+                socket.emit("syncEquippedAssets", {
+                    backgroundUrl: bgItem ? bgItem.lottie_url : null,
+                    cardbackUrl: cbItem ? cbItem.lottie_url : null
+                });
+            }
+
+            // Local Apply (Optional, usually state update will handle it now)
+            if (bgItem) {
+                document.documentElement.style.setProperty('--table-custom-bg', `url("${bgItem.lottie_url}")`);
+            } else {
+                document.documentElement.style.setProperty('--table-custom-bg', 'none');
+            }
+
+            if (cbItem) {
+                document.documentElement.style.setProperty('--custom-card-back', `url("${cbItem.lottie_url}")`);
+            } else {
+                document.documentElement.style.setProperty('--custom-card-back', 'linear-gradient(135deg, #1e3a8a, #3b6fd4)');
             }
         }
 
@@ -6128,10 +6250,46 @@
 
         /* ── STATE UPDATE ── */
         socket.on('state', (s) => {
+            myIndex = s.yourIndex; // 🔥 UPDATE SECEPAT MUNGKIN
             lastState = s; // 🔥 Simpan state ke variabel global
             const wasDraw = (lastAction === "draw");
             lastAction = ""; // reset
             const currentColor = s.tableColor || 'green';
+
+            // 🔥 SYNC ASSETS (Lobby & Game)
+            const boardEl = document.getElementById('center-table');
+            if (boardEl) {
+                boardEl.classList.remove('table-green', 'table-blue', 'table-red');
+                boardEl.classList.add('table-' + currentColor);
+                
+                // Apply Sync Assets from Room State
+                if (s.equippedBackgroundUrl) {
+                    document.documentElement.style.setProperty('--table-custom-bg', `url("${s.equippedBackgroundUrl}")`);
+                } else if (myIndex !== 0) { 
+                     document.documentElement.style.setProperty('--table-custom-bg', 'none');
+                }
+
+                if (s.equippedCardbackUrl) {
+                    document.documentElement.style.setProperty('--custom-card-back', `url("${s.equippedCardbackUrl}")`);
+                } else if (myIndex !== 0) {
+                    document.documentElement.style.setProperty('--custom-card-back', 'linear-gradient(135deg, #1e3a8a, #3b6fd4)');
+                }
+
+                // Auto-Sync for Host
+                if (myIndex === 0) {
+                    const bgItem = myInventory.find(i => i.item_id === activeBackgroundId);
+                    const cbItem = myInventory.find(i => i.item_id === activeCardbackId);
+                    const localBg = bgItem ? bgItem.lottie_url : null;
+                    const localCb = cbItem ? cbItem.lottie_url : null;
+                    
+                    if (s.equippedBackgroundUrl !== localBg || s.equippedCardbackUrl !== localCb) {
+                        socket.emit("syncEquippedAssets", {
+                            backgroundUrl: localBg,
+                            cardbackUrl: localCb
+                        });
+                    }
+                }
+            }
 
             if (s.started) {
                 document.getElementById('overlay').classList.remove('show');
@@ -6143,7 +6301,6 @@
                 window.isMatchEndFlag = false;
             }
             lastStarted = s.started;
-            myIndex = s.yourIndex; // Sync early!
 
             const playersIsOut = s.playersIsOut || [];
             const amIOut = playersIsOut[myIndex];
@@ -6301,6 +6458,18 @@
                     document.getElementById('guest-cards-display').textContent = s.initialCards || 4;
                 }
 
+                // Lobby Asset Preview Sync
+                const assetRow = document.getElementById('lobby-asset-preview-row');
+                const assetPreview = document.getElementById('lobby-bg-preview');
+                if (assetRow && assetPreview) {
+                    if (s.equippedBackgroundUrl) {
+                        assetRow.style.display = 'flex';
+                        assetPreview.style.backgroundImage = `url("${s.equippedBackgroundUrl}")`;
+                    } else {
+                        assetRow.style.display = 'none';
+                    }
+                }
+
                 // Update active dots in lobby
                 document.querySelectorAll('.color-dot').forEach(dot => {
                     dot.classList.toggle('active', dot.classList.contains(currentColor));
@@ -6323,13 +6492,6 @@
                 return;
             }
 
-            // Sync Table Color (Every state update)
-            const boardEl = document.getElementById('center-table');
-            if (boardEl) {
-                boardEl.classList.remove('table-green', 'table-blue', 'table-red');
-                boardEl.classList.add('table-' + currentColor);
-            }
-
             document.getElementById('overlay').classList.remove('show');
             window.isMatchEndFlag = false;
 
@@ -6349,7 +6511,6 @@
                 bgmSound.play().catch(() => { });
             }
 
-            myIndex = s.yourIndex;
             currentSuit = s.currentSuit;
             isMyTurn = (s.currentPlayer === myIndex) && !amIOut;
             playerNames = s.playerNames || [];
@@ -7910,6 +8071,14 @@
                     if (user.avatar_url) {
                         document.getElementById('profile-avatar-box').innerHTML = `<img src="${user.avatar_url}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
                     }
+
+                    // Admin Dashboard Link
+                    const adminSection = document.getElementById('admin-link-section');
+                    if (user.is_admin) {
+                        if (adminSection) adminSection.style.display = 'block';
+                    } else {
+                        if (adminSection) adminSection.style.display = 'none';
+                    }
                 } else {
                     const nameInput = document.getElementById('name-input');
                     document.getElementById('profile-name').innerText = (nameInput && nameInput.value.trim()) || 'Guest Player';
@@ -8044,7 +8213,8 @@
             loadInventory();
         }
 
-        function logout() {
+        async function logout() {
+            await fetch('/api/auth/logout', { method: 'POST' });
             localStorage.removeItem('sc_token');
             localStorage.removeItem('sc_user');
             location.reload();

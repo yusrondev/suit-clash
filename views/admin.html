@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suit Clash | Admin Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+    <style>
+        :root {
+            --gold: #c9a84c;
+            --gold-light: #f1d592;
+            --gold-dark: #8a6d2b;
+            --bg: #0a0a0a;
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(212, 175, 55, 0.2);
+            --sidebar-w: 260px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: #f5f0e0;
+            display: flex;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ── SIDEBAR ── */
+        aside {
+            width: var(--sidebar-w);
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            padding: 30px 20px;
+            z-index: 100;
+        }
+
+        .logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 24px;
+            font-weight: 900;
+            color: var(--gold-light);
+            text-align: center;
+            margin-bottom: 50px;
+            letter-spacing: 2px;
+            text-shadow: 0 0 15px rgba(201, 168, 76, 0.4);
+        }
+
+        nav {
+            flex: 1;
+        }
+
+        nav ul {
+            list-style: none;
+        }
+
+        nav li {
+            margin-bottom: 15px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 18px;
+            border-radius: 12px;
+            color: rgba(245, 240, 224, 0.6);
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .nav-link i {
+            width: 20px;
+            text-align: center;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background: rgba(201, 168, 76, 0.1);
+            color: var(--gold-light);
+            box-shadow: inset 0 0 10px rgba(201, 168, 76, 0.1);
+        }
+
+        .logout-btn {
+            margin-top: auto;
+            color: #ff4b2b;
+        }
+
+        /* ── MAIN CONTENT ── */
+        main {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+            background: radial-gradient(circle at top right, rgba(201, 168, 76, 0.05), transparent);
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            padding: 24px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(245, 240, 224, 0.5);
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--gold-light);
+        }
+
+        /* ── TABLES ── */
+        .card-container {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 15px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--gold);
+            border-bottom: 1px solid rgba(201, 168, 76, 0.2);
+        }
+
+        td {
+            padding: 15px;
+            font-size: 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 1px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-gold {
+            background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+            color: #1a1100;
+        }
+
+        .btn-gold:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(201, 168, 76, 0.3);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--glass-border);
+            color: var(--gold-light);
+        }
+
+        .btn-outline:hover {
+            background: rgba(201, 168, 76, 0.1);
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.05);
+            color: white;
+        }
+
+        .action-btn:hover {
+            background: var(--gold);
+            color: #000;
+        }
+
+        .action-btn.delete:hover {
+            background: #ff4b2b;
+            color: white;
+        }
+
+        /* ── MODAL ── */
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: #111;
+            border: 1px solid var(--glass-border);
+            width: 100%;
+            max-width: 600px;
+            border-radius: 24px;
+            padding: 35px;
+            box-shadow: 0 30px 100px rgba(0,0,0,0.8);
+        }
+
+        .modal-header {
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--gold);
+            margin-bottom: 8px;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(212, 175, 55, 0.15);
+            border-radius: 12px;
+            padding: 14px;
+            color: #f5f0e0;
+            outline: none;
+            transition: 0.3s;
+            font-size: 14px;
+        }
+
+        .form-group select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23c9a84c' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: calc(100% - 15px) center;
+            padding-right: 45px;
+            cursor: pointer;
+        }
+
+        .form-group select option {
+            background-color: #111;
+            color: #f5f0e0;
+            padding: 10px;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            border-color: var(--gold);
+            background: rgba(212, 175, 55, 0.05);
+            box-shadow: 0 0 15px rgba(201, 168, 76, 0.1);
+        }
+
+        .full-width {
+            grid-column: span 2;
+        }
+
+        /* ── TOAST ── */
+        #toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--gold);
+            color: #000;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-weight: 800;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transform: translateY(100px);
+            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 2000;
+        }
+
+        #toast.show {
+            transform: translateY(0);
+        }
+
+        .lottie-preview {
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .rarity-badge {
+            font-size: 9px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            font-weight: 800;
+        }
+        .rarity-common { background: #666; color: white; }
+        .rarity-rare { background: #3b6fd4; color: white; }
+        .rarity-epic { background: #9333ea; color: white; }
+        .rarity-legendary { background: #d97706; color: white; }
+
+    </style>
+</head>
+<body>
+    <aside>
+        <div class="logo">SUIT CLASH</div>
+        <nav>
+            <ul>
+                <li><a class="nav-link active" onclick="showSection('items')"><i class="fas fa-shopping-bag"></i> Shop Items</a></li>
+                <li><a class="nav-link" onclick="showSection('users')"><i class="fas fa-users"></i> User Management</a></li>
+            </ul>
+        </nav>
+        <a href="/" class="nav-link logout-btn"><i class="fas fa-arrow-left"></i> Back to Game</a>
+    </aside>
+
+    <main>
+        <!-- ── SHOP ITEMS SECTION ── -->
+        <section id="section-items">
+            <header>
+                <h1>Shop Management</h1>
+                <button class="btn btn-gold" onclick="openItemModal()"><i class="fas fa-plus"></i> Add New Item</button>
+            </header>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Total Items</div>
+                    <div id="stat-total-items" class="stat-value">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Lottie Assets</div>
+                    <div id="stat-lottie-count" class="stat-value">0</div>
+                </div>
+            </div>
+
+            <div class="card-container">
+                <div class="table-header">
+                    <h2>Available Items</h2>
+                </div>
+                <table id="items-table">
+                    <thead>
+                        <tr>
+                            <th>Preview</th>
+                            <th>Item Name</th>
+                            <th>Type</th>
+                            <th>Rarity</th>
+                            <th>Price (Gold/Dia)</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Data will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ── USERS SECTION ── -->
+        <section id="section-users" style="display: none;">
+            <header>
+                <h1>User Management</h1>
+            </header>
+
+            <div class="card-container">
+                <div class="table-header">
+                    <h2>Registered Players</h2>
+                </div>
+                <table id="users-table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Email</th>
+                            <th>Balance</th>
+                            <th>Stats (W/M)</th>
+                            <th>Role</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Data will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- ── ITEM MODAL ── -->
+    <div id="item-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Add New Shop Item</h2>
+                <button onclick="closeModal('item-modal')" style="background:none; border:none; color:white; cursor:pointer;"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="item-form">
+                <input type="hidden" id="item-id">
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label>Item Name</label>
+                        <input type="text" id="item-name" placeholder="e.g. Angry Monkey" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Type</label>
+                        <select id="item-type" onchange="handleTypeChange()">
+                            <option value="emoticon">Emoticon</option>
+                            <option value="background">Table Background</option>
+                            <option value="cardback">Card Back</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Rarity</label>
+                        <select id="item-rarity">
+                            <option value="common">Common</option>
+                            <option value="rare">Rare</option>
+                            <option value="epic">Epic</option>
+                            <option value="legendary">Legendary</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Price (Gold)</label>
+                        <input type="number" id="item-price-gold" value="1000">
+                    </div>
+                    <div class="form-group">
+                        <label>Original Price (Gold)</label>
+                        <input type="number" id="item-orig-gold" placeholder="Optional (for discount)">
+                    </div>
+                    <div class="form-group">
+                        <label>Price (Diamonds)</label>
+                        <input type="number" id="item-price-dia" value="10">
+                    </div>
+                    <div class="form-group">
+                        <label>Original Price (Diamonds)</label>
+                        <input type="number" id="item-orig-dia" placeholder="Optional (for discount)">
+                    </div>
+                    
+                    <div class="form-group full-width" id="group-visual">
+                        <label id="label-visual">Visual Asset (.json)</label>
+                        <div style="display:flex; gap:15px; align-items:flex-start;">
+                            <div class="lottie-preview" id="modal-lottie-preview" style="width:100px; height:100px; flex-shrink:0; background:rgba(255,255,255,0.05); border:1px dashed var(--glass-border);"></div>
+                            <div style="flex:1;">
+                                <div style="display:flex; gap:10px; margin-bottom:5px;">
+                                    <input type="text" id="item-lottie-url" placeholder="Asset URL..." required>
+                                    <input type="file" id="file-lottie" style="display:none" accept=".json,.jpg,.jpeg,.png">
+                                    <button type="button" class="btn btn-outline" onclick="document.getElementById('file-lottie').click()">Select File</button>
+                                </div>
+                                <small id="file-lottie-name" style="font-size:10px; color:rgba(255,255,255,0.4)"></small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group full-width" id="group-sound">
+                        <label>Sound Asset (.mp3)</label>
+                        <div style="display:flex; gap:15px; align-items:flex-start;">
+                            <div id="modal-sound-preview" style="width:40px; height:40px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.05); border-radius:10px; cursor:pointer; color:var(--gold-light);" onclick="previewSound()">
+                                <i class="fas fa-play"></i>
+                            </div>
+                            <div style="flex:1;">
+                                <div style="display:flex; gap:10px; margin-bottom:5px;">
+                                    <input type="text" id="item-sound-url" placeholder="/assets/sounds/...">
+                                    <input type="file" id="file-sound" style="display:none" accept=".mp3">
+                                    <button type="button" class="btn btn-outline" onclick="document.getElementById('file-sound').click()">Select File</button>
+                                </div>
+                                <small id="file-sound-name" style="font-size:10px; color:rgba(255,255,255,0.4)"></small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group full-width" id="group-text">
+                        <label>Additional Text (Bubble)</label>
+                        <input type="text" id="item-text" placeholder="e.g. HELLO!">
+                    </div>
+                </div>
+                <div style="margin-top: 30px; display:flex; justify-content: flex-end; gap: 15px;">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('item-modal')">Cancel</button>
+                    <button type="submit" class="btn btn-gold">Save Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ── USER MODAL ── -->
+    <div id="user-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit User</h2>
+                <button onclick="closeModal('user-modal')" style="background:none; border:none; color:white; cursor:pointer;"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="user-form">
+                <input type="hidden" id="edit-user-id">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="edit-username" disabled>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Gold</label>
+                        <input type="number" id="edit-gold">
+                    </div>
+                    <div class="form-group">
+                        <label>Diamonds</label>
+                        <input type="number" id="edit-diamonds">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Role</label>
+                    <select id="edit-is-admin">
+                        <option value="false">Player</option>
+                        <option value="true">Administrator</option>
+                    </select>
+                </div>
+                <div style="margin-top: 30px; display:flex; justify-content: flex-end; gap: 15px;">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('user-modal')">Cancel</button>
+                    <button type="submit" class="btn btn-gold">Update User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="toast">Item saved successfully!</div>
+
+    <script>
+        const token = localStorage.getItem('sc_token');
+        if (!token) window.location.href = '/';
+
+        let currentSection = 'items';
+        let allItems = [];
+        let allUsers = [];
+
+        async function apiFetch(url, options = {}) {
+            const res = await fetch(url, {
+                ...options,
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                }
+            });
+            if (res.status === 403 || res.status === 401) {
+                alert("Unauthorized access.");
+                window.location.href = '/';
+                return;
+            }
+            return await res.json();
+        }
+
+        function showSection(id) {
+            document.querySelectorAll('section').forEach(s => s.style.display = 'none');
+            document.getElementById('section-' + id).style.display = 'block';
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            currentSection = id;
+            if (id === 'items') loadItems();
+            else if (id === 'users') loadUsers();
+        }
+
+        async function loadItems() {
+            const data = await apiFetch('/api/shop/items');
+            if (data.success) {
+                allItems = data.items;
+                const tbody = document.querySelector('#items-table tbody');
+                tbody.innerHTML = '';
+                document.getElementById('stat-total-items').textContent = allItems.length;
+                document.getElementById('stat-lottie-count').textContent = allItems.filter(i => i.lottie_url).length;
+
+                allItems.forEach(item => {
+                    const tr = document.createElement('tr');
+                    const goldPrice = item.original_price_gold 
+                        ? `<span style="text-decoration:line-through; color:rgba(255,255,255,0.3); font-size:11px;">${item.original_price_gold}</span> ${item.price_gold}` 
+                        : item.price_gold;
+                    const diaPrice = item.original_price_diamonds 
+                        ? `<span style="text-decoration:line-through; color:rgba(255,255,255,0.3); font-size:11px;">${item.original_price_diamonds}</span> ${item.price_diamonds}` 
+                        : item.price_diamonds;
+
+                    tr.innerHTML = `
+                        <td><div class="lottie-preview" id="lottie-${item.id}"></div></td>
+                        <td><strong>${item.name}</strong></td>
+                        <td>${item.type}</td>
+                        <td><span class="rarity-badge rarity-${item.rarity}">${item.rarity}</span></td>
+                        <td>G: ${goldPrice} / D: ${diaPrice}</td>
+                        <td>
+                            <div class="action-btns">
+                                <button class="action-btn" onclick="editItem(${item.id})"><i class="fas fa-edit"></i></button>
+                                <button class="action-btn delete" onclick="deleteItem(${item.id})"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                    
+                    if (item.lottie_url) {
+                        const container = document.getElementById('lottie-' + item.id);
+                        if (item.type === 'emoticon') {
+                            lottie.loadAnimation({
+                                container: container,
+                                renderer: 'svg',
+                                loop: true,
+                                autoplay: true,
+                                path: item.lottie_url
+                            });
+                        } else {
+                            // Render Image for background/cardback
+                            container.innerHTML = `<img src="${item.lottie_url}" style="width:100%; height:100%; object-fit:contain;">`;
+                        }
+                    }
+                });
+            }
+        }
+
+        async function loadUsers() {
+            const data = await apiFetch('/api/admin/users');
+            if (data.success) {
+                allUsers = data.users;
+                const tbody = document.querySelector('#users-table tbody');
+                tbody.innerHTML = '';
+                allUsers.forEach(u => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <img src="${u.avatar_url || '/assets/avatar-default.png'}" width="30" style="border-radius:50%">
+                                <strong>${u.username}</strong>
+                            </div>
+                        </td>
+                        <td>${u.email}</td>
+                        <td>G: ${u.gold} / D: ${u.diamonds}</td>
+                        <td>${u.wins}/${u.matches_played}</td>
+                        <td>${u.is_admin ? '<span style="color:var(--gold)">Admin</span>' : 'Player'}</td>
+                        <td>
+                            <button class="action-btn" onclick="editUser(${u.id})"><i class="fas fa-edit"></i></button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        }
+
+        function openItemModal() {
+            document.getElementById('modal-title').textContent = 'Add New Shop Item';
+            document.getElementById('item-id').value = '';
+            document.getElementById('item-form').reset();
+            document.getElementById('file-lottie-name').textContent = '';
+            document.getElementById('file-sound-name').textContent = '';
+            
+            handleTypeChange(); // Reset dynamic fields
+            
+            // Clear Previews
+            if (modalLottieAnim) modalLottieAnim.destroy();
+            document.getElementById('modal-lottie-preview').innerHTML = '';
+            if (tempSoundObj) {
+                tempSoundObj.pause();
+                URL.revokeObjectURL(tempSoundObj.src);
+                tempSoundObj = null;
+            }
+
+            document.getElementById('item-modal').style.display = 'flex';
+        }
+
+        function editItem(id) {
+            const item = allItems.find(i => i.id === id);
+            if (!item) return;
+            document.getElementById('modal-title').textContent = 'Edit Item: ' + item.name;
+            document.getElementById('item-id').value = item.id;
+            document.getElementById('item-name').value = item.name;
+            document.getElementById('item-type').value = item.type;
+            document.getElementById('item-rarity').value = item.rarity;
+            document.getElementById('item-price-gold').value = item.price_gold;
+            document.getElementById('item-orig-gold').value = item.original_price_gold || '';
+            document.getElementById('item-price-dia').value = item.price_diamonds;
+            document.getElementById('item-orig-dia').value = item.original_price_diamonds || '';
+            document.getElementById('item-lottie-url').value = item.lottie_url;
+            document.getElementById('item-sound-url').value = item.sound_url || '';
+            document.getElementById('item-text').value = item.additional_text || '';
+            document.getElementById('file-lottie-name').textContent = '';
+            document.getElementById('file-sound-name').textContent = '';
+            
+            handleTypeChange(); // Set dynamic fields based on loaded type
+            
+            // Preview existing Lottie
+            if (item.lottie_url) {
+                updateModalLottiePreview(item.lottie_url);
+            } else {
+                document.getElementById('modal-lottie-preview').innerHTML = '';
+            }
+
+            document.getElementById('item-modal').style.display = 'flex';
+        }
+
+        async function deleteItem(id) {
+            if (!confirm("Are you sure you want to delete this item?")) return;
+            const res = await apiFetch('/api/admin/items/' + id, { method: 'DELETE' });
+            if (res.success) {
+                showToast("Item deleted.");
+                loadItems();
+            }
+        }
+
+        document.getElementById('item-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            btn.disabled = true;
+
+            try {
+                // 1. Upload files if selected
+                let lottieUrl = document.getElementById('item-lottie-url').value;
+                let soundUrl = document.getElementById('item-sound-url').value;
+
+                // Clear placeholders if they exist
+                if (lottieUrl.startsWith('[Akan diupload:')) lottieUrl = '';
+                if (soundUrl && soundUrl.startsWith('[Akan diupload:')) soundUrl = '';
+
+                const lottieFile = document.getElementById('file-lottie').files[0];
+                if (lottieFile) {
+                    const res = await uploadFileDirectly('lottie', lottieFile);
+                    if (res.success) lottieUrl = res.lottie_url;
+                }
+
+                const soundFile = document.getElementById('file-sound').files[0];
+                if (soundFile) {
+                    const res = await uploadFileDirectly('sound', soundFile);
+                    if (res.success) soundUrl = res.sound_url;
+                }
+
+                // 2. Save item
+                const payload = {
+                    id: document.getElementById('item-id').value || null,
+                    name: document.getElementById('item-name').value,
+                    type: document.getElementById('item-type').value,
+                    rarity: document.getElementById('item-rarity').value,
+                    price_gold: parseInt(document.getElementById('item-price-gold').value),
+                    price_diamonds: parseInt(document.getElementById('item-price-dia').value),
+                    original_price_gold: parseInt(document.getElementById('item-orig-gold').value) || null,
+                    original_price_diamonds: parseInt(document.getElementById('item-orig-dia').value) || null,
+                    lottie_url: lottieUrl,
+                    sound_url: soundUrl,
+                    additional_text: document.getElementById('item-text').value
+                };
+
+                const res = await apiFetch('/api/admin/items', {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.success) {
+                    showToast(payload.id ? "Item updated!" : "Item created!");
+                    closeModal('item-modal');
+                    loadItems();
+                }
+            } catch (err) {
+                console.error(err);
+                alert("An error occurred. Please try again.");
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        };
+
+        async function uploadFileDirectly(type, file) {
+            const rarity = document.getElementById('item-rarity').value;
+            const formData = new FormData();
+            formData.append(type, file);
+            formData.append('rarity', rarity);
+
+            const res = await fetch('/api/admin/upload', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData
+            });
+            return await res.json();
+        }
+
+        // Show selected file names and fill placeholders
+        let modalLottieAnim = null;
+        let tempSoundObj = null;
+
+        function updateModalLottiePreview(pathOrData, isData = false) {
+            if (modalLottieAnim) modalLottieAnim.destroy();
+            const container = document.getElementById('modal-lottie-preview');
+            container.innerHTML = '';
+            
+            // Check if it's an image path (ends with common image extensions)
+            const isImage = typeof pathOrData === 'string' && (pathOrData.match(/\.(jpeg|jpg|gif|png|webp)$/i) || pathOrData.startsWith('blob:'));
+
+            if (isImage) {
+                const img = document.createElement('img');
+                img.src = pathOrData;
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.objectFit = 'contain';
+                container.appendChild(img);
+            } else {
+                const params = {
+                    container: container,
+                    renderer: 'svg',
+                    loop: true,
+                    autoplay: true
+                };
+                if (isData) params.animationData = pathOrData;
+                else params.path = pathOrData;
+
+                modalLottieAnim = lottie.loadAnimation(params);
+            }
+        }
+
+        function handleTypeChange() {
+            const type = document.getElementById('item-type').value;
+            const groupVisual = document.getElementById('group-visual');
+            const groupSound = document.getElementById('group-sound');
+            const groupText = document.getElementById('group-text');
+            const labelVisual = document.getElementById('label-visual');
+            const fileLottie = document.getElementById('file-lottie');
+
+            if (type === 'emoticon') {
+                labelVisual.textContent = 'Lottie Asset (.json)';
+                fileLottie.accept = '.json';
+                groupSound.style.display = 'block';
+                groupText.style.display = 'block';
+            } else if (type === 'background') {
+                labelVisual.textContent = 'Background Image (.jpg, .png)';
+                fileLottie.accept = '.jpg,.jpeg,.png';
+                groupSound.style.display = 'none';
+                groupText.style.display = 'none';
+            } else if (type === 'cardback') {
+                labelVisual.textContent = 'Card Back Image (.jpg, .png)';
+                fileLottie.accept = '.jpg,.jpeg,.png';
+                groupSound.style.display = 'none';
+                groupText.style.display = 'none';
+            }
+        }
+
+        document.getElementById('file-lottie').onchange = e => {
+            const file = e.target.files[0];
+            if (file) {
+                const name = file.name;
+                document.getElementById('file-lottie-name').textContent = "Selected: " + name;
+                document.getElementById('item-lottie-url').value = `[Akan diupload: ${name}]`;
+                
+                if (name.toLowerCase().endsWith('.json')) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        try {
+                            const data = JSON.parse(event.target.result);
+                            updateModalLottiePreview(data, true);
+                        } catch(err) {
+                            console.error("Invalid JSON for Lottie");
+                            document.getElementById('modal-lottie-preview').innerHTML = '<div style="font-size:10px; padding:10px; color:red">Invalid JSON</div>';
+                        }
+                    };
+                    reader.readAsText(file);
+                } else {
+                    // It's an image (JPG, PNG, etc.)
+                    const url = URL.createObjectURL(file);
+                    updateModalLottiePreview(url, false);
+                }
+            }
+        };
+
+        document.getElementById('file-sound').onchange = e => {
+            const file = e.target.files[0];
+            if (file) {
+                const name = file.name;
+                document.getElementById('file-sound-name').textContent = "Selected: " + name;
+                document.getElementById('item-sound-url').value = `[Akan diupload: ${name}]`;
+                
+                // Revoke old blob if exists
+                if (tempSoundObj) URL.revokeObjectURL(tempSoundObj.src);
+                tempSoundObj = new Audio(URL.createObjectURL(file));
+                showToast("Sound selected. Click play icon to preview.");
+            }
+        };
+
+        function previewSound() {
+            // Priority: selected file, then existing URL
+            if (tempSoundObj) {
+                tempSoundObj.play();
+            } else {
+                const url = document.getElementById('item-sound-url').value;
+                if (url && !url.startsWith('[Akan')) {
+                    const audio = new Audio(url);
+                    audio.play();
+                } else {
+                    showToast("No sound to preview.");
+                }
+            }
+        }
+
+        function editUser(id) {
+            const u = allUsers.find(user => user.id === id);
+            if (!u) return;
+            document.getElementById('edit-user-id').value = u.id;
+            document.getElementById('edit-username').value = u.username;
+            document.getElementById('edit-gold').value = u.gold;
+            document.getElementById('edit-diamonds').value = u.diamonds;
+            document.getElementById('edit-is-admin').value = u.is_admin.toString();
+            document.getElementById('user-modal').style.display = 'flex';
+        }
+
+        document.getElementById('user-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('edit-user-id').value;
+            const payload = {
+                gold: parseInt(document.getElementById('edit-gold').value),
+                diamonds: parseInt(document.getElementById('edit-diamonds').value),
+                is_admin: document.getElementById('edit-is-admin').value === 'true'
+            };
+
+            const res = await apiFetch(`/api/admin/users/${id}/update`, {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+
+            if (res.success) {
+                showToast("User updated!");
+                closeModal('user-modal');
+                loadUsers();
+            }
+        };
+
+
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
+            if (tempSoundObj) {
+                tempSoundObj.pause();
+                URL.revokeObjectURL(tempSoundObj.src);
+                tempSoundObj = null;
+            }
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        // Initial Load
+        loadItems();
+    </script>
+</body>
+</html>
