@@ -6459,6 +6459,18 @@
                 lastTurnPlayer = -1;
             }
 
+            // 🃏 ACE DETECTION — trigger lightning for all players
+            const topCard = s.tableHistory && s.tableHistory.length > 0 ? s.tableHistory[s.tableHistory.length - 1] : null;
+            const topCardId = topCard ? (topCard.value + '|' + topCard.suit) : null;
+            
+            if (topCardId !== lastKnownTableCardId) {
+                stopAceLottie();
+                if (topCard && topCard.value === 'A') {
+                    playAceLottie();
+                }
+            }
+            lastKnownTableCardId = topCardId;
+
             // ── RENDER TABLE ──
             renderTableSpread(s.tableCard, s.tableHistory || [], s.totalPlayers);
 
@@ -6495,13 +6507,6 @@
                 }
             }
 
-            // 🃏 ACE DETECTION — trigger lightning for all players
-            const topCard = s.tableHistory && s.tableHistory.length > 0 ? s.tableHistory[s.tableHistory.length - 1] : null;
-            const topCardId = topCard ? (topCard.value + '|' + topCard.suit) : null;
-            if (topCard && topCard.value === 'A' && topCardId !== lastKnownTableCardId) {
-                playAceLottie();
-            }
-            lastKnownTableCardId = topCardId;
 
             isMovePending = false;
 
@@ -6528,11 +6533,20 @@
 
         /* ── ACE LOTTIE EFFECT ── */
         let aceLottieInstance = null;
-        function playAceLottie() {
-            // Remove any existing
+        function stopAceLottie() {
+            // Remove lottie overlay
             const existing = document.getElementById('ace-lottie-overlay');
             if (existing) existing.remove();
-            if (aceLottieInstance) { aceLottieInstance.destroy(); aceLottieInstance = null; }
+            if (aceLottieInstance) {
+                try { aceLottieInstance.destroy(); } catch (e) { }
+                aceLottieInstance = null;
+            }
+            // Remove fire class from any cards on table
+            document.querySelectorAll('.card-ace-fire').forEach(el => el.classList.remove('card-ace-fire'));
+        }
+
+        function playAceLottie() {
+            stopAceLottie();
 
             const overlay = document.createElement('div');
             overlay.id = 'ace-lottie-overlay';
