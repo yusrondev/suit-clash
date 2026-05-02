@@ -4594,6 +4594,9 @@
                         // Sync active emojis from server (new array-based system)
                         activeEmojiIds = invData.equipped_emojis || [];
                     }
+                } else {
+                    // Guest Defaults
+                    activeEmojiIds = ['angry', 'monkey', 'ok'];
                 }
 
                 renderInventoryUI();
