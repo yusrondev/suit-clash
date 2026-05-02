@@ -5360,7 +5360,7 @@
         }
 
         let isMicMuted = true;
-        function updateMicUI() {
+        function updateMicUI(showToast = false) {
             const fab = document.getElementById('voice-fab');
             // Hard rule: If no localStream, it's NEVER active
             const isActive = localStream && isMicOn && !isMicMuted;
@@ -5373,10 +5373,12 @@
             playerMicStatuses[myIndex] = !!isActive;
             updateMicIcon(myIndex, !!isActive);
 
-            if (isMicMuted) {
-                toast('Microphone dibungkam (Mute)', '🔇');
-            } else {
-                toast('Microphone aktif!', '🎙️');
+            if (showToast) {
+                if (isMicMuted) {
+                    toast('Microphone dibungkam (Mute)', '🔇');
+                } else {
+                    toast('Microphone aktif!', '🎙️');
+                }
             }
         }
 
@@ -5389,7 +5391,7 @@
             } else {
                 isMicMuted = !isMicMuted;
                 localStream.getAudioTracks().forEach(t => t.enabled = !isMicMuted);
-                updateMicUI();
+                updateMicUI(true);
                 socket.emit('update-mic-status', !isMicMuted);
             }
         }
@@ -5415,7 +5417,7 @@
                 localAnalyser.fftSize = 256;
                 source.connect(localAnalyser);
 
-                updateMicUI();
+                updateMicUI(true);
 
                 // Update mic status on server
                 socket.emit('update-mic-status', true);
