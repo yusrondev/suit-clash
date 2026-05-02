@@ -3739,6 +3739,7 @@
         /* ── SHOP FILTERS ── */
         .shop-filters {
             display: flex;
+            flex-wrap: wrap;
             gap: 12px;
             padding: 10px 20px;
             background: rgba(255, 255, 255, 0.03);
@@ -3847,6 +3848,15 @@
                     <option value="rare">Rare</option>
                     <option value="epic">Epic</option>
                     <option value="legendary">Legendary</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <i class="fas fa-tags"></i>
+                <select id="shop-filter-type" onchange="loadShopItems()">
+                    <option value="all">Semua Tipe</option>
+                    <option value="emoticon">Emoji / Sticker</option>
+                    <option value="background">Background Meja</option>
+                    <option value="cardback">Card Back</option>
                 </select>
             </div>
             <div class="filter-group">
@@ -4530,6 +4540,11 @@
                 const filterRarity = document.getElementById('shop-filter-rarity').value;
                 if (filterRarity !== 'all') {
                     items = items.filter(it => it.rarity === filterRarity);
+                }
+
+                const filterType = document.getElementById('shop-filter-type').value;
+                if (filterType !== 'all') {
+                    items = items.filter(it => it.type === filterType);
                 }
 
                 // 2. SORTING

@@ -8,27 +8,32 @@ const jwt = require('jsonwebtoken');
 // Helper to grant free items to new users
 async function grantFreeItems(userId) {
   try {
-    // Cari semua item yang harganya 0 (free items)
-    const freeItems = await db.query("SELECT id, lottie_url FROM shop_items WHERE price_gold = 0 AND price_diamonds = 0");
+    // Grant specific items requested by user (10, 9, 11, 12) + any free items (price 0)
+    const itemsToGrantRes = await db.query(
+      "SELECT id, lottie_url FROM shop_items WHERE (price_gold = 0 AND price_diamonds = 0) OR id IN (9, 10, 11, 12)"
+    );
+    
     const idsToEquip = [];
     
-    for (const item of freeItems.rows) {
+    for (const item of itemsToGrantRes.rows) {
       // Masukkan ke inventory dan tandai sebagai is_equipped
       await db.query(
         "INSERT INTO user_inventory (user_id, item_id, is_equipped) VALUES ($1, $2, TRUE) ON CONFLICT (user_id, item_id) DO UPDATE SET is_equipped = TRUE", 
         [userId, item.id]
       );
-      idsToEquip.push(item.id.toString()); // Simpan ID sebagai string
+      idsToEquip.push(item.id.toString()); 
     }
     
     // Update array equipped_emojis di tabel users agar sinkron dengan game
     if (idsToEquip.length > 0) {
-      await db.query("UPDATE users SET equipped_emojis = $1 WHERE id = $2", [idsToEquip, userId]);
+      // Limit to 10 emojis (game limit)
+      const finalEquip = idsToEquip.slice(0, 10);
+      await db.query("UPDATE users SET equipped_emojis = $1 WHERE id = $2", [finalEquip, userId]);
     }
     
-    console.log(`[Auth] Granted and equipped ${freeItems.rows.length} free items (IDs: ${idsToEquip.join(',')}) to user ${userId}`);
+    console.log(`[Auth] Granted and equipped ${itemsToGrantRes.rows.length} items to user ${userId}`);
   } catch (err) {
-    console.error("[Auth] Error granting free items:", err);
+    console.error("[Auth] Error granting items:", err);
   }
 }
 
