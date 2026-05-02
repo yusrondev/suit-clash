@@ -6910,7 +6910,10 @@
             isMovePending = false;
 
             // 🔥 TUNTUTAN USER: Tampilkan prompt aktivasi suara jika baru refresh/rejoin
-            if (s.started && !hasShownVoicePrompt && (!audioContext || audioContext.state === 'suspended')) {
+            // Tapi HANYA jika ada pemain lain yang sedang ON MIC
+            const anyoneElseOnMic = (s.playersMicStatus || []).some((isOn, idx) => idx !== myIndex && isOn);
+            
+            if (s.started && !hasShownVoicePrompt && anyoneElseOnMic && (!audioContext || audioContext.state === 'suspended')) {
                 document.getElementById('voice-activation-overlay').style.display = 'flex';
                 hasShownVoicePrompt = true;
             }
