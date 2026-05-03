@@ -885,12 +885,17 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start;
+            justify-content: center;
             flex: 1;
             gap: 24px;
             padding: 70px 20px 40px;
             z-index: 1;
             overflow-y: auto;
+            min-height: calc(100vh - 70px);
+        }
+
+        #lobby.in-room {
+            justify-content: flex-start;
         }
 
         .lobby-title {
@@ -6992,6 +6997,8 @@
             }
 
             if (s.started) {
+                document.getElementById('lobby').style.display = 'none';
+                document.getElementById('lobby').classList.remove('in-room');
                 document.getElementById('overlay').classList.remove('show');
                 if (!lastStarted || window.isMatchEndFlag) {
                     document.getElementById('leaderboard-panel').classList.remove('show');
@@ -7096,7 +7103,10 @@
                     }
                 }
 
-                document.getElementById('lobby').style.display = 'flex';
+                const lobbyContainer = document.getElementById('lobby');
+                lobbyContainer.style.display = 'flex';
+                lobbyContainer.classList.add('in-room');
+                
                 document.getElementById('game').style.display = 'none';
                 
                 // Show shop for everyone in lobby
