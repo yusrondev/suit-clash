@@ -1657,10 +1657,12 @@
 
         .hand-card.has-asset.invalid {
             background: transparent !important;
-            filter: brightness(0.4) grayscale(0.8);
             cursor: not-allowed;
             border: none !important;
             box-shadow: none !important;
+        }
+        .hand-card.has-asset.invalid > *:not(.peek-progress) {
+            filter: brightness(0.4) grayscale(0.8);
         }
         
         /* Ensure the asset image fills the container correctly */
@@ -2152,7 +2154,7 @@
             border-color: #333;
             cursor: not-allowed;
         }
-        .hand-card.invalid > div {
+        .hand-card.invalid > div:not(.peek-progress) {
             filter: brightness(0.5) saturate(0.2);
         }
 
