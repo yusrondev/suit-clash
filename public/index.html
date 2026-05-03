@@ -1139,7 +1139,7 @@
 
         .opponent-name-container {
             font-size: 11px;
-            margin-bottom: 5px;
+            margin-bottom: 12px;
         }
 
         .opp-card-count {
@@ -1183,7 +1183,7 @@
             position: absolute;
             width: 28px;
             height: 42px;
-            border-radius: 5px;
+            border-radius: 0; /* Hilangkan border radius saat pamerin kartu */
             background: white;
             border: 1px solid #000;
             display: flex;
@@ -1598,13 +1598,23 @@
             display: block;
         }
 
-        .hand-card.has-asset, .table-card.has-asset, .opp-card-front.has-asset {
+        .hand-card.has-asset, .table-card.has-asset {
             background: transparent !important;
             padding: 0 !important;
             border: none !important;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.4); /* Tambahkan shadow agar tidak nempel */
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
             overflow: hidden;
             border-radius: 8px;
+        }
+
+        .opp-card-front.has-asset {
+            background: transparent !important;
+            padding: 0 !important;
+            border: none !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            overflow: visible;
+            border-radius: 0;
+            object-fit: contain; /* Terapkan contain langsung pada elemen img */
         }
 
         .hand-card.has-asset.invalid {
@@ -1617,16 +1627,16 @@
         
         /* Ensure the asset image fills the container correctly */
         .hand-card.has-asset .card-asset-img, 
-        .table-card.has-asset .card-asset-img,
-        .opp-card-front.has-asset .card-asset-img {
+        .table-card.has-asset .card-asset-img {
             width: 100%;
             height: 100%;
             object-fit: fill;
             border-radius: 8px;
-            /* Subtle inner border to define edges */
             box-sizing: border-box;
             border: 0.5px solid rgba(0,0,0,0.15);
         }
+
+
 
         /* Standardize dimensions for Retro theme to match assets */
         body.retro-theme .hand-card {
@@ -8085,11 +8095,16 @@
                     const suitKey = SUIT_MAP[c.suit];
                     const hasAsset = (theme === 'retro');
 
-                    cardsHtml += `
-                        <div class="opp-card-front ${red ? 'red-card' : ''} ${hasAsset ? 'has-asset' : ''}" style="left: 50%; top: 50%; z-index:9999">
-                            ${getCardHTML(c, theme, 'opp')}
-                        </div>
-                    `;
+                    if (hasAsset) {
+                        const imgPath = `/assets/theme/retro/${suitKey}/${c.value}.png`;
+                        cardsHtml += `<img src="${imgPath}" class="opp-card-front has-asset ${red ? 'red-card' : ''}" style="left: 50%; top: 50%; z-index:9999" alt="${c.value}${c.suit}">`;
+                    } else {
+                        cardsHtml += `
+                            <div class="opp-card-front ${red ? 'red-card' : ''}" style="left: 50%; top: 50%; z-index:9999">
+                                ${getCardHTML(c, theme, 'opp')}
+                            </div>
+                        `;
+                    }
                 }
                 if (cardsEl.innerHTML !== cardsHtml) {
                     cardsEl.innerHTML = cardsHtml;
