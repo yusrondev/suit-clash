@@ -5392,9 +5392,9 @@
         }
         applySfxVolume();
 
-        function playSfx(sound) {
+        function playSfx(sound, multiplier = 1) {
             if (!isSfxOn) return;
-            sound.volume = sfxVolume;
+            sound.volume = sfxVolume * multiplier;
             sound.currentTime = 0;
             sound.play().catch(() => { });
         }
@@ -7539,7 +7539,7 @@
                     // 🔥 EFEK BAKAR (ACE) - Hanya untuk kartu paling atas (yang baru turun)
                     if (card.value === 'A' && isTop) {
                         el.classList.add('card-ace-fire');
-                        playSfx(electricSound);
+                        playSfx(electricSound, 0.3); // Reduced volume for Ace sound
                         setTimeout(() => el.classList.remove('card-ace-fire'), 3000);
                     }
 
