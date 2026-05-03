@@ -885,10 +885,10 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             flex: 1;
             gap: 24px;
-            padding: 20px 20px 40px;
+            padding: 90px 20px 40px;
             z-index: 1;
             overflow-y: auto;
         }
@@ -3488,10 +3488,11 @@
         }
 
         #lobby-card {
-            margin-top: 80px;
-            max-height: 82vh;
+            margin-top: 0;
+            max-height: calc(90vh - 100px);
             display: flex;
             flex-direction: column;
+            flex-shrink: 0;
         }
 
         #lobby-status {
