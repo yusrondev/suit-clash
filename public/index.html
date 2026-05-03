@@ -612,6 +612,38 @@
 
 
 
+        .btn-shop-floating.collapsed {
+            transform: translateX(80px);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #shop-fab-toggle {
+            position: fixed;
+            right: 0;
+            bottom: 35px;
+            width: 20px;
+            height: 40px;
+            background: rgba(212, 175, 55, 0.3);
+            border: 1px solid var(--gold);
+            border-right: none;
+            border-radius: 10px 0 0 10px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 10px;
+            cursor: pointer;
+            z-index: 999999;
+            backdrop-filter: blur(4px);
+            transition: all 0.3s;
+        }
+
+        #shop-fab-toggle:hover {
+            background: rgba(212, 175, 55, 0.5);
+            width: 25px;
+        }
+
         /* ── AUTH MODAL ── */
         .auth-panel {
             position: fixed;
@@ -887,15 +919,18 @@
         }
 
         .room-box {
-            background: rgba(0, 0, 0, 0.65);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: 28px 24px;
             display: flex;
             flex-direction: column;
             gap: 18px;
             width: 100%;
-            max-width: 360px;
+            max-width: 370px;
+        }
+
+        .glass-card {
+            background: rgba(0, 0, 0, 0.65);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 28px 24px;
             box-shadow: var(--shadow-deep), 0 0 40px rgba(201, 168, 76, 0.1);
             backdrop-filter: blur(16px);
         }
@@ -989,17 +1024,10 @@
 
         /* ── GLASS CONFIG CARD ── */
         .glass-config-card {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(212, 175, 55, 0.15);
-            border-radius: 18px;
-            padding: 16px 20px;
-            margin-bottom: 20px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            gap: 9px;
+            margin-bottom: 20px;
         }
 
         .config-row {
@@ -3981,6 +4009,7 @@
     </header>
 
     <!-- Floating Shop Button -->
+    <div id="shop-fab-toggle"><i class="fa-solid fa-chevron-left"></i></div>
     <div id="shop-btn-floating" class="btn-shop-floating" style="display: none;" onclick="openShop()">
         <i class="fas fa-shopping-cart"></i>
     </div>
@@ -4223,7 +4252,7 @@
 
     <!-- LOBBY -->
     <div id="lobby">
-        <div class="room-box">
+        <div id="lobby-card" class="room-box glass-card">
             <div>
                 <label>Nama Pemain</label>
                 <input id="name-input" type="text" autocomplete="off" placeholder="Masukkan namamu..." maxlength="16" />
@@ -6195,10 +6224,14 @@
 
         // ── FAB AUTO-HIDE LOGIC ──
         let fabHideTimeout = null;
+        let shopHideTimeout = null;
+
         function showFabs() {
             const vFab = document.getElementById('voice-fab');
             const tFab = document.getElementById('text-fab');
             const toggle = document.getElementById('fab-toggle');
+
+            if (!vFab || !tFab || !toggle) return;
 
             vFab.classList.remove('collapsed');
             tFab.classList.remove('collapsed');
@@ -6213,7 +6246,9 @@
             const tFab = document.getElementById('text-fab');
             const toggle = document.getElementById('fab-toggle');
 
-            // Only hide if game has started (FABs are visible)
+            if (!vFab || !tFab || !toggle) return;
+
+            // Only hide if FABs are visible
             if (vFab.style.display === 'flex') {
                 vFab.classList.add('collapsed');
                 tFab.classList.add('collapsed');
@@ -6221,14 +6256,46 @@
             }
         }
 
+        function showShopFab() {
+            const shopBtn = document.getElementById('shop-btn-floating');
+            const shopToggle = document.getElementById('shop-fab-toggle');
+            if (!shopBtn || !shopToggle) return;
+
+            shopBtn.classList.remove('collapsed');
+            shopToggle.style.display = 'none';
+
+            clearTimeout(shopHideTimeout);
+            shopHideTimeout = setTimeout(hideShopFab, 5000);
+        }
+
+        function hideShopFab() {
+            const shopBtn = document.getElementById('shop-btn-floating');
+            const shopToggle = document.getElementById('shop-fab-toggle');
+            if (!shopBtn || !shopToggle) return;
+
+            if (shopBtn.style.display === 'flex') {
+                shopBtn.classList.add('collapsed');
+                shopToggle.style.display = 'flex';
+            }
+        }
+
         document.getElementById('fab-toggle').addEventListener('click', showFabs);
+        document.getElementById('shop-fab-toggle').addEventListener('click', showShopFab);
+
         // Reset timer on interaction
         [document.getElementById('voice-fab'), document.getElementById('text-fab')].forEach(el => {
-            el.addEventListener('click', () => {
+            if (el) el.addEventListener('click', () => {
                 clearTimeout(fabHideTimeout);
                 fabHideTimeout = setTimeout(hideFabs, 5000);
             });
         });
+        const shopFloatingBtn = document.getElementById('shop-btn-floating');
+        if (shopFloatingBtn) {
+            shopFloatingBtn.addEventListener('click', () => {
+                clearTimeout(shopHideTimeout);
+                shopHideTimeout = setTimeout(hideShopFab, 5000);
+            });
+        }
 
         // 👇 baru lanjut code lain
         let prevTurn = null;
@@ -6947,6 +7014,17 @@
 
             prevTableCount = currentTableCount;
 
+            // ── LOBBY CARD STATE ──
+            const lobbyCard = document.getElementById('lobby-card');
+            const lobbyStatus = document.getElementById('lobby-status');
+            if (lobbyCard && lobbyStatus) {
+                if (s.started || lobbyStatus.style.display === 'block') {
+                    lobbyCard.classList.remove('glass-card');
+                } else {
+                    lobbyCard.classList.add('glass-card');
+                }
+            }
+
             // Always show the header (Logo + Leaderboard + Leave button) once joined
             syncHeaderAuth();
             
@@ -6958,15 +7036,29 @@
             document.getElementById('voice-fab').style.display = 'flex';
             document.getElementById('text-fab').style.display = 'flex';
 
+            // Floating Shop Button display - Hide when game started
+            const shopBtn = document.getElementById('shop-btn-floating');
+            const shopToggle = document.getElementById('shop-fab-toggle');
+            if (shopBtn && shopToggle) {
+                if (s.started) {
+                    shopBtn.style.display = 'none';
+                    shopToggle.style.display = 'none';
+                } else {
+                    shopBtn.style.display = 'flex';
+                }
+            }
+
+            // Trigger auto-hide if not already hidden (Lobby or In-game)
+            if (!fabHideTimeout && document.getElementById('voice-fab').style.display === 'flex' && !document.getElementById('voice-fab').classList.contains('collapsed')) {
+                fabHideTimeout = setTimeout(hideFabs, 5000);
+            }
+            if (!shopHideTimeout && shopBtn && shopBtn.style.display === 'flex' && !shopBtn.classList.contains('collapsed')) {
+                shopHideTimeout = setTimeout(hideShopFab, 5000);
+            }
+
             // Also show actions when game started
             if (s.started) {
                 document.getElementById('actions').style.display = 'flex';
-
-
-                // Trigger auto-hide if not already hidden
-                if (!fabHideTimeout && !document.getElementById('voice-fab').classList.contains('collapsed')) {
-                    fabHideTimeout = setTimeout(hideFabs, 5000);
-                }
 
                 // 🔥 SYNC TIMER
                 if (s.matchStartTime && s.serverTime) {
