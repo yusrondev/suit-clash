@@ -4361,6 +4361,17 @@
                             </div>
                         </div>
 
+                        <!-- ASSET BACKGROUND SELECTOR (NEW GRID STYLE) -->
+                        <div class="config-row" id="lobby-asset-preview-row" style="display:none; flex-direction: column; align-items: stretch; gap: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <span class="config-label" style="margin:0; font-size: 11px; letter-spacing: 1px;">ASSET MEJA</span>
+                                <span id="lobby-bg-count-label" style="font-size: 10px; color: var(--gold); opacity: 0.5; font-weight: 800;"></span>
+                            </div>
+                            <div id="lobby-bg-selector" style="display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 12px; scrollbar-width: none; -ms-overflow-style: none;">
+                                <!-- Background items will be injected here -->
+                            </div>
+                        </div>
+
                         <!-- TEMA KARTU -->
                         <div class="config-row">
                             <span class="config-label">TEMA KARTU</span>
@@ -4385,17 +4396,6 @@
                         </div>
                         <div id="kingdom-attribution" style="display:none; font-size: 9px; color: rgba(255,255,255,0.5); text-align: right; margin-top: -6px; margin-bottom: 8px; font-style: italic; padding-right: 2px;">
                             <a href="https://www.freepik.com/" target="_blank" style="color: var(--gold); text-decoration: none; opacity: 0.8;">Designed by Freepik</a>
-                        </div>
-
-                        <!-- ASSET BACKGROUND SELECTOR (NEW GRID STYLE) -->
-                        <div class="config-row" id="lobby-asset-preview-row" style="display:none; flex-direction: column; align-items: stretch; gap: 8px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                                <span class="config-label" style="margin:0; font-size: 11px; letter-spacing: 1px;">ASSET MEJA</span>
-                                <span id="lobby-bg-count-label" style="font-size: 10px; color: var(--gold); opacity: 0.5; font-weight: 800;"></span>
-                            </div>
-                            <div id="lobby-bg-selector" style="display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 12px; scrollbar-width: none; -ms-overflow-style: none;">
-                                <!-- Background items will be injected here -->
-                            </div>
                         </div>
                     </div>
 
@@ -9273,7 +9273,7 @@
         // Periodically check for suspended context if we have peers
         setInterval(() => {
             if (typeof voicePeers !== 'undefined' && Object.keys(voicePeers).length > 0 && typeof audioContext !== 'undefined' && audioContext && audioContext.state === 'suspended') {
-                toast("Klik layar untuk mengaktifkan suara pemain lain", "🔊");
+                // toast("Klik layar untuk mengaktifkan suara pemain lain", "🔊");
                 
                 // Fallback: enable hidden audio tags if context is stuck
                 document.querySelectorAll('audio').forEach(a => {
