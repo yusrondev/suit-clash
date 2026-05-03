@@ -3484,15 +3484,12 @@
         #lobby-user-list {
             margin-top: 5px;
             width: 100%;
-            overflow-y: auto;
             padding-right: 5px;
-            flex: 1;
         }
 
         #lobby-status {
             display: flex;
             flex-direction: column;
-            max-height: 80vh;
             width: 100%;
         }
 
@@ -3501,30 +3498,13 @@
         }
 
         .lobby-status-middle {
-            flex: 1;
-            overflow-y: auto;
             display: flex;
             flex-direction: column;
             padding: 5px 0;
-            min-height: 120px;
         }
 
         .lobby-status-bottom {
-            flex-shrink: 0;
             margin-top: 10px;
-        }
-
-        #lobby-user-list::-webkit-scrollbar, .lobby-status-middle::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        #lobby-user-list::-webkit-scrollbar-track, .lobby-status-middle::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        #lobby-user-list::-webkit-scrollbar-thumb, .lobby-status-middle::-webkit-scrollbar-thumb {
-            background: var(--gold);
-            border-radius: 10px;
         }
 
         .user-chip {
