@@ -4504,7 +4504,7 @@
                     <span class="volume-label">Pemain Lain</span>
                     <span id="voice-vol-val" class="volume-value">100%</span>
                 </div>
-                <input type="range" id="voice-vol-slider" class="modern-slider" min="0" max="1" step="0.01" value="1.0"
+                <input type="range" id="voice-vol-slider" class="modern-slider" min="0" max="3" step="0.01" value="1.0"
                     oninput="updateVoiceVolume(this.value)">
             </div>
 
@@ -5551,7 +5551,7 @@
                 }
                 const audio = document.getElementById('audio-' + id);
                 if (audio) {
-                    audio.volume = voiceVolume;
+                    audio.volume = Math.min(voiceVolume, 1.0);
                 }
             }
         }
@@ -5758,7 +5758,19 @@
         async function startVoice() {
             try {
                 initAudioContext();
-                localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                localStream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true,
+                        // Chrome-specific constraints for better audio quality/volume
+                        googEchoCancellation: true,
+                        googAutoGainControl: true,
+                        googNoiseSuppression: true,
+                        googHighpassFilter: true,
+                        googTypingNoiseDetection: true
+                    } 
+                });
                 isMicOn = true;
                 isMicMuted = false;
 
@@ -5988,7 +6000,7 @@
             // Normally it's muted because we use AudioContext, but if context is stuck...
             if (audioContext.state === 'suspended') {
                 audio.muted = false;
-                audio.volume = voiceVolume;
+                audio.volume = Math.min(voiceVolume, 1.0);
             } else {
                 audio.muted = true;
             }
