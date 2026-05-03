@@ -3489,7 +3489,10 @@
 
         #lobby-card {
             margin-top: 0;
-            max-height: calc(90vh - 100px);
+            width: 100%;
+            max-width: 370px;
+            height: calc(100vh - 120px);
+            max-height: 650px;
             display: flex;
             flex-direction: column;
             flex-shrink: 0;
@@ -3501,6 +3504,7 @@
             width: 100%;
             flex: 1;
             overflow: hidden;
+            min-height: 0; /* Critical for nested flex scrolling */
         }
 
         .lobby-status-top {
