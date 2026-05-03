@@ -3482,22 +3482,47 @@
         }
 
         #lobby-user-list {
-            margin-top: 15px;
+            margin-top: 5px;
             width: 100%;
-            max-height: 100px;
             overflow-y: auto;
             padding-right: 5px;
+            flex: 1;
         }
 
-        #lobby-user-list::-webkit-scrollbar {
+        #lobby-status {
+            display: flex;
+            flex-direction: column;
+            max-height: 80vh;
+            width: 100%;
+        }
+
+        .lobby-status-top {
+            flex-shrink: 0;
+        }
+
+        .lobby-status-middle {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            padding: 5px 0;
+            min-height: 120px;
+        }
+
+        .lobby-status-bottom {
+            flex-shrink: 0;
+            margin-top: 10px;
+        }
+
+        #lobby-user-list::-webkit-scrollbar, .lobby-status-middle::-webkit-scrollbar {
             width: 4px;
         }
 
-        #lobby-user-list::-webkit-scrollbar-track {
+        #lobby-user-list::-webkit-scrollbar-track, .lobby-status-middle::-webkit-scrollbar-track {
             background: transparent;
         }
 
-        #lobby-user-list::-webkit-scrollbar-thumb {
+        #lobby-user-list::-webkit-scrollbar-thumb, .lobby-status-middle::-webkit-scrollbar-thumb {
             background: var(--gold);
             border-radius: 10px;
         }
@@ -4292,102 +4317,106 @@
             </div>
 
             <div id="lobby-status" class="waiting-msg" style="display:none; width: 100%;">
-                
-                <div class="glass-config-card">
-                    <!-- KODE ROOM -->
-                    <div class="config-row">
-                        <span class="config-label">KODE ROOM</span>
-                        <span id="room-code-val" class="config-value highlight">----</span>
+                <div class="lobby-status-top">
+                    <div class="glass-config-card">
+                        <!-- KODE ROOM -->
+                        <div class="config-row">
+                            <span class="config-label">KODE ROOM</span>
+                            <span id="room-code-val" class="config-value highlight">----</span>
+                        </div>
+
+                        <div class="config-row">
+                            <span class="config-label">PUTARAN</span>
+                            <div class="host-settings-area" style="display:none;">
+                                <input type="number" id="max-rounds-input" value="7" min="1" max="20"
+                                    style="width: 45px; text-align: center; border-radius: 6px; padding: 2px; border: 1px solid var(--gold); background: rgba(0,0,0,0.5); color: white; font-weight: bold;"
+                                    onchange="updateMaxRounds(this.value)">
+                            </div>
+                            <div class="guest-settings-area" style="display:none;">
+                                <span id="guest-rounds-display" class="config-value">7</span>
+                            </div>
+                        </div>
+
+                        <!-- KARTU AWAL -->
+                        <div class="config-row">
+                            <span class="config-label">KARTU AWAL</span>
+                            <div class="host-settings-area" style="display:none;">
+                                <input type="number" id="initial-cards-input" value="4" min="1" max="15"
+                                    style="width: 45px; text-align: center; border-radius: 6px; padding: 2px; border: 1px solid var(--gold); background: rgba(0,0,0,0.5); color: white; font-weight: bold;"
+                                    onchange="updateInitialCards(this.value)">
+                            </div>
+                            <div class="guest-settings-area" style="display:none;">
+                                <span id="guest-cards-display" class="config-value">4</span>
+                            </div>
+                        </div>
+
+                        <!-- WARNA MEJA -->
+                        <div class="config-row">
+                            <span class="config-label">WARNA MEJA</span>
+                            <div class="color-palette-compact">
+                                <div class="color-dot green" onclick="setTableColor('green')" title="Hijau"></div>
+                                <div class="color-dot blue" onclick="setTableColor('blue')" title="Biru"></div>
+                                <div class="color-dot red" onclick="setTableColor('red')" title="Merah"></div>
+                                <div class="color-dot dark" onclick="setTableColor('dark')" title="Gelap"></div>
+                            </div>
+                        </div>
+
+                        <!-- TEMA KARTU -->
+                        <div class="config-row">
+                            <span class="config-label">TEMA KARTU</span>
+                            <div class="host-settings-area" style="display:none;">
+                                <select id="card-theme-select" onchange="setCardTheme(this.value)" 
+                                    style="background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--gold); border-radius: 6px; font-size: 11px; padding: 2px 4px; font-weight: bold; cursor: pointer; outline: none;">
+                                    <option value="classic">Classic</option>
+                                    <option value="retro">Retro</option>
+                                    <option value="kingdom">Kingdom</option>
+                                </select>
+                            </div>
+                            <div class="guest-settings-area" style="display:none;">
+                                <span id="guest-theme-display" class="config-value" style="font-size: 12px; text-transform: uppercase;">Classic</span>
+                            </div>
+                        </div>
+                        
+                        <!-- THEME PREVIEW AREA -->
+                        <div id="theme-preview-container" style="display: flex; gap: 8px; justify-content: center; margin: 12px 0 15px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid rgba(212,175,55,0.1);">
+                        </div>
+                        <div id="retro-attribution" style="display:none; font-size: 9px; color: rgba(255,255,255,0.5); text-align: right; margin-top: -6px; margin-bottom: 8px; font-style: italic; padding-right: 2px;">
+                            <a href="http://www.freepik.com" target="_blank" style="color: var(--gold); text-decoration: none; opacity: 0.8;">Designed by rawpixel.com / Freepik</a>
+                        </div>
+                        <div id="kingdom-attribution" style="display:none; font-size: 9px; color: rgba(255,255,255,0.5); text-align: right; margin-top: -6px; margin-bottom: 8px; font-style: italic; padding-right: 2px;">
+                            <a href="https://www.freepik.com/" target="_blank" style="color: var(--gold); text-decoration: none; opacity: 0.8;">Designed by Freepik</a>
+                        </div>
+
+                        <!-- ASSET BACKGROUND SELECTOR (NEW GRID STYLE) -->
+                        <div class="config-row" id="lobby-asset-preview-row" style="display:none; flex-direction: column; align-items: stretch; gap: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <span class="config-label" style="margin:0; font-size: 11px; letter-spacing: 1px;">ASSET MEJA</span>
+                                <span id="lobby-bg-count-label" style="font-size: 10px; color: var(--gold); opacity: 0.5; font-weight: 800;"></span>
+                            </div>
+                            <div id="lobby-bg-selector" style="display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 12px; scrollbar-width: none; -ms-overflow-style: none;">
+                                <!-- Background items will be injected here -->
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="config-row">
-                        <span class="config-label">PUTARAN</span>
-                        <div class="host-settings-area" style="display:none;">
-                            <input type="number" id="max-rounds-input" value="7" min="1" max="20"
-                                style="width: 45px; text-align: center; border-radius: 6px; padding: 2px; border: 1px solid var(--gold); background: rgba(0,0,0,0.5); color: white; font-weight: bold;"
-                                onchange="updateMaxRounds(this.value)">
-                        </div>
-                        <div class="guest-settings-area" style="display:none;">
-                            <span id="guest-rounds-display" class="config-value">7</span>
-                        </div>
-                    </div>
-
-                    <!-- KARTU AWAL -->
-                    <div class="config-row">
-                        <span class="config-label">KARTU AWAL</span>
-                        <div class="host-settings-area" style="display:none;">
-                            <input type="number" id="initial-cards-input" value="4" min="1" max="15"
-                                style="width: 45px; text-align: center; border-radius: 6px; padding: 2px; border: 1px solid var(--gold); background: rgba(0,0,0,0.5); color: white; font-weight: bold;"
-                                onchange="updateInitialCards(this.value)">
-                        </div>
-                        <div class="guest-settings-area" style="display:none;">
-                            <span id="guest-cards-display" class="config-value">4</span>
-                        </div>
-                    </div>
-
-                    <!-- WARNA MEJA -->
-                    <div class="config-row">
-                        <span class="config-label">WARNA MEJA</span>
-                        <div class="color-palette-compact">
-                            <div class="color-dot green" onclick="setTableColor('green')" title="Hijau"></div>
-                            <div class="color-dot blue" onclick="setTableColor('blue')" title="Biru"></div>
-                            <div class="color-dot red" onclick="setTableColor('red')" title="Merah"></div>
-                            <div class="color-dot dark" onclick="setTableColor('dark')" title="Gelap"></div>
-                        </div>
-                    </div>
-
-                    <!-- TEMA KARTU -->
-                    <div class="config-row">
-                        <span class="config-label">TEMA KARTU</span>
-                        <div class="host-settings-area" style="display:none;">
-                            <select id="card-theme-select" onchange="setCardTheme(this.value)" 
-                                style="background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--gold); border-radius: 6px; font-size: 11px; padding: 2px 4px; font-weight: bold; cursor: pointer; outline: none;">
-                                <option value="classic">Classic</option>
-                                <option value="retro">Retro</option>
-                                <option value="kingdom">Kingdom</option>
-                            </select>
-                        </div>
-                        <div class="guest-settings-area" style="display:none;">
-                            <span id="guest-theme-display" class="config-value" style="font-size: 12px; text-transform: uppercase;">Classic</span>
-                        </div>
-                    </div>
-                    
-                    <!-- THEME PREVIEW AREA -->
-                    <div id="theme-preview-container" style="display: flex; gap: 8px; justify-content: center; margin: 12px 0 15px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid rgba(212,175,55,0.1);">
-                    </div>
-                    <div id="retro-attribution" style="display:none; font-size: 9px; color: rgba(255,255,255,0.5); text-align: right; margin-top: -6px; margin-bottom: 8px; font-style: italic; padding-right: 2px;">
-                        <a href="http://www.freepik.com" target="_blank" style="color: var(--gold); text-decoration: none; opacity: 0.8;">Designed by rawpixel.com / Freepik</a>
-                    </div>
-                    <div id="kingdom-attribution" style="display:none; font-size: 9px; color: rgba(255,255,255,0.5); text-align: right; margin-top: -6px; margin-bottom: 8px; font-style: italic; padding-right: 2px;">
-                        <a href="https://www.freepik.com/" target="_blank" style="color: var(--gold); text-decoration: none; opacity: 0.8;">Designed by Freepik</a>
-                    </div>
-
-                    <!-- ASSET BACKGROUND SELECTOR (NEW GRID STYLE) -->
-                    <div class="config-row" id="lobby-asset-preview-row" style="display:none; flex-direction: column; align-items: stretch; gap: 8px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                            <span class="config-label" style="margin:0; font-size: 11px; letter-spacing: 1px;">ASSET MEJA</span>
-                            <span id="lobby-bg-count-label" style="font-size: 10px; color: var(--gold); opacity: 0.5; font-weight: 800;"></span>
-                        </div>
-                        <div id="lobby-bg-selector" style="display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 12px; scrollbar-width: none; -ms-overflow-style: none;">
-                            <!-- Background items will be injected here -->
-                        </div>
+                    <div style="text-align: left; font-size: 10px; font-weight: 800; color: var(--gold); letter-spacing: 1px; text-transform: uppercase; margin-top: 25px; margin-bottom: 8px; opacity: 0.7;">
+                        Pemain dalam room :
                     </div>
                 </div>
 
-                <div style="text-align: left; font-size: 10px; font-weight: 800; color: var(--gold); letter-spacing: 1px; text-transform: uppercase; margin-top: 25px; margin-bottom: 8px; opacity: 0.7;">
-                    Pemain dalam room :
+                <div class="lobby-status-middle">
+                    <div id="lobby-user-list"></div>
+                    <div id="waiting-text" style="margin-top: 20px; margin-bottom: 10px; font-size: 13px; font-weight: 500;">Menunggu pemain lain...</div>
+                    <div class="waiting-spin" style="margin-bottom: 20px;"><span></span><span></span><span></span></div>
                 </div>
-                <div id="lobby-user-list"></div>
 
-                <div id="waiting-text" style="margin-top: 20px; margin-bottom: 10px; font-size: 13px; font-weight: 500;">Menunggu pemain lain...</div>
-
-                <div class="waiting-spin" style="margin-bottom: 20px;"><span></span><span></span><span></span></div>
-
-                <button id="start-btn" class="btn-gold" style="display:none; margin-top:10px; width:100%;"
-                    onclick="startGameManual()">Mulai Permainan</button>
-                <button id="lobby-leave-btn" class="btn-leave"
-                    style="margin-top:10px; width:100%; padding:14px; font-size:14px;"
-                    onclick="confirmLeaveRoom()">Keluar Meja</button>
+                <div class="lobby-status-bottom">
+                    <button id="start-btn" class="btn-gold" style="display:none; margin-top:10px; width:100%;"
+                        onclick="startGameManual()">Mulai Permainan</button>
+                    <button id="lobby-leave-btn" class="btn-leave"
+                        style="margin-top:10px; width:100%; padding:14px; font-size:14px;"
+                        onclick="confirmLeaveRoom()">Keluar Meja</button>
+                </div>
             </div>
         </div>
     </div>
