@@ -3483,10 +3483,23 @@
 
         #lobby-user-list {
             margin-top: 15px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            justify-content: center;
+            width: 100%;
+            max-height: 180px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        #lobby-user-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        #lobby-user-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        #lobby-user-list::-webkit-scrollbar-thumb {
+            background: var(--gold);
+            border-radius: 10px;
         }
 
         .user-chip {
@@ -4364,7 +4377,7 @@
                 <div style="text-align: left; font-size: 10px; font-weight: 800; color: var(--gold); letter-spacing: 1px; text-transform: uppercase; margin-top: 25px; margin-bottom: 8px; opacity: 0.7;">
                     Pemain dalam room :
                 </div>
-                <div id="lobby-user-list" style="margin-top: 5px; width: 100%;"></div>
+                <div id="lobby-user-list"></div>
 
                 <div id="waiting-text" style="margin-top: 20px; margin-bottom: 10px; font-size: 13px; font-weight: 500;">Menunggu pemain lain...</div>
 
