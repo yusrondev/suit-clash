@@ -657,6 +657,7 @@ function makeGame() {
     equippedCardbackUrl: null,
     nextStarter: null,
     lastTakerProvider: null,
+    cardTheme: 'classic',
   };
 }
 
@@ -910,6 +911,7 @@ function sendState(game) {
       initialCards: game.initialCards || DEFAULT_INITIAL_CARDS,
       serverTime: Date.now(),
       peekStates: game.players.map(pl => pl.peekState || null),
+      cardTheme: game.cardTheme || 'classic',
     });
   });
 }
@@ -1544,6 +1546,16 @@ io.on("connection", (socket) => {
       game.maxRounds = r;
       sendState(game);
     }
+  });
+
+  socket.on("setCardTheme", (theme) => {
+    if (!currentRoom) return;
+    const game = rooms.get(currentRoom);
+    if (!game || game.started) return;
+    if (game.players[0].id !== socket.id) return;
+
+    game.cardTheme = theme;
+    sendState(game);
   });
 
   socket.on("syncEquippedAssets", ({ backgroundUrl, cardbackUrl }) => {

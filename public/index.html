@@ -1589,6 +1589,62 @@
             line-height: 1;
         }
 
+        .card-asset-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            pointer-events: none;
+            display: block;
+        }
+
+        .hand-card.has-asset, .table-card.has-asset, .opp-card-front.has-asset {
+            background: transparent !important;
+            padding: 0 !important;
+            border: none !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4); /* Tambahkan shadow agar tidak nempel */
+            overflow: hidden;
+            border-radius: 8px;
+        }
+
+        .hand-card.has-asset.invalid {
+            background: transparent !important;
+            filter: brightness(0.4) grayscale(0.8);
+            cursor: not-allowed;
+            border: none !important;
+            box-shadow: none !important;
+        }
+        
+        /* Ensure the asset image fills the container correctly */
+        .hand-card.has-asset .card-asset-img, 
+        .table-card.has-asset .card-asset-img,
+        .opp-card-front.has-asset .card-asset-img {
+            width: 100%;
+            height: 100%;
+            object-fit: fill;
+            border-radius: 8px;
+            /* Subtle inner border to define edges */
+            box-sizing: border-box;
+            border: 0.5px solid rgba(0,0,0,0.15);
+        }
+
+        /* Standardize dimensions for Retro theme to match assets */
+        body.retro-theme .hand-card {
+            width: 68px;
+            height: 100px;
+        }
+        body.retro-theme .table-card {
+            width: 62px;
+            height: 90px;
+        }
+        body.retro-theme .opp-card-back {
+            width: 40px;
+            height: 58px;
+        }
+        body.retro-theme .opp-card-front {
+            width: 38px;
+            height: 56px;
+        }
+
         /* Universal corner markers for any card type */
         .corner,
         .tc-corner {
@@ -4169,6 +4225,24 @@
                         </div>
                     </div>
 
+                    <!-- TEMA KARTU -->
+                    <div class="config-row">
+                        <span class="config-label">TEMA KARTU</span>
+                        <div class="host-settings-area" style="display:none;">
+                            <select id="card-theme-select" onchange="setCardTheme(this.value)" 
+                                style="background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--gold); border-radius: 6px; font-size: 11px; padding: 2px 4px; font-weight: bold; cursor: pointer; outline: none;">
+                                <option value="classic">Classic</option>
+                                <option value="retro">Retro</option>
+                            </select>
+                        </div>
+                        <div class="guest-settings-area" style="display:none;">
+                            <span id="guest-theme-display" class="config-value" style="font-size: 12px; text-transform: uppercase;">Classic</span>
+                        </div>
+                    </div>
+                    <div id="retro-attribution" style="display:none; font-size: 9px; color: rgba(255,255,255,0.5); text-align: right; margin-top: -6px; margin-bottom: 8px; font-style: italic; padding-right: 2px;">
+                        <a href="http://www.freepik.com" target="_blank" style="color: var(--gold); text-decoration: none; opacity: 0.8;">Designed by rawpixel.com / Freepik</a>
+                    </div>
+
                     <!-- ASSET BACKGROUND SELECTOR (NEW GRID STYLE) -->
                     <div class="config-row" id="lobby-asset-preview-row" style="display:none; flex-direction: column; align-items: stretch; margin-top: 15px; border-top: 1px solid rgba(212,175,55,0.1); padding-top: 12px; gap: 8px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
@@ -4485,6 +4559,50 @@
         let activeEmojiIds = JSON.parse(localStorage.getItem('sc_active_emojis') || '[]');
         let shopLottieAnimations = [];
         let inventoryLottieAnimations = [];
+
+        const SUIT_MAP = {
+            '♠': 'waru',
+            '♣': 'kriting',
+            '♥': 'love',
+            '♦': 'wajik'
+        };
+
+        function getCardTheme() {
+            return (lastState && lastState.cardTheme) || 'classic';
+        }
+
+        function setCardTheme(val) {
+            socket.emit('setCardTheme', val);
+        }
+
+        function getCardHTML(c, theme, type = 'hand') {
+            const suitKey = SUIT_MAP[c.suit];
+            // Use retro assets if theme is active
+            if (theme === 'retro') {
+                const imgPath = `/assets/theme/retro/${suitKey}/${c.value}.png`;
+                return `<img src="${imgPath}" class="card-asset-img" alt="${c.value}${c.suit}">`;
+            }
+
+            if (type === 'table') {
+                return `
+                    <div class="tc-corner tl">${escHtml(c.value)}<br>${c.suit}</div>
+                    <div class="tc-val">${c.suit}</div>
+                    <div class="tc-corner br">${escHtml(c.value)}<br>${c.suit}</div>
+                `;
+            } else if (type === 'opp') {
+                return `
+                    <div class="val">${escHtml(c.value)}</div>
+                    <div class="suit">${c.suit}</div>
+                `;
+            } else {
+                return `
+                    <div class="corner tl">${escHtml(c.value)}<br>${c.suit}</div>
+                    <div class="hv">${escHtml(c.value)}</div>
+                    <div class="hs">${c.suit}</div>
+                    <div class="corner br">${escHtml(c.value)}<br>${c.suit}</div>
+                `;
+            }
+        }
 
         // ── SHOP & INVENTORY LOGIC ───────────────────────────────────────────────────
         function openShop() {
@@ -6831,12 +6949,24 @@
                     if (document.activeElement !== document.getElementById('initial-cards-input')) {
                         document.getElementById('initial-cards-input').value = s.initialCards || 4;
                     }
+                    const themeSelect = document.getElementById('card-theme-select');
+                    if (themeSelect && document.activeElement !== themeSelect) {
+                        themeSelect.value = s.cardTheme || 'classic';
+                    }
                 } else {
                     hostAreas.forEach(el => el.style.display = 'none');
                     guestAreas.forEach(el => el.style.display = 'block');
                     document.getElementById('guest-rounds-display').textContent = s.maxRounds;
                     document.getElementById('guest-cards-display').textContent = s.initialCards || 4;
+                    const guestTheme = document.getElementById('guest-theme-display');
+                    if (guestTheme) guestTheme.textContent = (s.cardTheme || 'classic').toUpperCase();
                 }
+                
+                // 🔥 TUNTUTAN USER: Toggle body class & Attribution untuk sinkronisasi ukuran kartu retro
+                const isRetro = s.cardTheme === 'retro';
+                document.body.classList.toggle('retro-theme', isRetro);
+                const attrEl = document.getElementById('retro-attribution');
+                if (attrEl) attrEl.style.display = isRetro ? 'block' : 'none';
 
                 // Lobby Asset Preview Sync
                 const assetRow = document.getElementById('lobby-asset-preview-row');
@@ -7325,17 +7455,17 @@
                 const isTop = (idx === total - 1);
                 const el = getOrCreateTableSlot(idx);
 
-                // Update konten hanya jika kartu berubah
                 const newCardId = card.value + '-' + card.suit;
                 if (el.dataset.cardId !== newCardId) {
                     el.dataset.cardId = newCardId;
                     const red = isRed(card.suit);
-                    el.className = 'table-card' + (red ? ' red-card' : ' black-card');
-                    el.innerHTML = `
-                        <div class="tc-corner tl">${escHtml(card.value)}<br>${card.suit}</div>
-                        <div class="tc-val">${card.suit}</div>
-                        <div class="tc-corner br">${escHtml(card.value)}<br>${card.suit}</div>
-                    `;
+                    const theme = getCardTheme();
+                    const suitKey = SUIT_MAP[card.suit];
+                    const hasAsset = (theme === 'retro');
+                    
+                    el.className = 'table-card' + (red ? ' red-card' : ' black-card') + (hasAsset ? ' has-asset' : '');
+                    el.innerHTML = getCardHTML(card, theme, 'table');
+                    
                     // Fade in kartu baru
                     el.style.transition = 'none';
                     el.style.opacity = '1';
@@ -7950,10 +8080,13 @@
                 if (peek && peek.card) {
                     const c = peek.card;
                     const red = (c.suit === '♥' || c.suit === '♦');
+                    const theme = getCardTheme();
+                    const suitKey = SUIT_MAP[c.suit];
+                    const hasAsset = (theme === 'retro');
+
                     cardsHtml += `
-                        <div class="opp-card-front ${red ? 'red-card' : ''}" style="left: 50%; top: 50%; z-index:9999">
-                            <div class="val">${escHtml(c.value)}</div>
-                            <div class="suit">${c.suit}</div>
+                        <div class="opp-card-front ${red ? 'red-card' : ''} ${hasAsset ? 'has-asset' : ''}" style="left: 50%; top: 50%; z-index:9999">
+                            ${getCardHTML(c, theme, 'opp')}
                         </div>
                     `;
                 }
@@ -8083,18 +8216,18 @@
                 const cardId = c.value + '-' + c.suit + '-' + i;
                 const playable = myTurn && (freePlay || c.suit === suit);
                 const red = isRed(c.suit);
+                const theme = getCardTheme();
+                const suitKey = SUIT_MAP[c.suit];
+                const hasAsset = (theme === 'retro');
 
                 let div = existingCards[cardId];
                 if (!div) {
                     div = document.createElement('div');
                     div.dataset.cardId = cardId;
-                    div.innerHTML = `
-                        <div class="corner tl">${escHtml(c.value)}<br>${c.suit}</div>
-                        <div class="hv">${escHtml(c.value)}</div>
-                        <div class="hs">${c.suit}</div>
-                        <div class="corner br">${escHtml(c.value)}<br>${c.suit}</div>
-                    `;
                 }
+                
+                // Update content every time theme might have changed
+                div.innerHTML = getCardHTML(c, theme, 'hand');
 
                 delete div.dataset.stale;
                 div.dataset.currentIndex = i;
@@ -8107,6 +8240,7 @@
                 const scale = isSelected ? 1.06 : 1;
 
                 div.className = `hand-card ${red ? 'red-card' : 'black-card'} ${playable ? 'playable' : (myTurn ? 'invalid' : '')} ${isSelected ? 'selected' : ''}`;
+                div.classList.toggle('has-asset', hasAsset);
                 if (localPeekIndex === i) div.classList.add('peeking');
 
                 div.style.transform = `translate(calc(-50% + ${tx}px), ${ty + lift}px) scale(${scale})`;
@@ -8304,7 +8438,15 @@
                 if (dragInfo.ghost) dragInfo.ghost.remove();
                 dragInfo.ghost = dragInfo.el.cloneNode(true);
                 // Keep hand-card class for styling, add ghost-card for positioning
-                dragInfo.ghost.className = 'hand-card ghost-card ' + (isRed(currentHandCards[dragInfo.index].suit) ? 'red-card' : 'black-card');
+                const theme = getCardTheme();
+                const suitKey = SUIT_MAP[currentHandCards[dragInfo.index].suit];
+                const hasAsset = (theme === 'retro');
+                
+                const isInvalid = dragInfo.el.classList.contains('invalid');
+                dragInfo.ghost.className = 'hand-card ghost-card ' + 
+                    (isRed(currentHandCards[dragInfo.index].suit) ? 'red-card' : 'black-card') +
+                    (hasAsset ? ' has-asset' : '') +
+                    (isInvalid ? ' invalid' : '');
 
                 // 🔥 RESET inline transform from renderHand
                 dragInfo.ghost.style.transform = '';
