@@ -888,7 +888,7 @@
             justify-content: flex-start;
             flex: 1;
             gap: 24px;
-            padding: 72px 20px 40px;
+            padding: 70px 20px 40px;
             z-index: 1;
             overflow-y: auto;
         }
@@ -7106,8 +7106,15 @@
                 document.getElementById('leaderboard-btn').style.display = 'none';
                 document.getElementById('ping-badge').style.display = 'none';
 
-                // Hide inputs but NOT the lobby-status
-                document.querySelectorAll('.room-box > div:not(.waiting-msg)').forEach(d => d.style.display = 'none');
+                // Hide inputs, titles, but NOT the lobby-status
+                document.querySelectorAll('.room-box > div:not(.waiting-msg), .lobby-title, .lobby-sub').forEach(el => el.style.display = 'none');
+                
+                // Reduce padding for compact mobile look
+                const lobbyCard = document.getElementById('lobby-card');
+                if (lobbyCard) {
+                    lobbyCard.style.paddingTop = '15px';
+                    lobbyCard.style.marginTop = '0';
+                }
                 document.querySelectorAll('.room-box > button').forEach(btn => btn.style.display = 'none');
                 document.getElementById('lobby-status').style.display = 'block';
                 document.getElementById('room-code-val').textContent = currentRoom ? currentRoom.toUpperCase() : '----';
