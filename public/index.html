@@ -3487,10 +3487,19 @@
             padding-right: 5px;
         }
 
+        #lobby-card {
+            margin-top: 80px;
+            max-height: 82vh;
+            display: flex;
+            flex-direction: column;
+        }
+
         #lobby-status {
             display: flex;
             flex-direction: column;
             width: 100%;
+            flex: 1;
+            overflow: hidden;
         }
 
         .lobby-status-top {
@@ -3501,10 +3510,27 @@
             display: flex;
             flex-direction: column;
             padding: 5px 0;
+            flex: 1;
+            overflow-y: auto;
+            min-height: 100px;
         }
 
         .lobby-status-bottom {
             margin-top: 10px;
+            flex-shrink: 0;
+        }
+
+        .lobby-status-middle::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .lobby-status-middle::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .lobby-status-middle::-webkit-scrollbar-thumb {
+            background: var(--gold);
+            border-radius: 10px;
         }
 
         .user-chip {
