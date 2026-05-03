@@ -1679,19 +1679,19 @@
 
 
         /* Standardize dimensions for Retro theme to match assets */
-        body.retro-theme .hand-card {
+        body.retro-theme .hand-card, body.kingdom-theme .hand-card {
             width: 68px;
             height: 100px;
         }
-        body.retro-theme .table-card {
+        body.retro-theme .table-card, body.kingdom-theme .table-card {
             width: 62px;
             height: 90px;
         }
-        body.retro-theme .opp-card-back {
+        body.retro-theme .opp-card-back, body.kingdom-theme .opp-card-back {
             width: 40px;
             height: 58px;
         }
-        body.retro-theme .opp-card-front {
+        body.retro-theme .opp-card-front, body.kingdom-theme .opp-card-front {
             width: 38px;
             height: 56px;
         }
@@ -2107,6 +2107,24 @@
             -webkit-user-select: none;
             touch-action: none;
             will-change: transform;
+        }
+
+        /* Lobby Preview Overrides */
+        #theme-preview-container .hand-card {
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(212,175,55,0.3);
+            background: var(--card-bg);
+            border-radius: 6px;
+        }
+        #theme-preview-container .hand-card .hv { font-size: 18px !important; color: inherit; }
+        #theme-preview-container .hand-card .hs { font-size: 14px !important; color: inherit; }
+        #theme-preview-container .hand-card .corner { font-size: 8px !important; line-height: 0.9; color: inherit; }
+        #theme-preview-container .hand-card .card-asset-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
 
         @keyframes dealCard {
@@ -4284,14 +4302,22 @@
                                 style="background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--gold); border-radius: 6px; font-size: 11px; padding: 2px 4px; font-weight: bold; cursor: pointer; outline: none;">
                                 <option value="classic">Classic</option>
                                 <option value="retro">Retro</option>
+                                <option value="kingdom">Kingdom</option>
                             </select>
                         </div>
                         <div class="guest-settings-area" style="display:none;">
                             <span id="guest-theme-display" class="config-value" style="font-size: 12px; text-transform: uppercase;">Classic</span>
                         </div>
                     </div>
+                    
+                    <!-- THEME PREVIEW AREA -->
+                    <div id="theme-preview-container" style="display: flex; gap: 8px; justify-content: center; margin: 12px 0 15px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid rgba(212,175,55,0.1);">
+                    </div>
                     <div id="retro-attribution" style="display:none; font-size: 9px; color: rgba(255,255,255,0.5); text-align: right; margin-top: -6px; margin-bottom: 8px; font-style: italic; padding-right: 2px;">
                         <a href="http://www.freepik.com" target="_blank" style="color: var(--gold); text-decoration: none; opacity: 0.8;">Designed by rawpixel.com / Freepik</a>
+                    </div>
+                    <div id="kingdom-attribution" style="display:none; font-size: 9px; color: rgba(255,255,255,0.5); text-align: right; margin-top: -6px; margin-bottom: 8px; font-style: italic; padding-right: 2px;">
+                        <a href="https://www.freepik.com/" target="_blank" style="color: var(--gold); text-decoration: none; opacity: 0.8;">Designed by Freepik</a>
                     </div>
 
                     <!-- ASSET BACKGROUND SELECTOR (NEW GRID STYLE) -->
@@ -4626,11 +4652,45 @@
             socket.emit('setCardTheme', val);
         }
 
+        function renderThemePreview(theme) {
+            const container = document.getElementById('theme-preview-container');
+            if (!container) return;
+            
+            // J Q K with different suits
+            const previewCards = [
+                { value: 'J', suit: '♠' },
+                { value: 'Q', suit: '♥' },
+                { value: 'K', suit: '♣' }
+            ];
+            
+            container.innerHTML = previewCards.map(c => {
+                const red = (c.suit === '♥' || c.suit === '♦');
+                // Force size and reset positioning for preview
+                const style = `
+                    position: relative; 
+                    transform: none; 
+                    top: 0;
+                    left: 0;
+                    width: 50px; 
+                    height: 72px; 
+                    flex-shrink: 0;
+                    margin: 0;
+                    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+                    cursor: default;
+                `;
+                return `
+                    <div class="hand-card ${theme}-theme ${red ? 'red-card' : 'black-card'}" style="${style}">
+                        ${getCardHTML(c, theme)}
+                    </div>
+                `;
+            }).join('');
+        }
+
         function getCardHTML(c, theme, type = 'hand') {
             const suitKey = SUIT_MAP[c.suit];
-            // Use retro assets if theme is active
-            if (theme === 'retro') {
-                const imgPath = `/assets/theme/retro/${suitKey}/${c.value}.png`;
+            // Use assets if theme is active
+            if (theme === 'retro' || theme === 'kingdom') {
+                const imgPath = `/assets/theme/${theme}/${suitKey}/${c.value}.png`;
                 return `<img src="${imgPath}" class="card-asset-img" alt="${c.value}${c.suit}">`;
             }
 
@@ -7028,11 +7088,19 @@
                     if (guestTheme) guestTheme.textContent = (s.cardTheme || 'classic').toUpperCase();
                 }
                 
-                // 🔥 TUNTUTAN USER: Toggle body class & Attribution untuk sinkronisasi ukuran kartu retro
+                // 🔥 TUNTUTAN USER: Toggle body class & Attribution untuk sinkronisasi ukuran kartu retro/kingdom
                 const isRetro = s.cardTheme === 'retro';
+                const isKingdom = s.cardTheme === 'kingdom';
                 document.body.classList.toggle('retro-theme', isRetro);
-                const attrEl = document.getElementById('retro-attribution');
-                if (attrEl) attrEl.style.display = isRetro ? 'block' : 'none';
+                document.body.classList.toggle('kingdom-theme', isKingdom);
+                
+                const attrRetro = document.getElementById('retro-attribution');
+                if (attrRetro) attrRetro.style.display = isRetro ? 'block' : 'none';
+                const attrKingdom = document.getElementById('kingdom-attribution');
+                if (attrKingdom) attrKingdom.style.display = isKingdom ? 'block' : 'none';
+
+                // Render Theme Preview
+                renderThemePreview(s.cardTheme || 'classic');
 
                 // Lobby Asset Preview Sync
                 const assetRow = document.getElementById('lobby-asset-preview-row');
@@ -7527,7 +7595,7 @@
                     const red = isRed(card.suit);
                     const theme = getCardTheme();
                     const suitKey = SUIT_MAP[card.suit];
-                    const hasAsset = (theme === 'retro');
+                    const hasAsset = (theme === 'retro' || theme === 'kingdom');
                     
                     el.className = 'table-card' + (red ? ' red-card' : ' black-card') + (hasAsset ? ' has-asset' : '');
                     el.innerHTML = getCardHTML(card, theme, 'table');
@@ -8148,10 +8216,10 @@
                     const red = (c.suit === '♥' || c.suit === '♦');
                     const theme = getCardTheme();
                     const suitKey = SUIT_MAP[c.suit];
-                    const hasAsset = (theme === 'retro');
+                    const hasAsset = (theme === 'retro' || theme === 'kingdom');
 
                     if (hasAsset) {
-                        const imgPath = `/assets/theme/retro/${suitKey}/${c.value}.png`;
+                        const imgPath = `/assets/theme/${theme}/${suitKey}/${c.value}.png`;
                         cardsHtml += `<img src="${imgPath}" class="opp-card-front has-asset ${red ? 'red-card' : ''}" style="left: 50%; top: 50%; z-index:9999" alt="${c.value}${c.suit}">`;
                     } else {
                         cardsHtml += `
@@ -8289,7 +8357,7 @@
                 const red = isRed(c.suit);
                 const theme = getCardTheme();
                 const suitKey = SUIT_MAP[c.suit];
-                const hasAsset = (theme === 'retro');
+                const hasAsset = (theme === 'retro' || theme === 'kingdom');
 
                 let div = existingCards[cardId];
                 if (!div) {
@@ -8515,7 +8583,7 @@
                 // Keep hand-card class for styling, add ghost-card for positioning
                 const theme = getCardTheme();
                 const suitKey = SUIT_MAP[currentHandCards[dragInfo.index].suit];
-                const hasAsset = (theme === 'retro');
+                const hasAsset = (theme === 'retro' || theme === 'kingdom');
                 
                 const isInvalid = dragInfo.el.classList.contains('invalid');
                 dragInfo.ghost.className = 'hand-card ghost-card ' + 
