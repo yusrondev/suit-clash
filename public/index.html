@@ -1138,7 +1138,7 @@
         }
 
         .opponent-name-container {
-            font-size: 13px;
+            font-size: 11px;
             margin-bottom: 5px;
         }
 
@@ -1150,6 +1150,7 @@
             text-shadow: 0 1px 3px rgba(0,0,0,0.8);
             opacity: 0.8;
             pointer-events: none;
+            margin-top: 12px;
         }
 
         .opp-cards {
@@ -5865,11 +5866,11 @@
                 // If on the right side, icon on the left (prepend)
                 // If on the left side, icon on the right (append)
                 if (pos === 'right') {
-                    icon.style.marginRight = '8px';
+                    icon.style.marginRight = '3px';
                     icon.style.marginLeft = '0';
                     container.prepend(icon);
                 } else {
-                    icon.style.marginLeft = '8px';
+                    icon.style.marginLeft = '3px';
                     icon.style.marginRight = '0';
                     container.appendChild(icon);
                 }
