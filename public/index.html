@@ -1241,6 +1241,44 @@
             z-index: 10000;
         }
 
+        /* PEEK PROGRESS BAR */
+        .peek-progress {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            height: 5px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            overflow: hidden;
+            display: none;
+            pointer-events: none;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+        }
+
+        .peek-progress-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #facc15, #fbbf24);
+            box-shadow: 0 0 10px rgba(250, 204, 21, 0.8);
+        }
+
+        .hand-card.holding:not(.peeking) .peek-progress {
+            display: block;
+        }
+
+        .hand-card.holding:not(.peeking) .peek-progress-fill {
+            animation: peekProgressFill 2s linear forwards;
+        }
+
+        @keyframes peekProgressFill {
+            from { width: 0%; }
+            to { width: 100%; }
+        }
+
         @keyframes eyeIn {
             0% { opacity: 0; transform: translateX(-50%) translateY(10px) scale(0.5); }
             100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
@@ -8243,7 +8281,7 @@
                 }
                 
                 // Update content every time theme might have changed
-                div.innerHTML = getCardHTML(c, theme, 'hand');
+                div.innerHTML = getCardHTML(c, theme, 'hand') + `<div class="peek-progress"><div class="peek-progress-fill"></div></div>`;
 
                 delete div.dataset.stale;
                 div.dataset.currentIndex = i;
@@ -8385,10 +8423,12 @@
         function handlePointerDown(e, index, el) {
             // 🔥 BROADCAST PEEK (Dengan Delay 2s)
             if (peekTimeout) clearTimeout(peekTimeout);
+            el.classList.add('holding'); // Tambahkan visual cooldown
             peekTimeout = setTimeout(() => {
                 socket.emit('peekCard', { index });
                 localPeekIndex = index;
                 el.classList.add('peeking'); // Tampilkan icon mata
+                el.classList.remove('holding'); // Sembunyikan cooldown
             }, 2000);
 
             el._lastPointerId = e.pointerId;
@@ -8409,6 +8449,7 @@
                     if (peekTimeout) {
                         clearTimeout(peekTimeout);
                         peekTimeout = null;
+                        el.classList.remove('holding');
                     }
                     if (localPeekIndex !== null) {
                         localPeekIndex = null;
@@ -8439,6 +8480,7 @@
             if (peekTimeout) clearTimeout(peekTimeout);
             localPeekIndex = null;
             el.classList.remove('peeking');
+            el.classList.remove('holding');
             socket.emit('peekCard', { index: null });
         }
 
