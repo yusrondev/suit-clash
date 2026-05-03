@@ -1680,20 +1680,20 @@
 
         /* Standardize dimensions for Retro theme to match assets */
         body.retro-theme .hand-card, body.kingdom-theme .hand-card {
-            width: 68px;
-            height: 100px;
+            width: 60px;
+            height: 88px;
         }
         body.retro-theme .table-card, body.kingdom-theme .table-card {
-            width: 62px;
-            height: 90px;
+            width: 54px;
+            height: 78px;
         }
         body.retro-theme .opp-card-back, body.kingdom-theme .opp-card-back {
-            width: 40px;
-            height: 58px;
+            width: 34px;
+            height: 50px;
         }
         body.retro-theme .opp-card-front, body.kingdom-theme .opp-card-front {
-            width: 38px;
-            height: 56px;
+            width: 32px;
+            height: 48px;
         }
 
         /* Universal corner markers for any card type */
@@ -2086,8 +2086,8 @@
         }
 
         .hand-card {
-            width: 62px;
-            height: 90px;
+            width: 56px;
+            height: 82px;
             border-radius: 8px;
             background: var(--card-bg);
             border: 1.5px solid rgba(0, 0, 0, 0.1);
@@ -8206,7 +8206,7 @@
 
                 for (let j = 0; j < maxDisplay; j++) {
                     const angle = (j - (maxDisplay - 1) / 2) * 7;
-                    const shift = (j - (maxDisplay - 1) / 2) * 10;
+                    const shift = (j - (maxDisplay - 1) / 2) * 8;
                     cardsHtml += `<div class="opp-card-back" style="${cbStyle}; transform: rotate(${angle}deg) translateX(${shift}px); z-index:${j}"></div>`;
                 }
 
