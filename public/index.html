@@ -5762,13 +5762,7 @@
                     audio: {
                         echoCancellation: true,
                         noiseSuppression: true,
-                        autoGainControl: true,
-                        // Chrome-specific constraints for better audio quality/volume
-                        googEchoCancellation: true,
-                        googAutoGainControl: true,
-                        googNoiseSuppression: true,
-                        googHighpassFilter: true,
-                        googTypingNoiseDetection: true
+                        autoGainControl: true
                     } 
                 });
                 isMicOn = true;
@@ -5964,6 +5958,9 @@
             if (pObj.gainNode) {
                 try { pObj.gainNode.disconnect(); } catch(e) {}
             }
+            if (pObj.compressor) {
+                try { pObj.compressor.disconnect(); } catch(e) {}
+            }
             if (pObj.analyser) {
                 try { pObj.analyser.disconnect(); } catch(e) {}
             }
@@ -5978,12 +5975,18 @@
             pObj.analyser = analyser;
             pObj.stream = stream;
 
-            // 3. Connect to Gain for Volume Control & Playback
+            // 3. Connect to Compressor and Gain for Volume Control & Playback
+            // Compressor helps prevent "kasar" (harsh/clipping) sound when volume is high
+            const compressor = audioContext.createDynamicsCompressor();
             const gainNode = audioContext.createGain();
             gainNode.gain.value = voiceVolume;
-            source.connect(gainNode);
+            
+            source.connect(compressor);
+            compressor.connect(gainNode);
             gainNode.connect(audioContext.destination);
+            
             pObj.gainNode = gainNode;
+            pObj.compressor = compressor; // Store for cleanup if needed
 
             // 4. Also attach to <audio> tag for stream stability
             let audio = document.getElementById('audio-' + peerId);
