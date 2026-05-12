@@ -3977,22 +3977,40 @@
         /* ── ADS STYLING ── */
         .ad-container {
             width: 100%;
-            margin: 15px 0;
-            min-height: 90px;
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 8px;
+            margin: 18px 0;
+            min-height: 100px;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.03) 0%, rgba(0, 0, 0, 0.4) 100%);
+            border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden;
-            border: 1px dashed rgba(212, 175, 55, 0.1);
+            border: 1px solid rgba(212, 175, 55, 0.15);
+            box-shadow: inset 0 4px 15px rgba(0,0,0,0.5);
+            position: relative;
+        }
+
+        .ad-container::before {
+            content: 'ADVERTISEMENT';
+            position: absolute;
+            top: 6px;
+            right: 12px;
+            font-size: 8px;
+            font-weight: 900;
+            color: rgba(212, 175, 55, 0.2);
+            letter-spacing: 1.5px;
+        }
+
+        .ad-placeholder {
+            color: rgba(212, 175, 55, 0.1);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
         }
     </style>
-    <!-- Google AdSense -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9921200993892142" crossorigin="anonymous"></script>
-    
-    <!-- External Shop Styles -->
-    <link rel="stylesheet" href="/css/shop.css">
+    <!-- Monetag MultiTag (Social Bar, Vignette, etc.) -->
     <script>(function(s){s.dataset.zone='10997523',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
 </head>
 
@@ -4073,13 +4091,9 @@
 
         <!-- Shop Bottom Ad -->
         <div class="ad-container">
-            <ins class="adsbygoogle"
-                 style="display:block"
-                 data-ad-client="ca-pub-9921200993892142"
-                 data-ad-slot="2995798228"
-                 data-ad-format="auto"
-                 data-full-width-responsive="true"></ins>
-            <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+            <!-- Monetag Banner / Native Ad -->
+            <div class="ad-placeholder">IKLAN DISINI</div>
+            <!-- Ganti dengan kode Banner/Native dari dashboard Monetag Anda -->
         </div>
 
         <div id="shop-guest-shield" class="shop-guest-shield">
@@ -4286,13 +4300,9 @@
             
             <!-- Lobby Main Ad -->
             <div class="ad-container">
-                <ins class="adsbygoogle"
-                     style="display:block"
-                     data-ad-client="ca-pub-9921200993892142"
-                     data-ad-slot="2995798228"
-                     data-ad-format="auto"
-                     data-full-width-responsive="true"></ins>
-                <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+                <!-- Monetag Banner / Native Ad -->
+                <div class="ad-placeholder">IKLAN DISINI</div>
+                <!-- Ganti dengan kode Banner/Native dari dashboard Monetag Anda -->
             </div>
 
             <div id="lobby-status" class="waiting-msg" style="display:none; width: 100%;">
